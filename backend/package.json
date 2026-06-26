@@ -8,6 +8,7 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.108.2",
     "adm-zip": "^0.5.17",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
@@ -16,8 +17,9 @@
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
-    "sqlite3": "^5.1.7",
-    "tesseract.js": "^5.0.5"
+    "pg": "^8.22.0",
+    "tesseract.js": "^5.0.5",
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"

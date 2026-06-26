@@ -1,8 +1,23 @@
+require('dotenv').config();
+global.WebSocket = require('ws');
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { initDb, query } = require('./db');
-const { login, authenticateToken, requireRole } = require('./auth');
+const { createClient } = require('@supabase/supabase-js');
+
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://your-supabase-project.supabase.co';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'your-service-role-key';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false
+  }
+});
+
+const { initPlatformDb, query } = require('./core/db');
+const { login, signup, authenticateToken, requireRole } = require('./core/auth');
+const { loadModules } = require('./core/registry');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -13,48 +28,24 @@ app.use(express.json());
 const uploadDir = path.join(__dirname, 'uploads');
 app.use('/uploads', express.static(uploadDir));
 
-// 1. 로그인
+// 1. 공통 인증 API
 app.post('/api/auth/login', login);
+app.post('/api/auth/signup', signup);
 
-// 1.5 회원가입 신청 (대기 계정으로 생성: is_active = 0)
-app.post('/api/auth/signup', async (req, res) => {
-  const { username, password, name, role, position, group_id, signature } = req.body;
-  if (!username || !password || !name || !role || !position) {
-    return res.status(400).json({ message: '필수 정보(아이디, 비밀번호, 이름, 직책 등)가 누락되었습니다.' });
-  }
-  try {
-    const existing = await query.get('SELECT user_id FROM users WHERE username = ?', [username]);
-    if (existing) return res.status(400).json({ message: '이미 존재하는 아이디입니다.' });
-
-    const bcrypt = require('bcryptjs');
-    const salt = await bcrypt.genSalt(10);
-    const hash = await bcrypt.hash(password, salt);
-
-    await query.run(`
-      INSERT INTO users (username, password_hash, name, role, position, group_id, signature, is_active)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 0)
-    `, [username, hash, name, role, position, group_id ? parseInt(group_id, 10) : null, signature || null]);
-
-    res.status(201).json({ message: '회원가입 신청이 완료되었습니다. 관리자 승인 후 로그인할 수 있습니다.' });
-  } catch (error) {
-    console.error('Signup error:', error);
-    res.status(500).json({ message: 'Database error' });
-  }
-});
-
-// 1.6 회원가입 신청 승인 (is_active = 1)
+// 2. 가입 승인 API (Platform Core)
 app.post('/api/users/:id/approve', authenticateToken, requireRole(['SYSTEM_ADMIN']), async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.params; // UUID
+  const projectId = req.user.projectId || (await query.get("SELECT project_id FROM platform_projects LIMIT 1"))?.project_id;
   try {
-    const targetUser = await query.get('SELECT user_id, name FROM users WHERE user_id = ?', [id]);
+    const targetUser = await query.get('SELECT user_id, display_name FROM platform_profiles WHERE user_id = ?', [id]);
     if (!targetUser) return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
 
-    await query.run('UPDATE users SET is_active = 1 WHERE user_id = ?', [id]);
+    await query.run('UPDATE platform_profiles SET is_active = TRUE WHERE user_id = ?', [id]);
 
     await query.run(`
-      INSERT INTO system_logs (user_id, action, details, ip_address, user_position, target_id, result)
-      VALUES (?, 'APPROVE_USER', ?, ?, ?, ?, 'SUCCESS')
-    `, [req.user.userId, `가입 승인: ${targetUser.name} (ID: ${id})`, req.ip, req.user.position, id]);
+      INSERT INTO platform_audit_logs (user_id, service_id, project_id, action, details, ip_address, result)
+      VALUES (?, 'platform', ?, 'APPROVE_USER', ?, ?, 'SUCCESS')
+    `, [req.user.userId, projectId, `가입 승인: ${targetUser.display_name} (ID: ${id})`, req.ip]);
 
     res.json({ message: '사용자 가입 승인이 완료되었습니다.' });
   } catch (error) {
@@ -63,262 +54,22 @@ app.post('/api/users/:id/approve', authenticateToken, requireRole(['SYSTEM_ADMIN
   }
 });
 
-// 2. 라우터 모듈 매핑
-const categoriesRouter = require('./categories');
-const vouchersRouter = require('./vouchers');
-const approvalsRouter = require('./approvals');
-const ledgersRouter = require('./ledgers');
-const { router: notificationsRouter } = require('./notifications');
-const locksRouter = require('./locks');
-const systemRouter = require('./system');
-
-app.use('/api/categories', categoriesRouter);
-app.use('/api/vouchers', vouchersRouter);
-app.use('/api/approvals', approvalsRouter);
-app.use('/api/ledgers', ledgersRouter);
-app.use('/api/notifications', notificationsRouter);
-app.use('/api/period-locks', locksRouter);
-app.use('/api/system', systemRouter);
-
-// 3. 위원회/기관(Organizations) API
-app.get('/api/organizations', async (req, res) => {
-  try {
-    const orgs = await query.all('SELECT * FROM organizations WHERE is_active = 1');
-    res.json(orgs);
-  } catch (error) {
-    res.status(500).json({ message: 'Database error' });
-  }
-});
-
-app.post('/api/organizations', authenticateToken, requireRole(['SYSTEM_ADMIN', 'AUDITOR']), async (req, res) => {
-  const { name, description } = req.body;
-  if (!name) return res.status(400).json({ message: 'Organization name is required' });
-  try {
-    const existing = await query.get('SELECT organization_id FROM organizations WHERE name = ?', [name]);
-    if (existing) return res.status(400).json({ message: 'Organization already exists' });
-
-    const result = await query.run('INSERT INTO organizations (name, description) VALUES (?, ?)', [name, description]);
-    res.status(201).json({ id: result.id, message: 'Organization created successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Database error' });
-  }
-});
-
-// 4. 소속 그룹(Groups) API
-app.get('/api/groups', async (req, res) => {
-  const { orgId } = req.query;
-  try {
-    let sql = 'SELECT g.*, o.name as organization_name FROM groups g JOIN organizations o ON g.organization_id = o.organization_id WHERE g.is_active = 1';
-    const params = [];
-    if (orgId) {
-      sql += ' AND g.organization_id = ?';
-      params.push(parseInt(orgId, 10));
-    }
-    const groups = await query.all(sql, params);
-    res.json(groups);
-  } catch (error) {
-    res.status(500).json({ message: 'Database error' });
-  }
-});
-
-app.post('/api/groups', authenticateToken, requireRole(['SYSTEM_ADMIN', 'AUDITOR']), async (req, res) => {
-  const { organization_id, name, description } = req.body;
-  if (!organization_id || !name) return res.status(400).json({ message: 'Organization ID and group name are required' });
-  try {
-    const existing = await query.get('SELECT group_id FROM groups WHERE organization_id = ? AND name = ?', [organization_id, name]);
-    if (existing) return res.status(400).json({ message: 'Group name already exists in this organization' });
-
-    const result = await query.run('INSERT INTO groups (organization_id, name, description) VALUES (?, ?, ?)', [organization_id, name, description]);
-
-    // Seed default positions for the new group
-    const DEFAULT_POSITIONS = [
-      { name: '회계', role: 'DEPARTMENT_ACCOUNTANT' },
-      { name: '부장', role: 'DEPARTMENT_HEAD' },
-      { name: '위원장', role: 'FINANCE_MANAGER' },
-      { name: '총무', role: 'DEPARTMENT_ACCOUNTANT' },
-      { name: '교역자', role: 'AUDITOR' },
-      { name: '기타', role: 'DEPARTMENT_ACCOUNTANT' }
-    ];
-    for (const pos of DEFAULT_POSITIONS) {
-      await query.run('INSERT OR IGNORE INTO group_positions (group_id, name, role) VALUES (?, ?, ?)', [result.id, pos.name, pos.role]);
-    }
-
-    res.status(201).json({ id: result.id, message: 'Group created successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Database error' });
-  }
-});
-
-// 4.5. 사용자 계정 삭제 API (어드민 전용)
-app.delete('/api/users/:id', authenticateToken, requireRole(['SYSTEM_ADMIN']), async (req, res) => {
-  const { id } = req.params;
-  if (parseInt(id, 10) === req.user.userId) {
-    return res.status(400).json({ message: '자기 자신의 계정은 삭제할 수 없습니다.' });
-  }
-  try {
-    const targetUser = await query.get('SELECT name FROM users WHERE user_id = ?', [id]);
-    if (!targetUser) return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
-    
-    await query.run('DELETE FROM users WHERE user_id = ?', [id]);
-    
-    // 감사 로그 기록
-    await query.run(`
-      INSERT INTO system_logs (user_id, action, details, ip_address, user_position, target_id, result)
-      VALUES (?, 'DELETE_USER', ?, ?, ?, ?, 'SUCCESS')
-    `, [req.user.userId, `사용자 계정 영구 삭제: ${targetUser.name} (ID: ${id})`, req.ip, req.user.position, id]);
-    
-    res.json({ message: `사용자 '${targetUser.name}' 계정이 정상 삭제되었습니다.` });
-  } catch (error) {
-    console.error('Delete user error:', error);
-    res.status(500).json({ message: 'Database error' });
-  }
-});
-
-// 4.5.2. 위원회/기관 삭제 API (어드민/재정부장 전용)
-app.delete('/api/organizations/:id', authenticateToken, requireRole(['SYSTEM_ADMIN', 'AUDITOR']), async (req, res) => {
-  const { id } = req.params;
-  try {
-    const targetOrg = await query.get('SELECT name FROM organizations WHERE organization_id = ?', [id]);
-    if (!targetOrg) return res.status(404).json({ message: '위원회를 찾을 수 없습니다.' });
-
-    // Soft delete organization and its sub-groups
-    await query.run('UPDATE organizations SET is_active = 0 WHERE organization_id = ?', [id]);
-    await query.run('UPDATE groups SET is_active = 0 WHERE organization_id = ?', [id]);
-
-    // 감사 로그 기록
-    await query.run(`
-      INSERT INTO system_logs (user_id, action, details, ip_address, user_position, target_id, result)
-      VALUES (?, 'DELETE_ORGANIZATION', ?, ?, ?, ?, 'SUCCESS')
-    `, [req.user.userId, `위원회 삭제: ${targetOrg.name} (ID: ${id})`, req.ip, req.user.position, id]);
-
-    res.json({ message: `위원회 '${targetOrg.name}' 및 산하 그룹이 성공적으로 삭제되었습니다.` });
-  } catch (error) {
-    console.error('Delete organization error:', error);
-    res.status(500).json({ message: 'Database error' });
-  }
-});
-
-// 4.5.3. 소속 그룹 삭제 API (어드민/재정부장 전용)
-app.delete('/api/groups/:id', authenticateToken, requireRole(['SYSTEM_ADMIN', 'AUDITOR']), async (req, res) => {
-  const { id } = req.params;
-  try {
-    const targetGroup = await query.get('SELECT name FROM groups WHERE group_id = ?', [id]);
-    if (!targetGroup) return res.status(404).json({ message: '소속 그룹을 찾을 수 없습니다.' });
-
-    // Soft delete group
-    await query.run('UPDATE groups SET is_active = 0 WHERE group_id = ?', [id]);
-
-    // 감사 로그 기록
-    await query.run(`
-      INSERT INTO system_logs (user_id, action, details, ip_address, user_position, target_id, result)
-      VALUES (?, 'DELETE_GROUP', ?, ?, ?, ?, 'SUCCESS')
-    `, [req.user.userId, `소속 그룹 삭제: ${targetGroup.name} (ID: ${id})`, req.ip, req.user.position, id]);
-
-    res.json({ message: `소속 그룹 '${targetGroup.name}'이(가) 성공적으로 삭제되었습니다.` });
-  } catch (error) {
-    console.error('Delete group error:', error);
-    res.status(500).json({ message: 'Database error' });
-  }
-});
-
-// 4.6. 그룹별 직책 조회 API (공개)
-app.get('/api/public/groups/:groupId/positions', async (req, res) => {
-  const { groupId } = req.params;
-  try {
-    const positions = await query.all('SELECT * FROM group_positions WHERE group_id = ? ORDER BY position_id ASC', [groupId]);
-    res.json(positions);
-  } catch (error) {
-    console.error('Fetch group positions error:', error);
-    res.status(500).json({ message: 'Database error' });
-  }
-});
-
-// 4.7. 그룹별 직책 등록 API (어드민/재정부장)
-app.post('/api/groups/:groupId/positions', authenticateToken, requireRole(['SYSTEM_ADMIN', 'AUDITOR']), async (req, res) => {
-  const { groupId } = req.params;
-  const { name, role } = req.body;
-  if (!name || !role) {
-    return res.status(400).json({ message: '직책 명칭과 권한 역할은 필수입니다.' });
-  }
-  try {
-    const result = await query.run('INSERT INTO group_positions (group_id, name, role) VALUES (?, ?, ?)', [groupId, name, role]);
-    res.status(201).json({ id: result.id, message: '직책이 등록되었습니다.' });
-  } catch (error) {
-    if (error.message.includes('UNIQUE')) {
-      return res.status(400).json({ message: '이미 해당 소속 그룹에 등록된 직책명입니다.' });
-    }
-    res.status(500).json({ message: 'Database error' });
-  }
-});
-
-// 4.8. 직책 삭제 API (어드민/재정부장)
-app.delete('/api/positions/:positionId', authenticateToken, requireRole(['SYSTEM_ADMIN', 'AUDITOR']), async (req, res) => {
-  const { positionId } = req.params;
-  try {
-    await query.run('DELETE FROM group_positions WHERE position_id = ?', [positionId]);
-    res.json({ message: '직책이 삭제되었습니다.' });
-  } catch (error) {
-    res.status(500).json({ message: 'Database error' });
-  }
-});
-
-// 5. 결재자 후보군 리스트 조회 API (전결라인용)
-app.get('/api/users/approvers', authenticateToken, async (req, res) => {
-  try {
-    // 1차 결재자 후보: DEPARTMENT_HEAD 역할군 전체
-    const deptHeads = await query.all(`
-      SELECT user_id, name, position, role FROM users 
-      WHERE role = 'DEPARTMENT_HEAD' AND is_active = 1
-    `);
-    
-    // 최종 결재자 후보: FINANCE_MANAGER / SYSTEM_ADMIN 역할군 전체
-    const financeTeams = await query.all(`
-      SELECT user_id, name, position, role FROM users 
-      WHERE (role = 'FINANCE_MANAGER' OR role = 'SYSTEM_ADMIN') AND is_active = 1
-    `);
-
-    res.json({ deptHeads, financeTeams });
-  } catch (error) {
-    res.status(500).json({ message: 'Database error' });
-  }
-});
-
-// 6. 사용자(Users) API
+// 3. 사용자 관리 API (Platform Core)
 app.get('/api/users', authenticateToken, requireRole(['SYSTEM_ADMIN', 'AUDITOR']), async (req, res) => {
   try {
+    const projectId = req.user.projectId || (await query.get("SELECT project_id FROM platform_projects LIMIT 1"))?.project_id;
     const users = await query.all(`
-      SELECT u.user_id, u.username, u.name, u.email, u.role, u.position, u.group_id, u.is_active, 
-             g.name as group_name, o.name as organization_name
-      FROM users u
-      LEFT JOIN groups g ON u.group_id = g.group_id
-      LEFT JOIN organizations o ON g.organization_id = o.organization_id
-      ORDER BY u.user_id ASC
-    `);
+      SELECT u.user_id, u.username, u.display_name as name, u.phone as email, u.is_active, u.created_at,
+             m.position, m.department_id as group_id, g.name as group_name, o.name as organization_name,
+             r.role_id as role
+      FROM platform_profiles u
+      LEFT JOIN platform_role_assignments r ON u.user_id = r.user_id AND r.service_id = 'church_think' AND r.project_id = ?
+      LEFT JOIN church_user_metadata m ON u.user_id = m.user_id
+      LEFT JOIN church_departments g ON m.department_id = g.department_id
+      LEFT JOIN church_departments o ON g.parent_id = o.department_id
+      ORDER BY u.created_at ASC
+    `, [projectId]);
     res.json(users);
-  } catch (error) {
-    res.status(500).json({ message: 'Database error' });
-  }
-});
-
-app.post('/api/users', authenticateToken, requireRole(['SYSTEM_ADMIN']), async (req, res) => {
-  const { username, password, name, email, role, position, group_id } = req.body;
-  if (!username || !password || !name || !role || !position) {
-    return res.status(400).json({ message: 'Missing required user fields' });
-  }
-  try {
-    const existing = await query.get('SELECT user_id FROM users WHERE username = ?', [username]);
-    if (existing) return res.status(400).json({ message: 'Username is already taken' });
-
-    const bcrypt = require('bcryptjs');
-    const salt = await bcrypt.genSalt(10);
-    const hash = await bcrypt.hash(password, salt);
-
-    await query.run(`
-      INSERT INTO users (username, password_hash, name, email, role, position, group_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [username, hash, name, email, role, position, group_id || null]);
-
-    res.status(201).json({ message: 'User created successfully' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Database error' });
@@ -329,32 +80,83 @@ app.put('/api/users/:id', authenticateToken, requireRole(['SYSTEM_ADMIN']), asyn
   const { id } = req.params;
   const { name, email, role, position, group_id, is_active } = req.body;
   try {
-    const user = await query.get('SELECT user_id FROM users WHERE user_id = ?', [id]);
+    const projectId = req.user.projectId || (await query.get("SELECT project_id FROM platform_projects LIMIT 1"))?.project_id;
+    const user = await query.get('SELECT user_id FROM platform_profiles WHERE user_id = ?', [id]);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     await query.run(`
-      UPDATE users 
-      SET name = ?, email = ?, role = ?, position = ?, group_id = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
+      UPDATE platform_profiles 
+      SET display_name = ?, phone = ?, is_active = ?
       WHERE user_id = ?
-    `, [name || user.name, email || user.email, role || user.role, position || user.position, group_id !== undefined ? group_id : user.group_id, is_active !== undefined ? is_active : user.is_active, id]);
+    `, [name || user.display_name, email || user.phone, is_active !== undefined ? (is_active ? TRUE : FALSE) : user.is_active, id]);
+
+    if (role) {
+      const targetRole = role === 'SYSTEM_ADMIN' ? 'super_admin' :
+                         (role === 'AUDITOR' ? 'service_admin' : 'user');
+      await query.run(`
+        INSERT INTO platform_role_assignments (user_id, service_id, project_id, role_id)
+        VALUES (?, 'church_think', ?, ?)
+        ON CONFLICT (user_id, service_id, role_id) DO UPDATE SET role_id = EXCLUDED.role_id
+      `, [id, projectId, targetRole]);
+    }
+
+    if (position || group_id !== undefined) {
+      await query.run(`
+        INSERT INTO church_user_metadata (user_id, project_id, department_id, position)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT (user_id) DO UPDATE SET department_id = EXCLUDED.department_id, position = EXCLUDED.position
+      `, [id, projectId, group_id !== undefined ? group_id : null, position || '기타']);
+    }
 
     res.json({ message: 'User updated successfully' });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Database error' });
   }
 });
 
-// 7. 로그
-app.get('/api/logs', authenticateToken, requireRole(['SYSTEM_ADMIN', 'AUDITOR']), async (req, res) => {
+app.delete('/api/users/:id', authenticateToken, requireRole(['SYSTEM_ADMIN']), async (req, res) => {
+  const { id } = req.params;
+  if (id === req.user.userId) {
+    return res.status(400).json({ message: '자기 자신의 계정은 삭제할 수 없습니다.' });
+  }
+  try {
+    const projectId = req.user.projectId || (await query.get("SELECT project_id FROM platform_projects LIMIT 1"))?.project_id;
+    const targetUser = await query.get('SELECT display_name FROM platform_profiles WHERE user_id = ?', [id]);
+    if (!targetUser) return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+    
+    // Call Supabase Admin Auth API to delete from auth.users (cascades database-wide)
+    const { error } = await supabase.auth.admin.deleteUser(id);
+    if (error) {
+      console.error('Supabase Auth user delete failed:', error);
+      return res.status(400).json({ message: `Auth service error: ${error.message}` });
+    }
+    
+    await query.run(`
+      INSERT INTO platform_audit_logs (user_id, service_id, project_id, action, details, ip_address, result)
+      VALUES (?, 'platform', ?, 'DELETE_USER', ?, ?, 'SUCCESS')
+    `, [req.user.userId, projectId, `사용자 계정 영구 삭제: ${targetUser.display_name} (ID: ${id})`, req.ip]);
+    
+    res.json({ message: `사용자 '${targetUser.display_name}' 계정이 정상 삭제되었습니다.` });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({ message: 'Database error' });
+  }
+});
+
+// 4. 시스템 감사 로그 API
+app.get('/api/logs', authenticateToken, requireRole(['SYSTEM_ADMIN', 'AUDITOR'], 'accounting'), async (req, res) => {
   const { startDate, endDate, search, action } = req.query;
   try {
+    const projectId = req.user.projectId || (await query.get("SELECT project_id FROM platform_projects LIMIT 1"))?.project_id;
     let sql = `
-      SELECT l.*, u.username, u.name as user_name, u.role as user_role
-      FROM system_logs l
-      LEFT JOIN users u ON l.user_id = u.user_id
-      WHERE 1=1
+      SELECT l.*, u.username, u.display_name as user_name, r.role_id as user_role
+      FROM platform_audit_logs l
+      LEFT JOIN platform_profiles u ON l.user_id = u.user_id
+      LEFT JOIN platform_role_assignments r ON u.user_id = r.user_id AND r.service_id = 'church_think' AND r.project_id = ?
+      WHERE l.project_id = ?
     `;
-    const params = [];
+    const params = [projectId, projectId];
     
     if (startDate) {
       sql += ' AND l.created_at >= ?';
@@ -369,7 +171,7 @@ app.get('/api/logs', authenticateToken, requireRole(['SYSTEM_ADMIN', 'AUDITOR'])
       params.push(action);
     }
     if (search) {
-      sql += ' AND (u.name LIKE ? OR u.username LIKE ? OR l.details LIKE ?)';
+      sql += ' AND (u.display_name LIKE ? OR u.username LIKE ? OR l.details LIKE ?)';
       params.push(`%${search}%`, `%${search}%`, `%${search}%`);
     }
 
@@ -377,82 +179,159 @@ app.get('/api/logs', authenticateToken, requireRole(['SYSTEM_ADMIN', 'AUDITOR'])
     const logs = await query.all(sql, params);
     res.json(logs);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Database error' });
   }
 });
 
-// 8. 관리자용 대시보드 운영 통계 API
-app.get('/api/dashboard/stats', authenticateToken, requireRole(['SYSTEM_ADMIN', 'AUDITOR']), async (req, res) => {
+// 5. 공통 알림 API
+app.get('/api/notifications', authenticateToken, async (req, res) => {
+  const { userId, projectId } = req.user;
   try {
+    const activeProjectId = projectId || (await query.get("SELECT project_id FROM platform_projects LIMIT 1"))?.project_id;
+    const notifications = await query.all(`
+      SELECT * FROM platform_notifications 
+      WHERE user_id = ? AND project_id = ? AND status != 'ARCHIVED'
+      ORDER BY created_at DESC 
+      LIMIT 50
+    `, [userId, activeProjectId]);
+    res.json(notifications);
+  } catch (error) {
+    console.error('Fetch notifications error:', error);
+    res.status(500).json({ message: 'Database error' });
+  }
+});
+
+app.get('/api/notifications/all', authenticateToken, requireRole(['SYSTEM_ADMIN', 'AUDITOR']), async (req, res) => {
+  try {
+    const projectId = req.user.projectId || (await query.get("SELECT project_id FROM platform_projects LIMIT 1"))?.project_id;
+    const notifications = await query.all(`
+      SELECT n.*, u.display_name as user_name, u.username as user_username
+      FROM platform_notifications n
+      JOIN platform_profiles u ON n.user_id = u.user_id
+      WHERE n.project_id = ?
+      ORDER BY n.created_at DESC
+    `, [projectId]);
+    res.json(notifications);
+  } catch (error) {
+    console.error('Fetch all notifications error:', error);
+    res.status(500).json({ message: 'Database error' });
+  }
+});
+
+app.put('/api/notifications/read-all', authenticateToken, async (req, res) => {
+  const { userId, projectId } = req.user;
+  try {
+    const activeProjectId = projectId || (await query.get("SELECT project_id FROM platform_projects LIMIT 1"))?.project_id;
+    const result = await query.run(`
+      UPDATE platform_notifications 
+      SET is_read = 1, status = 'READ' 
+      WHERE user_id = ? AND project_id = ? AND status = 'UNREAD'
+    `, [userId, activeProjectId]);
+    res.json({ message: 'All notifications marked as read', changes: result.changes });
+  } catch (error) {
+    console.error('Read all notifications error:', error);
+    res.status(500).json({ message: 'Database error' });
+  }
+});
+
+app.put('/api/notifications/:id/read', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { userId, projectId } = req.user;
+  try {
+    const activeProjectId = projectId || (await query.get("SELECT project_id FROM platform_projects LIMIT 1"))?.project_id;
+    const result = await query.run(`
+      UPDATE platform_notifications 
+      SET is_read = 1, status = 'READ' 
+      WHERE notification_id = ? AND user_id = ? AND project_id = ?
+    `, [parseInt(id, 10), userId, activeProjectId]);
+    res.json({ message: 'Notification marked as read', changes: result.changes });
+  } catch (error) {
+    console.error('Read notification error:', error);
+    res.status(500).json({ message: 'Database error' });
+  }
+});
+
+// 6. 공통 대시보드 통계 API (교회 회계 모듈 연동 포함)
+app.get('/api/dashboard/stats', authenticateToken, requireRole(['SYSTEM_ADMIN', 'AUDITOR'], 'accounting'), async (req, res) => {
+  try {
+    const projectId = req.user.projectId || (await query.get("SELECT project_id FROM platform_projects LIMIT 1"))?.project_id;
     const userCounts = await query.get(`
       SELECT 
         COUNT(*) as total_users,
-        SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) as pending_users
-      FROM users
+        SUM(CASE WHEN is_active = FALSE THEN 1 ELSE 0 END) as pending_users
+      FROM platform_profiles
     `);
 
     const today = new Date().toISOString().slice(0, 10);
     const voucherCounts = await query.get(`
       SELECT 
-        SUM(CASE WHEN status = 'SUBMITTED' AND date(created_at) = date(?) THEN 1 ELSE 0 END) as today_submitted,
-        SUM(CASE WHEN status = 'APPROVED' AND date(updated_at) = date(?) THEN 1 ELSE 0 END) as today_approved
-      FROM vouchers
-    `, [today, today]);
+        SUM(CASE WHEN status = 'SUBMITTED' AND CAST(created_at AS DATE) = CAST(? AS DATE) THEN 1 ELSE 0 END) as today_submitted,
+        SUM(CASE WHEN status = 'APPROVED' AND CAST(updated_at AS DATE) = CAST(? AS DATE) THEN 1 ELSE 0 END) as today_approved
+      FROM church_vouchers
+      WHERE project_id = ?
+    `, [today, today, projectId]);
 
     const currentMonth = new Date().toISOString().slice(0, 7);
     const monthFinance = await query.get(`
       SELECT 
-        SUM(CASE WHEN transaction_type = 'EXPENSE' THEN amount ELSE 0.00 END) as monthly_expense,
-        SUM(CASE WHEN transaction_type = 'INCOME' THEN amount ELSE 0.00 END) as monthly_income
-      FROM vouchers
-      WHERE status = 'APPROVED' AND strftime('%Y-%m', transaction_date) = ?
-    `, [currentMonth]);
+        SUM(CASE WHEN v.transaction_type = 'EXPENSE' THEN vi.amount ELSE 0.00 END) as monthly_expense,
+        SUM(CASE WHEN v.transaction_type = 'INCOME' THEN vi.amount ELSE 0.00 END) as monthly_income
+      FROM church_vouchers v
+      JOIN church_voucher_items vi ON v.voucher_id = vi.voucher_id
+      WHERE v.status = 'APPROVED' AND to_char(v.transaction_date, 'YYYY-MM') = ? AND v.project_id = ?
+    `, [currentMonth, projectId]);
 
     const deptExpenses = await query.all(`
-      SELECT g.name as group_name, SUM(v.amount) as total_expense
-      FROM vouchers v
-      JOIN groups g ON v.group_id = g.group_id
-      WHERE v.status = 'APPROVED' AND v.transaction_type = 'EXPENSE' AND strftime('%Y-%m', v.transaction_date) = ?
-      GROUP BY g.group_id
+      SELECT g.name as group_name, SUM(vi.amount) as total_expense
+      FROM church_vouchers v
+      JOIN church_departments g ON v.department_id = g.department_id
+      JOIN church_voucher_items vi ON v.voucher_id = vi.voucher_id
+      WHERE v.status = 'APPROVED' AND v.transaction_type = 'EXPENSE' AND to_char(v.transaction_date, 'YYYY-MM') = ? AND v.project_id = ?
+      GROUP BY g.name
       ORDER BY total_expense DESC
-    `, [currentMonth]);
+    `, [currentMonth, projectId]);
 
     const topCategory = await query.get(`
       SELECT c.parent_category || ' > ' || c.child_category as category_name, COUNT(*) as count
-      FROM vouchers v
-      JOIN account_categories c ON v.category_id = c.category_id
-      GROUP BY v.category_id
+      FROM church_vouchers v
+      JOIN church_voucher_items vi ON v.voucher_id = vi.voucher_id
+      JOIN church_account_categories c ON vi.category_id = c.category_id
+      WHERE v.project_id = ?
+      GROUP BY c.parent_category, c.child_category
       ORDER BY count DESC
       LIMIT 1
-    `);
+    `, [projectId]);
 
     let recentLogs = [];
-    if (req.user.role === 'AUDITOR') {
+    if (req.user.roles['accounting'] === 'AUDITOR' || req.user.roles['platform'] === 'SYSTEM_ADMIN') {
       recentLogs = await query.all(`
-        SELECT l.*, u.name as user_name 
-        FROM system_logs l
-        LEFT JOIN users u ON l.user_id = u.user_id
+        SELECT l.*, u.display_name as user_name 
+        FROM platform_audit_logs l
+        LEFT JOIN platform_profiles u ON l.user_id = u.user_id
+        WHERE l.project_id = ?
         ORDER BY l.created_at DESC
         LIMIT 5
-      `);
+      `, [projectId]);
     }
 
     const recentNotis = await query.all(`
-      SELECT n.*, u.name as user_name
-      FROM notifications n
-      JOIN users u ON n.user_id = u.user_id
+      SELECT n.*, u.display_name as user_name
+      FROM platform_notifications n
+      JOIN platform_profiles u ON n.user_id = u.user_id
+      WHERE n.project_id = ?
       ORDER BY n.created_at DESC
       LIMIT 5
-    `);
+    `, [projectId]);
 
     res.json({
-      totalUsers: userCounts.total_users || 0,
-      pendingUsers: userCounts.pending_users || 0,
-      todaySubmitted: voucherCounts.today_submitted || 0,
-      todayApproved: voucherCounts.today_approved || 0,
-      monthlyExpense: monthFinance.monthly_expense || 0,
-      monthlyIncome: monthFinance.monthly_income || 0,
-      deptExpenses,
+      totalUsers: parseInt(userCounts?.total_users || 0, 10),
+      pendingUsers: parseInt(userCounts?.pending_users || 0, 10),
+      todaySubmitted: parseInt(voucherCounts?.today_submitted || 0, 10),
+      todayApproved: parseInt(voucherCounts?.today_approved || 0, 10),
+      monthlyExpense: parseFloat(monthFinance?.monthly_expense || 0),
+      monthlyIncome: parseFloat(monthFinance?.monthly_income || 0),
+      deptExpenses: deptExpenses.map(d => ({ group_name: d.group_name, total_expense: parseFloat(d.total_expense) })),
       topCategory: topCategory ? topCategory.category_name : '-',
       recentLogs,
       recentNotis
@@ -463,6 +342,7 @@ app.get('/api/dashboard/stats', authenticateToken, requireRole(['SYSTEM_ADMIN', 
   }
 });
 
+// 7. 정적 서빙 및 라우트 스왑
 const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
 app.use(express.static(frontendDist));
 
@@ -473,17 +353,25 @@ app.get('*', (req, res, next) => {
   res.sendFile(path.join(frontendDist, 'index.html'));
 });
 
-const { startQueueWorker } = require('./ocr_queue');
+// 8. 플랫폼 및 모듈 초기화 부트스트랩
+const { startQueueWorker } = require('./core/ai');
 
 async function startServer() {
   try {
-    await initDb();
+    // 1. Initialize Platform Core database
+    await initPlatformDb();
+    
+    // 2. Load all service modules dynamically
+    await loadModules(app);
+    
+    // 3. Start AI queue processing
     await startQueueWorker();
+
     app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Server is running on http://localhost:${PORT}`);
+      console.log(`[Platform Server] Running on http://localhost:${PORT}`);
     });
   } catch (err) {
-    console.error('Failed to initialize database/server:', err);
+    console.error('[Platform Server] Failed to initialize:', err);
   }
 }
 
