@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Outfit', 'Noto Sans KR', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* 프리미엄 글래스모피즘 효과 */
+.glass {
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-light {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* 모바일 스크롤 영역 숨김 */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* 글씨 크기 조절 옵션 */
+html.font-scale-small {
+  font-size: 15px;
+}
+html.font-scale-normal {
+  font-size: 17.5px;
+}
+html.font-scale-large {
+  font-size: 21px;
+}
+html.font-scale-xlarge {
+  font-size: 24.5px;
+}
+
+/* 세부 픽셀 폰트 클래스별 비례적 확장 (정확한 타이포그래피 계층 보존) */
+html.font-scale-normal .text-\[7px\] { font-size: 7px; }
+html.font-scale-normal .text-\[8px\] { font-size: 8px; }
+html.font-scale-normal .text-\[9px\] { font-size: 9px; }
+html.font-scale-normal .text-\[9\.5px\] { font-size: 9.5px; }
+html.font-scale-normal .text-\[10px\] { font-size: 10px; }
+html.font-scale-normal .text-\[11px\] { font-size: 11px; }
+
+html.font-scale-large .text-\[7px\] { font-size: 9px !important; }
+html.font-scale-large .text-\[8px\] { font-size: 10px !important; }
+html.font-scale-large .text-\[9px\] { font-size: 11.5px !important; }
+html.font-scale-large .text-\[9\.5px\] { font-size: 12px !important; }
+html.font-scale-large .text-\[10px\] { font-size: 13px !important; }
+html.font-scale-large .text-\[11px\] { font-size: 14.2px !important; }
+
+html.font-scale-xlarge .text-\[7px\] { font-size: 11px !important; }
+html.font-scale-xlarge .text-\[8px\] { font-size: 12px !important; }
+html.font-scale-xlarge .text-\[9px\] { font-size: 13.8px !important; }
+html.font-scale-xlarge .text-\[9\.5px\] { font-size: 14.5px !important; }
+html.font-scale-xlarge .text-\[10px\] { font-size: 15.5px !important; }
+html.font-scale-xlarge .text-\[11px\] { font-size: 17px !important; }
+
