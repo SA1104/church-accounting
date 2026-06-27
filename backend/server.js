@@ -25,12 +25,30 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+// Legacy URL compatibility rewriter middleware (Forwarding to service/church)
+app.use((req, res, next) => {
+  if (req.url === '/api/organizations') {
+    req.url = '/api/services/church/organizations';
+    console.log(`[Platform Router] Rewrote legacy path: /api/organizations -> /api/services/church/organizations`);
+  } else if (req.url === '/api/groups') {
+    req.url = '/api/services/church/groups';
+    console.log(`[Platform Router] Rewrote legacy path: /api/groups -> /api/services/church/groups`);
+  }
+  next();
+});
+
 const uploadDir = path.join(__dirname, 'uploads');
 app.use('/uploads', express.static(uploadDir));
 
 // 1. 공통 인증 API
 app.post('/api/auth/login', login);
 app.post('/api/auth/signup', signup);
+
+// Decision Engine & Media Engine Mounts
+const decisionRouter = require('./core/decision/index.js');
+const mediaRouter = require('./core/media/index.js');
+app.use('/api/core/decision', decisionRouter);
+app.use('/api/core/media', mediaRouter);
 
 // 2. 가입 승인 API (Platform Core)
 app.post('/api/users/:id/approve', authenticateToken, requireRole(['SYSTEM_ADMIN']), async (req, res) => {
