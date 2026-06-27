@@ -415,22 +415,27 @@ app.get('/api/health/auth', async (req, res) => {
     anonKey: !!anonKey,
     serviceRoleKey: !!serviceRoleKey,
   };
+let database = 'error';
+let databaseError = null;
 
-  let database = 'error';
-  let auth = serviceRoleKey ? 'error' : 'not_configured';
+try {
 
-  try {
-    const { data, error } = await supabase
-      .from('platform_projects')
-      .select('project_id')
-      .limit(1);
+  const { data, error } = await supabase
+    .from('platform_projects')
+    .select('project_id')
+    .limit(1);
 
-    if (!error && data) {
-      database = 'ok';
-    }
-  } catch (err) {
-    database = 'error';
+  if (error) {
+    databaseError = error.message;
+  } else {
+    database = 'ok';
   }
+
+} catch(err) {
+
+  databaseError = err.message;
+
+}
 
   if (serviceRoleKey) {
     try {
@@ -454,12 +459,24 @@ app.get('/api/health/auth', async (req, res) => {
       ? 'ok'
       : 'degraded';
 
-  res.status(200).json({
+res.status(200).json({
+
     status,
-    environment: env,
+
+    environment:env,
+
     database,
+
     auth,
-  });
+
+    debug:{
+
+        databaseError,
+
+        authError
+
+    }
+
 });
 
 app.get('*', (req, res) => {
