@@ -50,6 +50,17 @@ const mediaRouter = require('./core/media/index.js');
 app.use('/api/core/decision', decisionRouter);
 app.use('/api/core/media', mediaRouter);
 
+// New Core Engine Mounts (Phase 6)
+app.use('/api/core/data', require('./core/data/index.js'));
+app.use('/api/core/cleaning', require('./core/cleaning/index.js'));
+app.use('/api/core/standardization', require('./core/standardization/index.js'));
+app.use('/api/core/intelligence', require('./core/intelligence/index.js'));
+app.use('/api/core/simulation', require('./core/simulation/index.js'));
+app.use('/api/core/prediction', require('./core/prediction/index.js'));
+app.use('/api/core/learning', require('./core/learning/index.js'));
+app.use('/api/core/distribution', require('./core/distribution/index.js'));
+app.use('/api/core/workflow', require('./core/workflow/index.js'));
+
 // 2. 가입 승인 API (Platform Core)
 app.post('/api/users/:id/approve', authenticateToken, requireRole(['SYSTEM_ADMIN']), async (req, res) => {
   const { id } = req.params; // UUID

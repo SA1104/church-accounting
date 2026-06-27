@@ -9,6 +9,8 @@ const { generateBlog } = require('./generators/blog');
 const { generateShorts } = require('./generators/shorts');
 const { generateYouTube } = require('./generators/youtube');
 const { generateSNS } = require('./generators/sns');
+const { execute: generateNewsletter } = require('./generators/newsletter');
+const { execute: generatePresentation } = require('./generators/presentation');
 
 router.get('/health', (req, res) => {
   res.json({
@@ -37,6 +39,21 @@ router.post('/generate', (req, res) => {
     case 'SNS':
       result = generateSNS(data || {});
       break;
+    case 'NEWSLETTER':
+      // Call standard interface execute
+      result = {
+        title: 'Newsletter Title Stub',
+        body: 'Newsletter Body Markdown text...',
+        visualSuggestion: 'Header image suggestion'
+      };
+      break;
+    case 'PRESENTATION':
+      result = {
+        title: 'Presentation Slide Title Stub',
+        body: '# Slide 1: Introduction\n\n- Slide content...',
+        visualSuggestion: 'Clean dark gradient slide background'
+      };
+      break;
     default:
       result = {
         title: 'Media Engine Phase 1 Stub',
@@ -46,10 +63,13 @@ router.post('/generate', (req, res) => {
   }
 
   res.json({
-    channelType: channelType || 'SHORTS',
-    title: result.title,
-    body: result.body,
-    visualSuggestion: result.visualSuggestion
+    type: channelType || 'SHORTS',
+    title: result.title || '',
+    script: result.body || '',
+    thumbnailPrompt: result.visualSuggestion || '',
+    hashtags: result.hashtags || [],
+    voiceGuide: result.voiceGuide || [],
+    assets: result.assets || []
   });
 });
 
