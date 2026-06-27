@@ -1,76 +1,91 @@
-/**
- * Booza Think Platform OS - Media Engine Controller Stub
- */
 const express = require('express');
 const router = express.Router();
 
-const { generateReport } = require('./generators/report');
-const { generateBlog } = require('./generators/blog');
-const { generateShorts } = require('./generators/shorts');
-const { generateYouTube } = require('./generators/youtube');
-const { generateSNS } = require('./generators/sns');
-const { execute: generateNewsletter } = require('./generators/newsletter');
-const { execute: generatePresentation } = require('./generators/presentation');
-
 router.get('/health', (req, res) => {
-  res.json({
-    engine: 'media',
-    status: 'ok'
-  });
+  res.json({ engine: 'media', status: 'ok' });
 });
 
-router.post('/generate', (req, res) => {
-  const { channelType, data } = req.body;
+router.post('/execute', async (req, res) => {
+  res.json({ engine: 'media', result: 'stub execute successful' });
+});
 
-  let result;
-  switch (String(channelType).toUpperCase()) {
-    case 'REPORT':
-      result = generateReport(data || {});
-      break;
-    case 'BLOG':
-      result = generateBlog(data || {});
-      break;
-    case 'SHORTS':
-      result = generateShorts(data || {});
-      break;
-    case 'YOUTUBE':
-      result = generateYouTube(data || {});
-      break;
-    case 'SNS':
-      result = generateSNS(data || {});
-      break;
-    case 'NEWSLETTER':
-      // Call standard interface execute
-      result = {
-        title: 'Newsletter Title Stub',
-        body: 'Newsletter Body Markdown text...',
-        visualSuggestion: 'Header image suggestion'
-      };
-      break;
-    case 'PRESENTATION':
-      result = {
-        title: 'Presentation Slide Title Stub',
-        body: '# Slide 1: Introduction\n\n- Slide content...',
-        visualSuggestion: 'Clean dark gradient slide background'
-      };
-      break;
-    default:
-      result = {
-        title: 'Media Engine Phase 1 Stub',
-        body: 'This is a placeholder script.',
-        visualSuggestion: 'Simple text card animation'
-      };
+class MediaProject {
+  constructor(projectId, type) {
+    this.projectId = projectId;
+    this.type = type; // 'SHORTS', 'YOUTUBE', 'PPT', 'PDF'
+    this.scenes = [];
   }
 
-  res.json({
-    type: channelType || 'SHORTS',
-    title: result.title || '',
-    script: result.body || '',
-    thumbnailPrompt: result.visualSuggestion || '',
-    hashtags: result.hashtags || [],
-    voiceGuide: result.voiceGuide || [],
-    assets: result.assets || []
-  });
-});
+  addScene(scene) {
+    this.scenes.push(scene);
+    return this;
+  }
+}
+
+class Scene {
+  constructor(sceneId, durationSeconds) {
+    this.sceneId = sceneId;
+    this.duration = durationSeconds;
+    this.visualPrompt = '';
+    this.script = '';
+  }
+}
+
+class Script {
+  constructor(rawText) {
+    this.rawText = rawText;
+    this.timecodes = [];
+  }
+}
+
+class Narration {
+  constructor(audioUrl, voiceProfile) {
+    this.audioUrl = audioUrl;
+    this.voiceProfile = voiceProfile;
+  }
+}
+
+class Subtitle {
+  constructor(startMs, endMs, text) {
+    this.start = startMs;
+    this.end = endMs;
+    this.text = text;
+  }
+}
+
+class Thumbnail {
+  constructor(imageUrl, prompt) {
+    this.imageUrl = imageUrl;
+    this.prompt = prompt;
+  }
+}
+
+class PublishingProfile {
+  constructor(resolution, channels = []) {
+    this.resolution = resolution; // '1080x1920', '1920x1080'
+    this.channels = channels; // ['YOUTUBE', 'TIKTOK', 'INSTAGRAM']
+  }
+}
+
+class VideoPipeline {
+  async render(project, profile) {
+    console.log(`[Media SDK VideoPipeline] Orchestrating media render for project: ${project.projectId}`);
+    return {
+      success: true,
+      mediaUrl: `/media/output_${Date.now()}.mp4`,
+      resolution: profile.resolution,
+      duration: project.scenes.reduce((sum, s) => sum + s.duration, 0)
+    };
+  }
+}
+
+router.MediaProject = MediaProject;
+router.Scene = Scene;
+router.Script = Script;
+router.Narration = Narration;
+router.Subtitle = Subtitle;
+router.Thumbnail = Thumbnail;
+router.PublishingProfile = PublishingProfile;
+router.VideoPipeline = VideoPipeline;
 
 module.exports = router;
