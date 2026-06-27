@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useAuth } from '../App';
+import { useAuth } from '../../../App';
 import { 
   ArrowLeft, Clock, Calendar, Shield, CreditCard, MessageSquare, 
   Edit, Trash2, Check, X, AlertTriangle, Users, ChevronLeft, ChevronRight,

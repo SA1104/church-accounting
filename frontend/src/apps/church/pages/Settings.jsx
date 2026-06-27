@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../App';
+import { useAuth } from '../../../App';
 import { 
   Settings as SettingsIcon, Plus, Users, User, FolderTree, Landmark, ShieldCheck,
   Loader2, CheckCircle2, AlertTriangle, Clock, RefreshCw, Play, Tag, FileText, Trash2

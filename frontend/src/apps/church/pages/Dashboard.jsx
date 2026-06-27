@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../App';
+import { useAuth } from '../../../App';
 import { TrendingUp, TrendingDown, Clock, AlertTriangle, XOctagon, Plus, ChevronRight, Users, RefreshCw, FileText, Activity } from 'lucide-react';
 
 export default function Dashboard() {

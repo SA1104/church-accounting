@@ -1,20 +1,24 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, FileText, PlusCircle, CheckSquare, BarChart2, Settings as SettingsIcon, LogOut, User, Bell } from 'lucide-react';
-import Signup from './pages/Signup';
+import Signup from './shared/Signup';
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import VoucherForm from './pages/VoucherForm';
-import VoucherList from './pages/VoucherList';
-import VoucherDetail from './pages/VoucherDetail';
-import LedgerView from './pages/LedgerView';
-import SettlementView from './pages/SettlementView';
-import AuditView from './pages/AuditView';
-import Settings from './pages/Settings';
+import Login from './shared/Login';
+import Dashboard from './apps/church/pages/Dashboard';
+import VoucherForm from './apps/church/pages/VoucherForm';
+import VoucherList from './apps/church/pages/VoucherList';
+import VoucherDetail from './apps/church/pages/VoucherDetail';
+import LedgerView from './apps/church/pages/LedgerView';
+import SettlementView from './apps/church/pages/SettlementView';
+import AuditView from './apps/church/pages/AuditView';
+import Settings from './apps/church/pages/Settings';
+
+import StockDashboard from './apps/stock/pages/StockDashboard';
+import EstateDashboard from './apps/estate/pages/EstateDashboard';
+import MissionDashboard from './apps/mission/pages/MissionDashboard';
 
 function PrivateRoute({ children }) {
   const { token } = useAuth();
@@ -139,9 +143,24 @@ function MobileLayout() {
               className="h-full w-auto object-contain max-w-[110px] xs:max-w-[130px] md:max-w-[160px]" 
             />
           </div>
-          <div className="border-l border-slate-800 pl-2 leading-none">
-            <h1 className="text-[10px] font-bold text-slate-400 tracking-tight">스마트 회계</h1>
-            <p className="text-[9px] text-church-400 font-bold mt-0.5">{user?.groupName || '행정지원팀'}</p>
+          <div className="border-l border-slate-800 pl-2 leading-none flex items-center gap-2">
+            <div>
+              <h1 className="text-[9px] font-bold text-slate-400 tracking-tight">Booza Think OS</h1>
+              <select
+                value={location.pathname.startsWith('/app/stock') ? 'stock' : location.pathname.startsWith('/app/estate') ? 'estate' : location.pathname.startsWith('/app/mission') ? 'mission' : 'church'}
+                onChange={(e) => {
+                  const selectedApp = e.target.value;
+                  if (selectedApp === 'church') navigate('/');
+                  else navigate(`/app/${selectedApp}`);
+                }}
+                className="bg-slate-900 border border-slate-800 text-[8px] font-bold text-church-400 rounded px-1.5 py-0.5 mt-0.5 focus:outline-none cursor-pointer"
+              >
+                <option value="church">⛪ Church Think</option>
+                <option value="stock">📈 Stock Think</option>
+                <option value="estate">🏠 Estate Think</option>
+                <option value="mission">🌐 Mission Think</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -247,6 +266,13 @@ function MobileLayout() {
           <Route path="/reports/settlement" element={<SettlementView />} />
           {(user?.role === 'AUDITOR' || user?.role === 'SYSTEM_ADMIN') && <Route path="/audit" element={<AuditView />} />}
           <Route path="/settings" element={<Settings />} />
+
+          {/* 신규 멀티 앱 스텁 경로 */}
+          <Route path="/app/church" element={<Navigate to="/" replace />} />
+          <Route path="/app/stock" element={<StockDashboard />} />
+          <Route path="/app/estate" element={<EstateDashboard />} />
+          <Route path="/app/mission" element={<MissionDashboard />} />
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

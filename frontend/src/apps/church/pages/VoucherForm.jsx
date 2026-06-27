@@ -1,7 +1,7 @@
 import React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useAuth } from '../App';
+import { useAuth } from '../../../App';
 import { 
   Camera, Save, Send, ArrowLeft, Loader2, Sparkles, UserCheck, 
   Trash2, ChevronLeft, ChevronRight, RefreshCw, Eye, CheckCircle2, AlertTriangle, Clock

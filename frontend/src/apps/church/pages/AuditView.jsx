@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../App';
+import { useAuth } from '../../../App';
 import { 
   ShieldAlert, ListFilter, Activity, Calendar, Search, RefreshCw, 
   Grid, FileText, Image as ImageIcon, CheckCircle2, AlertTriangle, Clock, 
