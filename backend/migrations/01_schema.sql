@@ -5,81 +5,6 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "vector";
 
 -- =========================================================================
--- 0. 기존 테이블 구조 안전 변경 (운영 DB 호환성 유지용 마이그레이션)
--- =========================================================================
-
--- platform_project_members 테이블 마이그레이션 (role -> role_id 및 FK 연동)
-DO $$
-BEGIN
-  -- role 컬럼을 role_id로 컬럼명 변경 (기존에 role만 존재하고 role_id가 없는 경우)
-  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='platform_project_members' AND column_name='role') AND
-     NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='platform_project_members' AND column_name='role_id') THEN
-    ALTER TABLE public.platform_project_members RENAME COLUMN role TO role_id;
-  END IF;
-
-  -- 만약 컬럼이 둘 다 없거나 최신 스키마 미적용 시 role_id 추가
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='platform_project_members' AND column_name='role_id') THEN
-    ALTER TABLE public.platform_project_members ADD COLUMN role_id VARCHAR(50);
-  END IF;
-
-  -- 외래키 제약 조건 추가
-  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_schema='public' AND constraint_name='fk_platform_project_members_role_id') THEN
-    ALTER TABLE public.platform_project_members 
-    ADD CONSTRAINT fk_platform_project_members_role_id 
-    FOREIGN KEY (role_id) REFERENCES public.platform_roles(role_id) ON DELETE SET NULL;
-  END IF;
-END $$;
-
-
--- platform_role_assignments 테이블 마이그레이션 (service_id 추가 및 복합 PK 재설정)
-DO $$
-BEGIN
-  -- service_id 컬럼 추가
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='platform_role_assignments' AND column_name='service_id') THEN
-    ALTER TABLE public.platform_role_assignments ADD COLUMN service_id VARCHAR(50);
-  END IF;
-
-  -- service_id 외래키 연결
-  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_schema='public' AND constraint_name='fk_platform_role_assignments_service_id') THEN
-    ALTER TABLE public.platform_role_assignments 
-    ADD CONSTRAINT fk_platform_role_assignments_service_id 
-    FOREIGN KEY (service_id) REFERENCES public.platform_services(service_id) ON DELETE CASCADE;
-  END IF;
-
-  -- 기존 PRIMARY KEY 제거 (복합키 갱신 목적)
-  IF EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_schema='public' AND table_name='platform_role_assignments' AND constraint_type='PRIMARY KEY') THEN
-    ALTER TABLE public.platform_role_assignments DROP CONSTRAINT IF EXISTS platform_role_assignments_pkey;
-  END IF;
-
-  -- 기본값 부여 및 NOT NULL 속성 설정
-  UPDATE public.platform_role_assignments SET service_id = 'church_think' WHERE service_id IS NULL;
-  ALTER TABLE public.platform_role_assignments ALTER COLUMN service_id SET NOT NULL;
-
-  -- 새 복합 PRIMARY KEY (user_id, service_id, project_id, role_id) 추가
-  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_schema='public' AND constraint_name='platform_role_assignments_pkey') THEN
-    ALTER TABLE public.platform_role_assignments ADD PRIMARY KEY (user_id, service_id, project_id, role_id);
-  END IF;
-END $$;
-
-
--- platform_audit_logs 테이블 마이그레이션 (service_id 추가 및 FK 연동)
-DO $$
-BEGIN
-  -- service_id 컬럼 추가
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='platform_audit_logs' AND column_name='service_id') THEN
-    ALTER TABLE public.platform_audit_logs ADD COLUMN service_id VARCHAR(50);
-  END IF;
-
-  -- 외래키 연결
-  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_schema='public' AND constraint_name='fk_platform_audit_logs_service_id') THEN
-    ALTER TABLE public.platform_audit_logs 
-    ADD CONSTRAINT fk_platform_audit_logs_service_id 
-    FOREIGN KEY (service_id) REFERENCES public.platform_services(service_id) ON DELETE SET NULL;
-  END IF;
-END $$;
-
-
--- =========================================================================
 -- 1. 플랫폼 코어 테이블 (Prefix: platform_)
 -- =========================================================================
 
@@ -288,7 +213,6 @@ CREATE TABLE IF NOT EXISTS public.platform_audit_logs (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-
 -- platform_integrations: 외부 API 및 서비스 연동 설정 정보 (예: KIS 주식 API, Slack Webhook 등)
 CREATE TABLE IF NOT EXISTS public.platform_integrations (
   integration_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -403,7 +327,7 @@ CREATE TABLE IF NOT EXISTS public.platform_ai_agent_messages (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- platform_ai_agent_memories: 시맨틱 키-값 쌍을 저장하는 사용자와 에이전트 간의 장기 기억(Long-term Memory)
+-- platform_ai_agent_memories: 사용자와 에이전트 간의 장기 기억(Long-term Memory)
 CREATE TABLE IF NOT EXISTS public.platform_ai_agent_memories (
   memory_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   agent_id UUID REFERENCES public.platform_ai_agents(agent_id) ON DELETE CASCADE,
@@ -436,7 +360,6 @@ DROP TRIGGER IF EXISTS trg_update_platform_memories_timestamp ON public.platform
 CREATE TRIGGER trg_update_platform_memories_timestamp
   BEFORE UPDATE ON public.platform_ai_agent_memories
   FOR EACH ROW EXECUTE FUNCTION public.update_platform_memories_timestamp();
-
 
 -- =========================================================================
 -- 2. Church Think 테이블 (Prefix: church_)
@@ -580,7 +503,6 @@ CREATE TABLE IF NOT EXISTS public.church_closing_periods (
   UNIQUE (project_id, period_type, period_value)
 );
 
-
 -- =========================================================================
 -- 3. Trigger: auth.users 신규 가입 시 platform_profiles 자동 생성
 -- =========================================================================
@@ -604,39 +526,8 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
-
 -- =========================================================================
--- 4. 초기 시드 데이터 시딩 (Seeding)
--- =========================================================================
-
--- 플랫폼 서비스 등록
-INSERT INTO platform_services (service_id, name, description) VALUES 
-  ('church_think', 'Church Think (교회 회계/전자결재/감사)', '교회 예산 관리 및 결재 승인 시스템'),
-  ('stock_think', 'Stock Think (주식 AI 분석)', '인공지능 기반 주식 시황 및 종목 분석'),
-  ('estate_think', 'Estate Think (부동산 분석)', '부동산 시세 데이터 수집 및 분석 플랫폼'),
-  ('mission_think', 'Mission Think (선교 협력)', '선교지 연계 및 후원 관리 시스템'),
-  ('safety_think', 'Safety Think (재난 및 안전 관리)', '시설물 화재 및 안전 점검 플랫폼'),
-  ('report_think', 'Report Think (자동 리포트)', '마크다운 리포트 자동 작성 및 내보내기')
-ON CONFLICT (service_id) DO NOTHING;
-
--- 플랫폼 역할 정의
-INSERT INTO platform_roles (role_id, name, description) VALUES
-  ('super_admin', '플랫폼 총괄관리자', '전체 서비스 및 프로젝트 제어 권한'),
-  ('service_admin', '서비스 담당 관리자', '개별 서비스 모듈의 최고 관리자 권한'),
-  ('project_admin', '프로젝트 책임자', '단일 프로젝트 소유권 및 관리 권한'),
-  ('user', '일반 이용자', '기본적인 기능 입력 및 조회 권한')
-ON CONFLICT (role_id) DO NOTHING;
-
--- 기본 AI 모델 연동
-INSERT INTO platform_ai_models (model_id, provider, api_endpoint, pricing_info, is_active) VALUES
-  ('gpt-4o', 'OpenAI', 'https://api.openai.com/v1/chat/completions', '{"input_1k": 0.005, "output_1k": 0.015}', TRUE),
-  ('claude-3-5-sonnet', 'Anthropic', 'https://api.anthropic.com/v1/messages', '{"input_1k": 0.003, "output_1k": 0.015}', TRUE),
-  ('gemini-1.5-pro', 'Google', 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent', '{"input_1k": 0.007, "output_1k": 0.021}', TRUE)
-ON CONFLICT (model_id) DO NOTHING;
-
-
--- =========================================================================
--- 5. 공통 SQL 실행기 RPC 함수 (DATABASE_URL 대체 목적, 서비스 역할 전용)
+-- 4. 공통 SQL 실행기 RPC 함수 (DATABASE_URL 대체 목적, 서비스 역할 전용)
 -- =========================================================================
 
 CREATE OR REPLACE FUNCTION public.exec_sql(query_text text, params jsonb DEFAULT '[]'::jsonb)
@@ -687,57 +578,3 @@ $$;
 REVOKE ALL ON FUNCTION public.exec_sql(text, jsonb) FROM public;
 GRANT EXECUTE ON FUNCTION public.exec_sql(text, jsonb) TO postgres;
 GRANT EXECUTE ON FUNCTION public.exec_sql(text, jsonb) TO service_role;
-
-
--- =========================================================================
--- 6. 초기 테스트용 기본 프로젝트, 부서 및 계정과목 시드 데이터 적재
--- =========================================================================
-
--- 기본 조직 (신길교회) 등록
-INSERT INTO platform_organizations (org_id, name, domain) 
-VALUES ('d7a049e0-06b2-4d26-8809-17be7bf6e491', '신길교회', 'singil.org')
-ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name;
-
--- 기본 프로젝트 (신길교회 스마트 회계) 등록
-INSERT INTO platform_projects (project_id, org_id, service_id, project_name, description)
-VALUES ('8a510c4f-c006-4442-8924-f3c75ab73cf6', 'd7a049e0-06b2-4d26-8809-17be7bf6e491', 'church_think', '신길교회 스마트 회계', '신길교회 재정부용 스마트 회계 관리 시스템')
-ON CONFLICT (project_id) DO NOTHING;
-
--- 기본 부서/그룹 등록
-INSERT INTO church_departments (department_id, project_id, parent_id, name, description) VALUES
-  (1, '8a510c4f-c006-4442-8924-f3c75ab73cf6', NULL, '행정위원회', '교회 재무 행정 및 총무 부서 통괄'),
-  (2, '8a510c4f-c006-4442-8924-f3c75ab73cf6', NULL, '찬양위원회', '각 찬양팀 및 찬양대 성가대 부서'),
-  (3, '8a510c4f-c006-4442-8924-f3c75ab73cf6', NULL, '교육위원회', '대학부, 청년부 및 교육 주일학교 부서'),
-  (4, '8a510c4f-c006-4442-8924-f3c75ab73cf6', NULL, '선교위원회', '국내외 선교 및 구제 특별 위원회')
-ON CONFLICT (department_id) DO NOTHING;
-
-INSERT INTO church_departments (department_id, project_id, parent_id, name, description) VALUES
-  (5, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 1, '행정지원팀', '교회 사무 총무 행정 지원'),
-  (6, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 2, '예뜰찬양팀', '주일 오전 예배 찬양 봉사'),
-  (7, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 2, '예루살렘찬양대', '주일 대예배 성가대'),
-  (8, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 3, '대학청년부', '대학 및 청년 전도 봉사 교육'),
-  (9, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 3, '유소년부', '초등 주일학교 어린이 성경 교육'),
-  (10, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 4, '선교기획팀', '해외선교사 연동 및 구제사업')
-ON CONFLICT (department_id) DO NOTHING;
-
-SELECT setval(pg_get_serial_sequence('church_departments', 'department_id'), COALESCE(MAX(department_id), 1)) FROM church_departments;
-
--- 기본 계정과목 등록
-INSERT INTO church_account_categories (category_id, project_id, type, parent_category, child_category, description) VALUES
-  (1, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 'INCOME', '헌금', '십일조헌금', '십일조 헌금 수입'),
-  (2, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 'INCOME', '헌금', '주일감사헌금', '주일 감사헌금'),
-  (3, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 'INCOME', '지원금', '교회보조금', '교회 본회 보조금'),
-  (4, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 'EXPENSE', '예배비', '소모품비', '주보 및 성찬 소모품'),
-  (5, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 'EXPENSE', '교육비', '교재비', '성경 공부용 교재비'),
-  (6, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 'EXPENSE', '운영비', '식비및간식비', '다과 식대 회의 비용'),
-  (7, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 'EXPENSE', '선교비', '후원금', '선교 파견 후원비')
-ON CONFLICT (category_id) DO NOTHING;
-
-SELECT setval(pg_get_serial_sequence('church_account_categories', 'category_id'), COALESCE(MAX(category_id), 1)) FROM church_account_categories;
-
-
--- =========================================================================
--- 7. 기존 기본 로그인 아이디 복구 및 권한 설정 (Supabase Auth Admin API 대체)
--- =========================================================================
--- 직접 SQL INSERT 방식을 배제하고, 서버 기동 시 Supabase Auth Admin API를 통해 
--- 안전하게 테스트 사용자를 생성하고 역할 및 메타데이터를 연결합니다.
