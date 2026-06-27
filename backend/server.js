@@ -392,7 +392,13 @@ app.use('/assets', express.static(path.join(frontendDist, 'assets'), {
   }
 }));
 
-app.use(express.static(frontendDist));
+app.use(express.static(frontendDist, {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('index.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+  }
+}));
 
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api')) {
@@ -403,6 +409,7 @@ app.get('*', (req, res) => {
     return res.status(404).send('Asset not found');
   }
 
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.sendFile(path.join(frontendDist, 'index.html'));
 });
 
