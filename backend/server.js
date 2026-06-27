@@ -6,14 +6,16 @@ const path = require('path');
 const fs = require('fs');
 const { createClient } = require('@supabase/supabase-js');
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://your-supabase-project.supabase.co';
 const SUPABASE_ANON_KEY =
   process.env.SUPABASE_ANON_KEY ||
-  process.env.SUPABASE_PUBLISHABLE_KEY;
+  process.env.SUPABASE_PUBLISHABLE_KEY ||
+  'placeholder-anon-key';
 
 const SUPABASE_SERVICE_ROLE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.SUPABASE_SECRET_KEY;
+  process.env.SUPABASE_SECRET_KEY ||
+  'placeholder-service-role-key';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: {
@@ -743,26 +745,26 @@ res.status(200).json({
 
 app.get('/api/health/auth', async (req, res) => {
   const env = {
-    supabaseUrl: !!SUPABASE_URL,
-    anonKey: !!SUPABASE_ANON_KEY,
-    serviceRoleKey: !!SUPABASE_SERVICE_ROLE_KEY,
+    supabaseUrl: !!process.env.SUPABASE_URL,
+    anonKey: !!(process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY),
+    serviceRoleKey: !!(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY),
   };
 
   let database = 'error';
-  let auth = SUPABASE_SERVICE_ROLE_KEY ? 'error' : 'not_configured';
+  let auth = env.serviceRoleKey ? 'error' : 'not_configured';
 
   let databaseError = null;
   let authError = null;
 
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  if (!process.env.SUPABASE_URL || !(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY)) {
     return res.status(200).json({
       status: 'degraded',
       environment: env,
       database: 'not_checked',
-      auth: SUPABASE_SERVICE_ROLE_KEY ? 'not_checked' : 'not_configured',
+      auth: env.serviceRoleKey ? 'not_checked' : 'not_configured',
       debug: {
-        databaseError: !SUPABASE_URL ? 'SUPABASE_URL is not configured' : null,
-        authError: !SUPABASE_SERVICE_ROLE_KEY ? 'Service role key is not configured' : null,
+        databaseError: !process.env.SUPABASE_URL ? 'SUPABASE_URL is not configured' : null,
+        authError: !(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY) ? 'Service role key is not configured' : null,
       },
     });
   }
