@@ -6,6 +6,53 @@ CREATE EXTENSION IF NOT EXISTS "vector";
 
 
 -- =========================================================================
+-- 0. 기존 테이블 정리 (스키마 변경 사항 완전 동기화 목적)
+-- =========================================================================
+
+DROP TABLE IF EXISTS public.church_closing_periods CASCADE;
+DROP TABLE IF EXISTS public.church_settlements CASCADE;
+DROP TABLE IF EXISTS public.church_ledgers CASCADE;
+DROP TABLE IF EXISTS public.church_approval_actions CASCADE;
+DROP TABLE IF EXISTS public.church_approval_lines CASCADE;
+DROP TABLE IF EXISTS public.church_receipts CASCADE;
+DROP TABLE IF EXISTS public.church_voucher_items CASCADE;
+DROP TABLE IF EXISTS public.church_vouchers CASCADE;
+DROP TABLE IF EXISTS public.church_account_categories CASCADE;
+DROP TABLE IF EXISTS public.church_user_metadata CASCADE;
+DROP TABLE IF EXISTS public.church_departments CASCADE;
+
+DROP TABLE IF EXISTS public.platform_ai_agent_memories CASCADE;
+DROP TABLE IF EXISTS public.platform_ai_agent_messages CASCADE;
+DROP TABLE IF EXISTS public.platform_ai_agent_sessions CASCADE;
+DROP TABLE IF EXISTS public.platform_ai_agents CASCADE;
+DROP TABLE IF EXISTS public.platform_document_chunks CASCADE;
+DROP TABLE IF EXISTS public.platform_documents CASCADE;
+DROP TABLE IF EXISTS public.platform_knowledge_bases CASCADE;
+DROP TABLE IF EXISTS public.platform_job_runs CASCADE;
+DROP TABLE IF EXISTS public.platform_schedulers CASCADE;
+DROP TABLE IF EXISTS public.platform_api_keys CASCADE;
+DROP TABLE IF EXISTS public.platform_integrations CASCADE;
+DROP TABLE IF EXISTS public.platform_audit_logs CASCADE;
+DROP TABLE IF EXISTS public.platform_notifications CASCADE;
+DROP TABLE IF EXISTS public.platform_search_indexes CASCADE;
+DROP TABLE IF EXISTS public.platform_files CASCADE;
+DROP TABLE IF EXISTS public.platform_ai_prompts CASCADE;
+DROP TABLE IF EXISTS public.platform_ai_models CASCADE;
+DROP TABLE IF EXISTS public.platform_events CASCADE;
+DROP TABLE IF EXISTS public.platform_tag_maps CASCADE;
+DROP TABLE IF EXISTS public.platform_tags CASCADE;
+DROP TABLE IF EXISTS public.platform_tasks CASCADE;
+DROP TABLE IF EXISTS public.platform_workflow_steps CASCADE;
+DROP TABLE IF EXISTS public.platform_workflows CASCADE;
+DROP TABLE IF EXISTS public.platform_role_assignments CASCADE;
+DROP TABLE IF EXISTS public.platform_roles CASCADE;
+DROP TABLE IF EXISTS public.platform_project_members CASCADE;
+DROP TABLE IF EXISTS public.platform_projects CASCADE;
+DROP TABLE IF EXISTS public.platform_organizations CASCADE;
+DROP TABLE IF EXISTS public.platform_profiles CASCADE;
+
+
+-- =========================================================================
 -- 1. 플랫폼 코어 테이블 (Prefix: platform_)
 -- =========================================================================
 
