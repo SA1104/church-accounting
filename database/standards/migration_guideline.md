@@ -69,7 +69,8 @@
 ---
 
 ## 📌 9. RLS (Row Level Security) 적용 규칙
-1. **보안 지향**: 사용자 데이터와 직접 결합하는 정보는 RLS를 활성화하고, 서비스별/프로젝트별 격리 정책을 명시합니다.
+1. **보안 및 개발 정책**: 개발 초기 단계에서는 RLS를 기본 비활성화한다. 운영 전환 전 서비스별/프로젝트별 정책을 검증한 후 RLS를 활성화한다.
+2. **활성화 선언**:
    ```sql
    ALTER TABLE platform_example ENABLE ROW LEVEL SECURITY;
    ```
