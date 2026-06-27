@@ -63,9 +63,17 @@ END $$;
 
 -- 기존 레코드 데이터 백포팅 및 동기화 (Not-Null 위반 방지)
 UPDATE platform_workflows SET service_id = 'church_think' WHERE service_id IS NULL;
-UPDATE platform_workflows SET workflow_key = 'wf_' || workflow_id::text WHERE workflow_key IS NULL;
-UPDATE platform_workflows SET workflow_name = name WHERE workflow_name IS NULL AND name IS NOT NULL;
-UPDATE platform_workflows SET name = workflow_name WHERE name IS NULL AND workflow_name IS NOT NULL;
+
+UPDATE platform_workflows
+SET
+  workflow_name = COALESCE(workflow_name, name, 'workflow_' || workflow_id::text),
+  name = COALESCE(name, workflow_name, 'workflow_' || workflow_id::text),
+  workflow_key = COALESCE(workflow_key, 'wf_' || workflow_id::text),
+  pipeline = COALESCE(pipeline, '[]'::jsonb)
+WHERE workflow_name IS NULL
+   OR name IS NULL
+   OR workflow_key IS NULL
+   OR pipeline IS NULL;
 
 -- 2. 워크플로우 세부 스텝 정의
 CREATE TABLE IF NOT EXISTS platform_workflow_steps (
@@ -86,7 +94,6 @@ BEGIN
     WHERE table_name = 'platform_workflow_steps' AND column_name = 'step_order'
   ) THEN
     ALTER TABLE platform_workflow_steps ADD COLUMN step_order INTEGER;
-    UPDATE platform_workflow_steps SET step_order = step_number WHERE step_number IS NOT NULL;
   END IF;
 
   IF NOT EXISTS (
@@ -94,7 +101,6 @@ BEGIN
     WHERE table_name = 'platform_workflow_steps' AND column_name = 'engine_key'
   ) THEN
     ALTER TABLE platform_workflow_steps ADD COLUMN engine_key VARCHAR(50);
-    UPDATE platform_workflow_steps SET engine_key = handler_type WHERE handler_type IS NOT NULL;
   END IF;
 
   IF NOT EXISTS (
@@ -102,7 +108,6 @@ BEGIN
     WHERE table_name = 'platform_workflow_steps' AND column_name = 'params'
   ) THEN
     ALTER TABLE platform_workflow_steps ADD COLUMN params JSONB;
-    UPDATE platform_workflow_steps SET params = config WHERE config IS NOT NULL;
   END IF;
 
   IF NOT EXISTS (
@@ -110,6 +115,31 @@ BEGIN
     WHERE table_name = 'platform_workflow_steps' AND column_name = 'condition_rule'
   ) THEN
     ALTER TABLE platform_workflow_steps ADD COLUMN condition_rule TEXT;
+  END IF;
+END $$;
+
+-- 기존 platform_workflow_steps 백포팅 UPDATE (동적 SQL 적용하여 파싱 오류 원천 차단)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'platform_workflow_steps' AND column_name = 'step_number'
+  ) THEN
+    EXECUTE 'UPDATE platform_workflow_steps SET step_order = step_number WHERE step_order IS NULL AND step_number IS NOT NULL';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'platform_workflow_steps' AND column_name = 'handler_type'
+  ) THEN
+    EXECUTE 'UPDATE platform_workflow_steps SET engine_key = handler_type WHERE engine_key IS NULL AND handler_type IS NOT NULL';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'platform_workflow_steps' AND column_name = 'config'
+  ) THEN
+    EXECUTE 'UPDATE platform_workflow_steps SET params = config WHERE params IS NULL AND config IS NOT NULL';
   END IF;
 END $$;
 
