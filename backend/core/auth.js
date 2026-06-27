@@ -224,20 +224,23 @@ async function signup(req, res) {
     const userId = data.user.id;
     const legacyServiceId = serviceId === 'accounting' ? 'church_think' : serviceId;
 
-    // Assign service membership
+    // Assign project membership
     if (legacyServiceId) {
-      await query.run(
-        'INSERT INTO platform_service_memberships (user_id, service_id) VALUES (?, ?) ON CONFLICT DO NOTHING',
-        [userId, legacyServiceId]
-      );
-
-      // Map role to platform roles
       const targetRole = role === 'SYSTEM_ADMIN' ? 'super_admin' :
                          (role === 'AUDITOR' ? 'service_admin' : 'user');
 
       await query.run(
-        'INSERT INTO platform_role_assignments (user_id, service_id, role_id) VALUES (?, ?, ?) ON CONFLICT DO NOTHING',
-        [userId, legacyServiceId, targetRole]
+        `INSERT INTO platform_project_members (project_id, user_id, role_id) 
+         VALUES ((SELECT project_id FROM platform_projects WHERE service_id = ? LIMIT 1), ?, ?)
+         ON CONFLICT (project_id, user_id) DO NOTHING`,
+        [legacyServiceId, userId, targetRole]
+      );
+
+      await query.run(
+        `INSERT INTO platform_role_assignments (user_id, service_id, project_id, role_id) 
+         VALUES (?, ?, (SELECT project_id FROM platform_projects WHERE service_id = ? LIMIT 1), ?)
+         ON CONFLICT (user_id, service_id, project_id, role_id) DO NOTHING`,
+        [userId, legacyServiceId, legacyServiceId, targetRole]
       );
 
       // Handle Church Think Metadata hook

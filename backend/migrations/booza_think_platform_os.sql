@@ -611,3 +611,104 @@ $$;
 REVOKE ALL ON FUNCTION public.exec_sql(text, jsonb) FROM public;
 GRANT EXECUTE ON FUNCTION public.exec_sql(text, jsonb) TO postgres;
 GRANT EXECUTE ON FUNCTION public.exec_sql(text, jsonb) TO service_role;
+
+
+-- =========================================================================
+-- 6. 초기 테스트용 기본 프로젝트, 부서 및 계정과목 시드 데이터 적재
+-- =========================================================================
+
+-- 기본 조직 (신길교회) 등록
+INSERT INTO platform_organizations (org_id, name, domain) 
+VALUES ('d7a049e0-06b2-4d26-8809-17be7bf6e491', '신길교회', 'singil.org')
+ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name;
+
+-- 기본 프로젝트 (신길교회 스마트 회계) 등록
+INSERT INTO platform_projects (project_id, org_id, service_id, project_name, description)
+VALUES ('8a510c4f-c006-4442-8924-f3c75ab73cf6', 'd7a049e0-06b2-4d26-8809-17be7bf6e491', 'church_think', '신길교회 스마트 회계', '신길교회 재정부용 스마트 회계 관리 시스템')
+ON CONFLICT (project_id) DO NOTHING;
+
+-- 기본 부서/그룹 등록
+INSERT INTO church_departments (department_id, project_id, parent_id, name, description) VALUES
+  (1, '8a510c4f-c006-4442-8924-f3c75ab73cf6', NULL, '행정위원회', '교회 재무 행정 및 총무 부서 통괄'),
+  (2, '8a510c4f-c006-4442-8924-f3c75ab73cf6', NULL, '찬양위원회', '각 찬양팀 및 찬양대 성가대 부서'),
+  (3, '8a510c4f-c006-4442-8924-f3c75ab73cf6', NULL, '교육위원회', '대학부, 청년부 및 교육 주일학교 부서'),
+  (4, '8a510c4f-c006-4442-8924-f3c75ab73cf6', NULL, '선교위원회', '국내외 선교 및 구제 특별 위원회')
+ON CONFLICT (department_id) DO NOTHING;
+
+INSERT INTO church_departments (department_id, project_id, parent_id, name, description) VALUES
+  (5, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 1, '행정지원팀', '교회 사무 총무 행정 지원'),
+  (6, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 2, '예뜰찬양팀', '주일 오전 예배 찬양 봉사'),
+  (7, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 2, '예루살렘찬양대', '주일 대예배 성가대'),
+  (8, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 3, '대학청년부', '대학 및 청년 전도 봉사 교육'),
+  (9, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 3, '유소년부', '초등 주일학교 어린이 성경 교육'),
+  (10, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 4, '선교기획팀', '해외선교사 연동 및 구제사업')
+ON CONFLICT (department_id) DO NOTHING;
+
+SELECT setval(pg_get_serial_sequence('church_departments', 'department_id'), COALESCE(MAX(department_id), 1)) FROM church_departments;
+
+-- 기본 계정과목 등록
+INSERT INTO church_account_categories (category_id, project_id, type, parent_category, child_category, description) VALUES
+  (1, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 'INCOME', '헌금', '십일조헌금', '십일조 헌금 수입'),
+  (2, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 'INCOME', '헌금', '주일감사헌금', '주일 감사헌금'),
+  (3, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 'INCOME', '지원금', '교회보조금', '교회 본회 보조금'),
+  (4, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 'EXPENSE', '예배비', '소모품비', '주보 및 성찬 소모품'),
+  (5, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 'EXPENSE', '교육비', '교재비', '성경 공부용 교재비'),
+  (6, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 'EXPENSE', '운영비', '식비및간식비', '다과 식대 회의 비용'),
+  (7, '8a510c4f-c006-4442-8924-f3c75ab73cf6', 'EXPENSE', '선교비', '후원금', '선교 파견 후원비')
+ON CONFLICT (category_id) DO NOTHING;
+
+SELECT setval(pg_get_serial_sequence('church_account_categories', 'category_id'), COALESCE(MAX(category_id), 1)) FROM church_account_categories;
+
+
+-- =========================================================================
+-- 7. 기존 기본 로그인 아이디 복구 및 권한 설정 (Bcrypt 해싱 적용)
+-- =========================================================================
+
+-- auth.users 테이블에 복구 대상 사용자 적재
+INSERT INTO auth.users (
+  id, 
+  instance_id, 
+  email, 
+  encrypted_password, 
+  email_confirmed_at, 
+  raw_app_meta_data, 
+  raw_user_meta_data, 
+  created_at, 
+  updated_at, 
+  role, 
+  aud,
+  confirmation_token
+) VALUES 
+  ('00000000-0000-0000-0000-000000000010', '00000000-0000-0000-0000-000000000000', 'admin@boozathink.com', '$2a$10$mVR8iHbpj36L8AwnI3mb1Omgt2NTydfrpvSEbzAD/KUujqEvp/Kfa', now(), '{"provider": "email", "providers": ["email"]}'::jsonb, '{"name": "관리자"}'::jsonb, now(), now(), 'authenticated', 'authenticated', ''),
+  ('00000000-0000-0000-0000-000000000011', '00000000-0000-0000-0000-000000000000', 'accountant@boozathink.com', '$2a$10$Bs7YvpWiI0yEovbDnO4oVujWtjg2jHi3wKsqzgS2e3PRoZk6g1VNa', now(), '{"provider": "email", "providers": ["email"]}'::jsonb, '{"name": "김회계"}'::jsonb, now(), now(), 'authenticated', 'authenticated', ''),
+  ('00000000-0000-0000-0000-000000000012', '00000000-0000-0000-0000-000000000000', 'depthead@boozathink.com', '$2a$10$g3TUrdipRlR1bpRAVgYevO8V6hVoL6KiAM6TlJfU449Mb9Gc1Hm/6', now(), '{"provider": "email", "providers": ["email"]}'::jsonb, '{"name": "박부장"}'::jsonb, now(), now(), 'authenticated', 'authenticated', ''),
+  ('00000000-0000-0000-0000-000000000013', '00000000-0000-0000-0000-000000000000', 'finance@boozathink.com', '$2a$10$Y2ga8jhlsgQIBxnyMLk6dezFI5r8rRJ0fJLwbUjFNDq4Uz6O6k.dO', now(), '{"provider": "email", "providers": ["email"]}'::jsonb, '{"name": "이재정"}'::jsonb, now(), now(), 'authenticated', 'authenticated', ''),
+  ('00000000-0000-0000-0000-000000000014', '00000000-0000-0000-0000-000000000000', 'auditor@boozathink.com', '$2a$10$Cr3Rrk1UHsl0I.1UZZV/I.4T5IrlO.i6982wN8LhzQUGO4uaV.NUK', now(), '{"provider": "email", "providers": ["email"]}'::jsonb, '{"name": "최감사"}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+-- 프로젝트 멤버십 등록
+INSERT INTO platform_project_members (project_id, user_id, role_id) VALUES
+  ('8a510c4f-c006-4442-8924-f3c75ab73cf6', '00000000-0000-0000-0000-000000000010', 'super_admin'),
+  ('8a510c4f-c006-4442-8924-f3c75ab73cf6', '00000000-0000-0000-0000-000000000011', 'user'),
+  ('8a510c4f-c006-4442-8924-f3c75ab73cf6', '00000000-0000-0000-0000-000000000012', 'user'),
+  ('8a510c4f-c006-4442-8924-f3c75ab73cf6', '00000000-0000-0000-0000-000000000013', 'user'),
+  ('8a510c4f-c006-4442-8924-f3c75ab73cf6', '00000000-0000-0000-0000-000000000014', 'service_admin')
+ON CONFLICT (project_id, user_id) DO NOTHING;
+
+-- 역할 할당 등록
+INSERT INTO platform_role_assignments (user_id, service_id, project_id, role_id) VALUES
+  ('00000000-0000-0000-0000-000000000010', 'church_think', '8a510c4f-c006-4442-8924-f3c75ab73cf6', 'super_admin'),
+  ('00000000-0000-0000-0000-000000000011', 'church_think', '8a510c4f-c006-4442-8924-f3c75ab73cf6', 'user'),
+  ('00000000-0000-0000-0000-000000000012', 'church_think', '8a510c4f-c006-4442-8924-f3c75ab73cf6', 'user'),
+  ('00000000-0000-0000-0000-000000000013', 'church_think', '8a510c4f-c006-4442-8924-f3c75ab73cf6', 'user'),
+  ('00000000-0000-0000-0000-000000000014', 'church_think', '8a510c4f-c006-4442-8924-f3c75ab73cf6', 'service_admin')
+ON CONFLICT (user_id, service_id, project_id, role_id) DO NOTHING;
+
+-- 교회 세부 메타데이터 등록
+INSERT INTO church_user_metadata (user_id, project_id, department_id, position, signature) VALUES
+  ('00000000-0000-0000-0000-000000000010', '8a510c4f-c006-4442-8924-f3c75ab73cf6', 5, '기타', '관리자 (기타) (인)'),
+  ('00000000-0000-0000-0000-000000000011', '8a510c4f-c006-4442-8924-f3c75ab73cf6', 6, '회계', '김회계 (회계) (인)'),
+  ('00000000-0000-0000-0000-000000000012', '8a510c4f-c006-4442-8924-f3c75ab73cf6', 6, '부장', '박부장 (부장) (인)'),
+  ('00000000-0000-0000-0000-000000000013', '8a510c4f-c006-4442-8924-f3c75ab73cf6', 5, '위원장', '이재정 (위원장) (인)'),
+  ('00000000-0000-0000-0000-000000000014', '8a510c4f-c006-4442-8924-f3c75ab73cf6', 5, '교역자', '최감사 (교역자) (인)')
+ON CONFLICT (user_id) DO NOTHING;
