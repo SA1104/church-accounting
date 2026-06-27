@@ -372,12 +372,13 @@ app.get('/api/dashboard/stats', authenticateToken, requireRole(['SYSTEM_ADMIN', 
 });
 
 // 7. 정적 서빙 및 라우트 스왑
-const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
+const frontendDist = path.join(__dirname, '../frontend/dist');
+
 app.use(express.static(frontendDist));
 
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
-    return next();
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({ error: 'API route not found' });
   }
   res.sendFile(path.join(frontendDist, 'index.html'));
 });
