@@ -395,7 +395,9 @@ app.use('/assets', express.static(path.join(frontendDist, 'assets'), {
 app.use(express.static(frontendDist, {
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('index.html')) {
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
     }
   }
 }));
@@ -409,7 +411,9 @@ app.get('*', (req, res) => {
     return res.status(404).send('Asset not found');
   }
 
-  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.sendFile(path.join(frontendDist, 'index.html'));
 });
 
