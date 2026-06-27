@@ -4,52 +4,79 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- pgvector 확장 활성화 (향후 Vector Search를 위해 미리 선언)
 CREATE EXTENSION IF NOT EXISTS "vector";
 
-
 -- =========================================================================
--- 0. 기존 테이블 정리 (스키마 변경 사항 완전 동기화 목적)
+-- 0. 기존 테이블 구조 안전 변경 (운영 DB 호환성 유지용 마이그레이션)
 -- =========================================================================
 
-DROP TABLE IF EXISTS public.church_closing_periods CASCADE;
-DROP TABLE IF EXISTS public.church_settlements CASCADE;
-DROP TABLE IF EXISTS public.church_ledgers CASCADE;
-DROP TABLE IF EXISTS public.church_approval_actions CASCADE;
-DROP TABLE IF EXISTS public.church_approval_lines CASCADE;
-DROP TABLE IF EXISTS public.church_receipts CASCADE;
-DROP TABLE IF EXISTS public.church_voucher_items CASCADE;
-DROP TABLE IF EXISTS public.church_vouchers CASCADE;
-DROP TABLE IF EXISTS public.church_account_categories CASCADE;
-DROP TABLE IF EXISTS public.church_user_metadata CASCADE;
-DROP TABLE IF EXISTS public.church_departments CASCADE;
+-- platform_project_members 테이블 마이그레이션 (role -> role_id 및 FK 연동)
+DO $$
+BEGIN
+  -- role 컬럼을 role_id로 컬럼명 변경 (기존에 role만 존재하고 role_id가 없는 경우)
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='platform_project_members' AND column_name='role') AND
+     NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='platform_project_members' AND column_name='role_id') THEN
+    ALTER TABLE public.platform_project_members RENAME COLUMN role TO role_id;
+  END IF;
 
-DROP TABLE IF EXISTS public.platform_ai_agent_memories CASCADE;
-DROP TABLE IF EXISTS public.platform_ai_agent_messages CASCADE;
-DROP TABLE IF EXISTS public.platform_ai_agent_sessions CASCADE;
-DROP TABLE IF EXISTS public.platform_ai_agents CASCADE;
-DROP TABLE IF EXISTS public.platform_document_chunks CASCADE;
-DROP TABLE IF EXISTS public.platform_documents CASCADE;
-DROP TABLE IF EXISTS public.platform_knowledge_bases CASCADE;
-DROP TABLE IF EXISTS public.platform_job_runs CASCADE;
-DROP TABLE IF EXISTS public.platform_schedulers CASCADE;
-DROP TABLE IF EXISTS public.platform_api_keys CASCADE;
-DROP TABLE IF EXISTS public.platform_integrations CASCADE;
-DROP TABLE IF EXISTS public.platform_audit_logs CASCADE;
-DROP TABLE IF EXISTS public.platform_notifications CASCADE;
-DROP TABLE IF EXISTS public.platform_search_indexes CASCADE;
-DROP TABLE IF EXISTS public.platform_files CASCADE;
-DROP TABLE IF EXISTS public.platform_ai_prompts CASCADE;
-DROP TABLE IF EXISTS public.platform_ai_models CASCADE;
-DROP TABLE IF EXISTS public.platform_events CASCADE;
-DROP TABLE IF EXISTS public.platform_tag_maps CASCADE;
-DROP TABLE IF EXISTS public.platform_tags CASCADE;
-DROP TABLE IF EXISTS public.platform_tasks CASCADE;
-DROP TABLE IF EXISTS public.platform_workflow_steps CASCADE;
-DROP TABLE IF EXISTS public.platform_workflows CASCADE;
-DROP TABLE IF EXISTS public.platform_role_assignments CASCADE;
-DROP TABLE IF EXISTS public.platform_roles CASCADE;
-DROP TABLE IF EXISTS public.platform_project_members CASCADE;
-DROP TABLE IF EXISTS public.platform_projects CASCADE;
-DROP TABLE IF EXISTS public.platform_organizations CASCADE;
-DROP TABLE IF EXISTS public.platform_profiles CASCADE;
+  -- 만약 컬럼이 둘 다 없거나 최신 스키마 미적용 시 role_id 추가
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='platform_project_members' AND column_name='role_id') THEN
+    ALTER TABLE public.platform_project_members ADD COLUMN role_id VARCHAR(50);
+  END IF;
+
+  -- 외래키 제약 조건 추가
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_schema='public' AND constraint_name='fk_platform_project_members_role_id') THEN
+    ALTER TABLE public.platform_project_members 
+    ADD CONSTRAINT fk_platform_project_members_role_id 
+    FOREIGN KEY (role_id) REFERENCES public.platform_roles(role_id) ON DELETE SET NULL;
+  END IF;
+END $$;
+
+
+-- platform_role_assignments 테이블 마이그레이션 (service_id 추가 및 복합 PK 재설정)
+DO $$
+BEGIN
+  -- service_id 컬럼 추가
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='platform_role_assignments' AND column_name='service_id') THEN
+    ALTER TABLE public.platform_role_assignments ADD COLUMN service_id VARCHAR(50);
+  END IF;
+
+  -- service_id 외래키 연결
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_schema='public' AND constraint_name='fk_platform_role_assignments_service_id') THEN
+    ALTER TABLE public.platform_role_assignments 
+    ADD CONSTRAINT fk_platform_role_assignments_service_id 
+    FOREIGN KEY (service_id) REFERENCES public.platform_services(service_id) ON DELETE CASCADE;
+  END IF;
+
+  -- 기존 PRIMARY KEY 제거 (복합키 갱신 목적)
+  IF EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_schema='public' AND table_name='platform_role_assignments' AND constraint_type='PRIMARY KEY') THEN
+    ALTER TABLE public.platform_role_assignments DROP CONSTRAINT IF EXISTS platform_role_assignments_pkey;
+  END IF;
+
+  -- 기본값 부여 및 NOT NULL 속성 설정
+  UPDATE public.platform_role_assignments SET service_id = 'church_think' WHERE service_id IS NULL;
+  ALTER TABLE public.platform_role_assignments ALTER COLUMN service_id SET NOT NULL;
+
+  -- 새 복합 PRIMARY KEY (user_id, service_id, project_id, role_id) 추가
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_schema='public' AND constraint_name='platform_role_assignments_pkey') THEN
+    ALTER TABLE public.platform_role_assignments ADD PRIMARY KEY (user_id, service_id, project_id, role_id);
+  END IF;
+END $$;
+
+
+-- platform_audit_logs 테이블 마이그레이션 (service_id 추가 및 FK 연동)
+DO $$
+BEGIN
+  -- service_id 컬럼 추가
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='platform_audit_logs' AND column_name='service_id') THEN
+    ALTER TABLE public.platform_audit_logs ADD COLUMN service_id VARCHAR(50);
+  END IF;
+
+  -- 외래키 연결
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_schema='public' AND constraint_name='fk_platform_audit_logs_service_id') THEN
+    ALTER TABLE public.platform_audit_logs 
+    ADD CONSTRAINT fk_platform_audit_logs_service_id 
+    FOREIGN KEY (service_id) REFERENCES public.platform_services(service_id) ON DELETE SET NULL;
+  END IF;
+END $$;
 
 
 -- =========================================================================
@@ -70,7 +97,7 @@ CREATE TABLE IF NOT EXISTS public.platform_profiles (
 -- platform_services: 플랫폼에 탑재된 서비스 종류
 CREATE TABLE IF NOT EXISTS public.platform_services (
   service_id VARCHAR(50) PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
+  name VARCHAR(100) NOT NULL UNIQUE,
   description TEXT,
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -97,15 +124,6 @@ CREATE TABLE IF NOT EXISTS public.platform_projects (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- platform_project_members: 프로젝트에 소속된 멤버 및 권한
-CREATE TABLE IF NOT EXISTS public.platform_project_members (
-  project_id UUID REFERENCES public.platform_projects(project_id) ON DELETE CASCADE,
-  user_id UUID REFERENCES public.platform_profiles(user_id) ON DELETE CASCADE,
-  role VARCHAR(50) NOT NULL DEFAULT 'MEMBER', -- 'ADMIN', 'MEMBER', 'READER'
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (project_id, user_id)
-);
-
 -- platform_roles: 전역 역할 마스터
 CREATE TABLE IF NOT EXISTS public.platform_roles (
   role_id VARCHAR(50) PRIMARY KEY,
@@ -113,12 +131,22 @@ CREATE TABLE IF NOT EXISTS public.platform_roles (
   description TEXT
 );
 
+-- platform_project_members: 프로젝트에 소속된 멤버 및 권한
+CREATE TABLE IF NOT EXISTS public.platform_project_members (
+  project_id UUID REFERENCES public.platform_projects(project_id) ON DELETE CASCADE,
+  user_id UUID REFERENCES public.platform_profiles(user_id) ON DELETE CASCADE,
+  role_id VARCHAR(50) REFERENCES public.platform_roles(role_id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (project_id, user_id)
+);
+
 -- platform_role_assignments: 사용자의 역할 지정
 CREATE TABLE IF NOT EXISTS public.platform_role_assignments (
   user_id UUID REFERENCES public.platform_profiles(user_id) ON DELETE CASCADE,
+  service_id VARCHAR(50) NOT NULL REFERENCES public.platform_services(service_id) ON DELETE CASCADE,
   project_id UUID REFERENCES public.platform_projects(project_id) ON DELETE CASCADE,
   role_id VARCHAR(50) REFERENCES public.platform_roles(role_id) ON DELETE CASCADE,
-  PRIMARY KEY (user_id, project_id, role_id)
+  PRIMARY KEY (user_id, service_id, project_id, role_id)
 );
 
 -- platform_workflows: 실행할 자동화 워크플로우 정의
@@ -251,6 +279,7 @@ CREATE TABLE IF NOT EXISTS public.platform_notifications (
 CREATE TABLE IF NOT EXISTS public.platform_audit_logs (
   log_id BIGSERIAL PRIMARY KEY,
   user_id UUID REFERENCES public.platform_profiles(user_id) ON DELETE SET NULL,
+  service_id VARCHAR(50) REFERENCES public.platform_services(service_id) ON DELETE SET NULL,
   project_id UUID REFERENCES public.platform_projects(project_id) ON DELETE CASCADE,
   action VARCHAR(100) NOT NULL,
   details TEXT,
@@ -708,54 +737,7 @@ SELECT setval(pg_get_serial_sequence('church_account_categories', 'category_id')
 
 
 -- =========================================================================
--- 7. 기존 기본 로그인 아이디 복구 및 권한 설정 (Bcrypt 해싱 적용)
+-- 7. 기존 기본 로그인 아이디 복구 및 권한 설정 (Supabase Auth Admin API 대체)
 -- =========================================================================
-
--- auth.users 테이블에 복구 대상 사용자 적재
-INSERT INTO auth.users (
-  id, 
-  instance_id, 
-  email, 
-  encrypted_password, 
-  email_confirmed_at, 
-  raw_app_meta_data, 
-  raw_user_meta_data, 
-  created_at, 
-  updated_at, 
-  role, 
-  aud,
-  confirmation_token
-) VALUES 
-  ('00000000-0000-0000-0000-000000000010', '00000000-0000-0000-0000-000000000000', 'admin@boozathink.com', '$2a$10$mVR8iHbpj36L8AwnI3mb1Omgt2NTydfrpvSEbzAD/KUujqEvp/Kfa', now(), '{"provider": "email", "providers": ["email"]}'::jsonb, '{"name": "관리자"}'::jsonb, now(), now(), 'authenticated', 'authenticated', ''),
-  ('00000000-0000-0000-0000-000000000011', '00000000-0000-0000-0000-000000000000', 'accountant@boozathink.com', '$2a$10$Bs7YvpWiI0yEovbDnO4oVujWtjg2jHi3wKsqzgS2e3PRoZk6g1VNa', now(), '{"provider": "email", "providers": ["email"]}'::jsonb, '{"name": "김회계"}'::jsonb, now(), now(), 'authenticated', 'authenticated', ''),
-  ('00000000-0000-0000-0000-000000000012', '00000000-0000-0000-0000-000000000000', 'depthead@boozathink.com', '$2a$10$g3TUrdipRlR1bpRAVgYevO8V6hVoL6KiAM6TlJfU449Mb9Gc1Hm/6', now(), '{"provider": "email", "providers": ["email"]}'::jsonb, '{"name": "박부장"}'::jsonb, now(), now(), 'authenticated', 'authenticated', ''),
-  ('00000000-0000-0000-0000-000000000013', '00000000-0000-0000-0000-000000000000', 'finance@boozathink.com', '$2a$10$Y2ga8jhlsgQIBxnyMLk6dezFI5r8rRJ0fJLwbUjFNDq4Uz6O6k.dO', now(), '{"provider": "email", "providers": ["email"]}'::jsonb, '{"name": "이재정"}'::jsonb, now(), now(), 'authenticated', 'authenticated', ''),
-  ('00000000-0000-0000-0000-000000000014', '00000000-0000-0000-0000-000000000000', 'auditor@boozathink.com', '$2a$10$Cr3Rrk1UHsl0I.1UZZV/I.4T5IrlO.i6982wN8LhzQUGO4uaV.NUK', now(), '{"provider": "email", "providers": ["email"]}'::jsonb, '{"name": "최감사"}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
-ON CONFLICT (id) DO NOTHING;
-
--- 프로젝트 멤버십 등록
-INSERT INTO platform_project_members (project_id, user_id, role_id) VALUES
-  ('8a510c4f-c006-4442-8924-f3c75ab73cf6', '00000000-0000-0000-0000-000000000010', 'super_admin'),
-  ('8a510c4f-c006-4442-8924-f3c75ab73cf6', '00000000-0000-0000-0000-000000000011', 'user'),
-  ('8a510c4f-c006-4442-8924-f3c75ab73cf6', '00000000-0000-0000-0000-000000000012', 'user'),
-  ('8a510c4f-c006-4442-8924-f3c75ab73cf6', '00000000-0000-0000-0000-000000000013', 'user'),
-  ('8a510c4f-c006-4442-8924-f3c75ab73cf6', '00000000-0000-0000-0000-000000000014', 'service_admin')
-ON CONFLICT (project_id, user_id) DO NOTHING;
-
--- 역할 할당 등록
-INSERT INTO platform_role_assignments (user_id, service_id, project_id, role_id) VALUES
-  ('00000000-0000-0000-0000-000000000010', 'church_think', '8a510c4f-c006-4442-8924-f3c75ab73cf6', 'super_admin'),
-  ('00000000-0000-0000-0000-000000000011', 'church_think', '8a510c4f-c006-4442-8924-f3c75ab73cf6', 'user'),
-  ('00000000-0000-0000-0000-000000000012', 'church_think', '8a510c4f-c006-4442-8924-f3c75ab73cf6', 'user'),
-  ('00000000-0000-0000-0000-000000000013', 'church_think', '8a510c4f-c006-4442-8924-f3c75ab73cf6', 'user'),
-  ('00000000-0000-0000-0000-000000000014', 'church_think', '8a510c4f-c006-4442-8924-f3c75ab73cf6', 'service_admin')
-ON CONFLICT (user_id, service_id, project_id, role_id) DO NOTHING;
-
--- 교회 세부 메타데이터 등록
-INSERT INTO church_user_metadata (user_id, project_id, department_id, position, signature) VALUES
-  ('00000000-0000-0000-0000-000000000010', '8a510c4f-c006-4442-8924-f3c75ab73cf6', 5, '기타', '관리자 (기타) (인)'),
-  ('00000000-0000-0000-0000-000000000011', '8a510c4f-c006-4442-8924-f3c75ab73cf6', 6, '회계', '김회계 (회계) (인)'),
-  ('00000000-0000-0000-0000-000000000012', '8a510c4f-c006-4442-8924-f3c75ab73cf6', 6, '부장', '박부장 (부장) (인)'),
-  ('00000000-0000-0000-0000-000000000013', '8a510c4f-c006-4442-8924-f3c75ab73cf6', 5, '위원장', '이재정 (위원장) (인)'),
-  ('00000000-0000-0000-0000-000000000014', '8a510c4f-c006-4442-8924-f3c75ab73cf6', 5, '교역자', '최감사 (교역자) (인)')
-ON CONFLICT (user_id) DO NOTHING;
+-- 직접 SQL INSERT 방식을 배제하고, 서버 기동 시 Supabase Auth Admin API를 통해 
+-- 안전하게 테스트 사용자를 생성하고 역할 및 메타데이터를 연결합니다.
