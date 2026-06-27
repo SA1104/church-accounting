@@ -2,7 +2,22 @@
  * Booza Think Core SDK - Product & Onboarding Framework (Phase 7)
  */
 const db = require('../db/index.js');
-const { registry } = require('../../kernel/index.js');
+// Registry Mock Fallback (Option ②: Decouple from Kernel)
+let registry = {
+  register: async (type, id, name, version, owner, metadata) => {
+    console.log(`[Mock Registry] Registered ${type}: ${name} (${id}) v${version} under ${owner}`);
+    return true;
+  }
+};
+
+try {
+  const kernel = require('../../kernel/index.js');
+  if (kernel && kernel.registry) {
+    registry = kernel.registry;
+  }
+} catch (e) {
+  console.log('[Product SDK] Kernel not found or failed to load. Using Mock Runtime Registry.');
+}
 
 class ProductInterface {
   constructor(productId, config = {}) {

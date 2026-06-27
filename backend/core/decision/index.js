@@ -10,7 +10,22 @@ router.post('/execute', async (req, res) => {
 });
 
 const db = require('../db/index.js');
-const { eventBus } = require('../../kernel/index.js');
+// EventBus Mock Fallback (Option ②: Decouple from Kernel)
+let eventBus = {
+  publish: (event, data) => {
+    console.log(`[Mock EventBus] Published event: ${event}`, data);
+  },
+  subscribe: () => {}
+};
+
+try {
+  const kernel = require('../../kernel/index.js');
+  if (kernel && kernel.eventBus) {
+    eventBus = kernel.eventBus;
+  }
+} catch (e) {
+  console.log('[Decision SDK] Kernel not found or failed to load. Using Mock Runtime EventBus.');
+}
 
 class DecisionContext {
   constructor(projectId, serviceId, userId) {
