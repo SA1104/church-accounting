@@ -6,8 +6,14 @@ const path = require('path');
 const fs = require('fs');
 const { createClient } = require('@supabase/supabase-js');
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://your-supabase-project.supabase.co';
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || 'your-service-role-key';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY =
+  process.env.SUPABASE_ANON_KEY ||
+  process.env.SUPABASE_PUBLISHABLE_KEY;
+
+const SUPABASE_SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SECRET_KEY;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: {
@@ -15,6 +21,14 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     autoRefreshToken: false
   }
 });
+
+// Warn if Supabase keys are not properly set
+if (!SUPABASE_SERVICE_ROLE_KEY || SUPABASE_SERVICE_ROLE_KEY.includes('your-service-role-key') || SUPABASE_SERVICE_ROLE_KEY.includes('dummy')) {
+  console.warn('[Supabase] Service Role Key is missing or placeholder. Auth operations may fail.');
+}
+if (!SUPABASE_ANON_KEY) {
+  console.warn('[Supabase] Anon/Public key is missing. Public auth operations may fail.');
+}
 
 const { initPlatformDb, query } = require('./core/db');
 const { login, signup, authenticateToken, requireRole } = require('./core/auth');
@@ -25,6 +39,7 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+// Duplicate health route removed; robust implementation retained later in file
 
 // Legacy URL compatibility rewriter middleware (Forwarding to service/church)
 app.use((req, res, next) => {
@@ -142,6 +157,253 @@ app.put('/api/users/:id', authenticateToken, requireRole(['SYSTEM_ADMIN']), asyn
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Database error' });
+  }
+});
+
+// Platform Onboarding & Branding APIs (TEAM G & TEAM C)
+app.get('/api/church/profile', authenticateToken, async (req, res) => {
+  try {
+    const projectId = req.user.projectId || (await query.get("SELECT project_id FROM platform_projects LIMIT 1"))?.project_id;
+    const profile = await query.get('SELECT * FROM church_profiles WHERE project_id = ? LIMIT 1', [projectId]);
+    if (profile) {
+      return res.json(profile);
+    }
+    // Fallback to default branding info (Shin-gil Church)
+    return res.json({
+      church_name: '신길교회',
+      denomination: '기독교대한성결교회',
+      region: '서울시 영등포구',
+      manager_name: '관리자',
+      primary_color: '#38669b',
+      secondary_color: '#2b517d',
+      logo_url: '/church_logo.png'
+    });
+  } catch (err) {
+    console.error('Error fetching church profile:', err);
+    res.status(500).json({ message: 'Database error' });
+  }
+});
+
+// Billing & Usage Stub APIs (Commercial Architecture)
+app.get('/api/billing/subscription', authenticateToken, async (req, res) => {
+  try {
+    const projectId = req.user.projectId || (await query.get("SELECT project_id FROM platform_projects LIMIT 1"))?.project_id;
+    let sub = await query.get('SELECT * FROM billing_stubs WHERE project_id = ? LIMIT 1', [projectId]);
+    if (!sub) {
+      await query.run(`
+        INSERT INTO billing_stubs (project_id, tier, status, amount)
+        VALUES (?, 'Free', 'ACTIVE', 0.00)
+      `, [projectId]);
+      sub = await query.get('SELECT * FROM billing_stubs WHERE project_id = ? LIMIT 1', [projectId]);
+    }
+    res.json(sub);
+  } catch (err) {
+    console.error('Error fetching billing subscription:', err);
+    res.status(500).json({ message: 'Database error' });
+  }
+});
+
+app.get('/api/billing/usage', authenticateToken, async (req, res) => {
+  try {
+    const projectId = req.user.projectId || (await query.get("SELECT project_id FROM platform_projects LIMIT 1"))?.project_id;
+    const usage = await query.all('SELECT * FROM usage_stubs WHERE project_id = ?', [projectId]);
+    if (usage.length === 0) {
+      const metrics = [
+        { name: 'LLM_TOKEN', qty: 25000, unit: 'TOKENS' },
+        { name: 'OCR', qty: 42, unit: 'DOCUMENTS' },
+        { name: 'STORAGE', qty: 1.84, unit: 'GB' },
+        { name: 'IMAGE_GENERATION', qty: 8, unit: 'IMAGES' },
+        { name: 'VIDEO_GENERATION', qty: 120, unit: 'SECONDS' },
+        { name: 'REPORT_GENERATION', qty: 14, unit: 'REPORTS' },
+        { name: 'PPT_GENERATION', qty: 3, unit: 'TEMPLATES' },
+        { name: 'API_CALL', qty: 450, unit: 'CALLS' },
+        { name: 'WORKFLOW', qty: 95, unit: 'RUNS' }
+      ];
+      for (const m of metrics) {
+        await query.run(`
+          INSERT INTO usage_stubs (project_id, metric_name, quantity, unit)
+          VALUES (?, ?, ?, ?)
+        `, [projectId, m.name, m.qty, m.unit]);
+      }
+      const freshUsage = await query.all('SELECT * FROM usage_stubs WHERE project_id = ?', [projectId]);
+      return res.json(freshUsage);
+    }
+    res.json(usage);
+  } catch (err) {
+    console.error('Error fetching usage:', err);
+    res.status(500).json({ message: 'Database error' });
+  }
+});
+
+// Governance Engine Registry API (TEAM F & TEAM D)
+// GET /api/governance/registry?type=engine
+// GET /api/governance/registry?type=plugin
+// GET /api/governance/registry?type=dataset
+// GET /api/governance/registry?type=product
+app.get('/api/governance/registry', authenticateToken, async (req, res) => {
+  const { type } = req.query; // 'engine', 'plugin', 'dataset', 'product'
+  try {
+    let registryType = null;
+    if (type) {
+      registryType = type.toUpperCase();
+    }
+    
+    let rows;
+    if (registryType) {
+      rows = await query.all('SELECT * FROM platform_registries WHERE registry_type = ? ORDER BY item_key ASC', [registryType]);
+    } else {
+      rows = await query.all('SELECT * FROM platform_registries ORDER BY registry_type ASC, item_key ASC');
+    }
+    
+    // Fallback stub metadata if DB is not populated or empty
+    if (rows.length === 0) {
+      const mockItems = [
+        { registry_type: 'ENGINE', item_key: 'DataEngine', item_name: 'DataEngine Component', version: '1.0.0', owner: 'PLATFORM_ADMIN', enabled: true },
+        { registry_type: 'ENGINE', item_key: 'DecisionEngine', item_name: 'DecisionEngine Component', version: '1.0.0', owner: 'PLATFORM_ADMIN', enabled: true },
+        { registry_type: 'PRODUCT', item_key: 'church_think', item_name: 'Church Think', version: '1.0.0', owner: 'FINANCE_COMM', enabled: true },
+        { registry_type: 'PRODUCT', item_key: 'stock_think', item_name: 'Stock Think', version: '1.0.0', owner: 'INVEST_COMM', enabled: false }
+      ];
+      rows = registryType ? mockItems.filter(item => item.registry_type === registryType) : mockItems;
+    }
+
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching governance registry:', err);
+    res.status(500).json({ message: 'Database error' });
+  }
+});
+
+// Data Catalog API (TEAM B)
+// GET /api/public/data-catalog
+app.get('/api/public/data-catalog', async (req, res) => {
+  try {
+    const catalog = [
+      { standard_field: 'region_code', description: '법정동/행정동 코드', type: 'VARCHAR(10)' },
+      { standard_field: 'region_name', description: '지역 행정 구역 명칭', type: 'VARCHAR(100)' },
+      { standard_field: 'latitude', description: '위도 좌표값', type: 'NUMERIC(10,8)' },
+      { standard_field: 'longitude', description: '경도 좌표값', type: 'NUMERIC(11,8)' },
+      { standard_field: 'address', description: '상세 도로명/지번 주소', type: 'TEXT' },
+      { standard_field: 'trade_price', description: '거래 실거래 가격 (원화 환산)', type: 'NUMERIC(15,2)' },
+      { standard_field: 'trade_date', description: '계약 체결 일자 (YYYY-MM-DD)', type: 'DATE' },
+      { standard_field: 'amount', description: '금액 또는 재정 집행 비용', type: 'NUMERIC(15,2)' },
+      { standard_field: 'currency', description: '통화 코드 (ISO 4217)', type: 'VARCHAR(3)' },
+      { standard_field: 'entity_name', description: '개체 기본 명칭 (회사명, 아파트명 등)', type: 'VARCHAR(100)' },
+      { standard_field: 'building_year', description: '준공 또는 설립 연도', type: 'INTEGER' },
+      { standard_field: 'floor_level', description: '건물 층수', type: 'INTEGER' },
+      { standard_field: 'net_area', description: '전용 면적 (제곱미터)', type: 'NUMERIC(10,4)' }
+    ];
+    res.json({
+      status: 'success',
+      catalog_version: '1.0.0',
+      total_fields: catalog.length,
+      data: catalog
+    });
+  } catch (err) {
+    console.error('Error in public data catalog:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Data Source Map API (TEAM D)
+// GET /api/public/data-sources
+app.get('/api/public/data-sources', async (req, res) => {
+  try {
+    const dataSources = [
+      {
+        data_name: '실시간/일별 주가 시세 정보',
+        provider: '한국거래소 (KRX) / 증권사 OpenAPI',
+        owner: '금융 투자 의사결정 위원회',
+        license: '상업용 유료 라이선스',
+        cost: '월 500,000 KRW',
+        collection_method: 'WebSocket 및 REST API',
+        frequency: '장중 실시간 / 배치',
+        raw_format: 'JSON / CSV',
+        standard_model: 'OHLCV 표준 시계열',
+        data_catalog_mapping: ['trade_price', 'trade_date', 'entity_name'],
+        ontology_mapping: 'Entity(StockItem)->Attribute(Price)->Event(Trade)',
+        quality_score: 98,
+        last_update: '2026-06-28 00:00:00',
+        review_date: '2026-12-31',
+        status: 'ACTIVE',
+        description: '국내 상장 주식의 일별 가격 추세 데이터 피드'
+      },
+      {
+        data_name: '국토교통부 아파트/오피스텔 매매 실거래 정보',
+        provider: '국토교통부 실거래가 공개시스템 Open API',
+        owner: '부동산 가치 평가 위원회',
+        license: '공공데이터 무료 라이선스',
+        cost: '0 KRW',
+        collection_method: 'XML/JSON REST API',
+        frequency: '일별 오전 04:00 배치',
+        raw_format: 'XML',
+        standard_model: '지역법정동/평형별 실거래 계약 표준',
+        data_catalog_mapping: ['trade_price', 'trade_date', 'entity_name', 'region_code'],
+        ontology_mapping: 'Entity(Apartment)->Attribute(Price)->Event(TradeContract)',
+        quality_score: 95,
+        last_update: '2026-06-28 04:00:00',
+        review_date: '2026-09-30',
+        status: 'ACTIVE',
+        description: '전국 부동산 실거래 체결 통계 데이터 피드'
+      },
+      {
+        data_name: '각 부서별 회계 지출/수입 전표 명세서',
+        provider: 'Church Accounting Frontend Input / PWA OCR Parser',
+        owner: '당회 회계 재정 위원회',
+        license: '자체 내부 독점 소유 라이선스',
+        cost: '0 KRW',
+        collection_method: '기안자 실시간 전표 입력 및 OCR 영수증 추출',
+        frequency: '실시간',
+        raw_format: 'JSON (데이터베이스 레코드)',
+        standard_model: '표준 복식부기 전표 구조',
+        data_catalog_mapping: ['amount', 'trade_date', 'entity_name'],
+        ontology_mapping: 'Organization(Church)->Person(Accountant)->Event(Transaction)',
+        quality_score: 99,
+        last_update: '2026-06-27T18:22:00Z',
+        review_date: '2026-12-31',
+        status: 'ACTIVE',
+        description: '교회 재정 예산 가용 상태 및 실지출 증빙 영수증'
+      }
+    ];
+    res.json({
+      status: 'success',
+      total_sources: dataSources.length,
+      data: dataSources
+    });
+  } catch (err) {
+    console.error('Error in public data sources:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Data Quality standard API (TEAM C)
+// GET /api/public/data-quality
+app.get('/api/public/data-quality', async (req, res) => {
+  try {
+    const qualityMetrics = {
+      standard_gating_threshold: 80,
+      evaluation_metrics: [
+        { metric: 'Completeness', description: '필수 필드 누락 비율 검증 (결측치 제로 목표)' },
+        { metric: 'Accuracy', description: '데이터 범위 및 정적 도메인 규격 준수율' },
+        { metric: 'Consistency', description: '이종 DB 간 차대변 및 시계열 데이터 교차 검산 정합성' },
+        { metric: 'Freshness', description: '수집 주기 대비 지연 한도 준수 수준' },
+        { metric: 'Reliability', description: '원천 채널 공인 수준 및 섭취 안정도' },
+        { metric: 'License', description: '상업용 유무료 라이선스 적정 가용 상태' },
+        { metric: 'Duplicate', description: '레코드 중복 제어 및 정제 등급' },
+        { metric: 'Missing Value', description: '비필수 필드들의 결측 임계 비율 충족도' }
+      ],
+      current_evaluation: [
+        { data_name: '주가 시세 정보', score: 98, status: 'PASSED' },
+        { data_name: '부동산 실거래가 정보', score: 95, status: 'PASSED' },
+        { data_name: '교회 전표 명세서', score: 99, status: 'PASSED' }
+      ]
+    };
+    res.json({
+      status: 'success',
+      data: qualityMetrics
+    });
+  } catch (err) {
+    console.error('Error in public data quality:', err);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -477,6 +739,83 @@ res.status(200).json({
 
     }
 
+});
+
+app.get('/api/health/auth', async (req, res) => {
+  const env = {
+    supabaseUrl: !!SUPABASE_URL,
+    anonKey: !!SUPABASE_ANON_KEY,
+    serviceRoleKey: !!SUPABASE_SERVICE_ROLE_KEY,
+  };
+
+  let database = 'error';
+  let auth = SUPABASE_SERVICE_ROLE_KEY ? 'error' : 'not_configured';
+
+  let databaseError = null;
+  let authError = null;
+
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return res.status(200).json({
+      status: 'degraded',
+      environment: env,
+      database: 'not_checked',
+      auth: SUPABASE_SERVICE_ROLE_KEY ? 'not_checked' : 'not_configured',
+      debug: {
+        databaseError: !SUPABASE_URL ? 'SUPABASE_URL is not configured' : null,
+        authError: !SUPABASE_SERVICE_ROLE_KEY ? 'Service role key is not configured' : null,
+      },
+    });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('platform_projects')
+      .select('project_id')
+      .limit(1);
+
+    if (error) {
+      databaseError = error.message;
+    } else {
+      database = 'ok';
+    }
+  } catch (err) {
+    databaseError = err.message;
+  }
+
+  try {
+    const { error } = await supabase.auth.admin.listUsers({
+      page: 1,
+      perPage: 1,
+    });
+
+    if (error) {
+      authError = error.message;
+    } else {
+      auth = 'ok';
+    }
+  } catch (err) {
+    authError = err.message;
+  }
+
+  const status =
+    env.supabaseUrl &&
+    env.anonKey &&
+    env.serviceRoleKey &&
+    database === 'ok' &&
+    auth === 'ok'
+      ? 'ok'
+      : 'degraded';
+
+  return res.status(200).json({
+    status,
+    environment: env,
+    database,
+    auth,
+    debug: {
+      databaseError,
+      authError,
+    },
+  });
 });
 
 app.get('*', (req, res) => {

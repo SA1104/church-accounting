@@ -3,10 +3,17 @@ const { createClient } = require('@supabase/supabase-js');
 const { query } = require('../db');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://your-supabase-project.supabase.co';
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || 'your-service-role-key';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || '';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || '';
 
-// Initialize Supabase Admin Client to bypass RLS for backend operations
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+// Initialize Supabase clients Client to bypass RLS for backend operations
+const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false
+  }
+});
+const supabasePublic = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     persistSession: false,
     autoRefreshToken: false
@@ -27,7 +34,7 @@ async function authenticateToken(req, res, next) {
 
   try {
     // Verify token with Supabase Auth
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
 
     if (error || !user) {
       return res.status(403).json({ message: 'Invalid or expired token' });
@@ -138,7 +145,7 @@ async function login(req, res) {
     // In Supabase, auth is email-based. Convert username to system email format
     const email = `${username}@boozathink.com`;
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabasePublic.auth.signInWithPassword({
       email,
       password
     });
@@ -209,7 +216,7 @@ async function signup(req, res) {
     const systemEmail = `${username}@boozathink.com`;
 
     // Sign up user in Supabase Auth
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await supabasePublic.auth.signUp({
       email: systemEmail,
       password,
       options: {
@@ -261,6 +268,25 @@ async function signup(req, res) {
           position || '기타',
           signature || `${name} (${position || '기타'}) (인)`
         ]);
+      }
+
+      // Handle Church Profile onboarding if provided (Team C)
+      if (legacyServiceId === 'church_think' && req.body.churchInfo) {
+        const { churchName, denomination, region, managerName } = req.body.churchInfo;
+        if (churchName) {
+          await query.run(`
+            INSERT INTO church_profiles (project_id, church_name, denomination, region, manager_name)
+            VALUES (
+              (SELECT project_id FROM platform_projects WHERE service_id = 'church_think' LIMIT 1),
+              ?, ?, ?, ?
+            ) ON CONFLICT DO NOTHING
+          `, [
+            churchName,
+            denomination || '',
+            region || '',
+            managerName || name
+          ]);
+        }
       }
     }
 
