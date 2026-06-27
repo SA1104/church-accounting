@@ -49,10 +49,21 @@ CREATE INDEX IF NOT EXISTS idx_decisions_service ON platform_decisions(service_i
 CREATE INDEX IF NOT EXISTS idx_decision_metrics_dec ON platform_decision_metrics(decision_id);
 
 -- -------------------------------------------------------------------------
--- [순서 3] Decision Engine Seeds 규칙 기초 데이터 추가
+-- [순서 3] Decision Engine Constraints 제약조건 및 Seeds 기초 데이터 추가
 -- -------------------------------------------------------------------------
--- UUID 고정을 위해 ON CONFLICT 식별용 유니크 인덱스 생성
-ALTER TABLE platform_decision_rules ADD CONSTRAINT unique_rule_key UNIQUE (service_id, rule_name);
+-- unique_rule_key 제약 조건 멱등 추가
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'unique_rule_key'
+  ) THEN
+    ALTER TABLE platform_decision_rules
+    ADD CONSTRAINT unique_rule_key
+    UNIQUE (service_id, rule_name);
+  END IF;
+END $$;
 
 INSERT INTO platform_decision_rules (service_id, rule_name, metric_key, threshold_value, comparison_operator, opinion_type, description)
 VALUES 
@@ -84,7 +95,7 @@ CREATE TABLE IF NOT EXISTS platform_media_contents (
 );
 
 CREATE TABLE IF NOT EXISTS platform_media_channels (
-    channel_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    channel_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- Fixed: UUID type added
     project_id UUID NOT NULL REFERENCES platform_projects(project_id) ON DELETE CASCADE,
     channel_type VARCHAR(30) NOT NULL,          -- 'YOUTUBE', 'NAVER_BLOG', 'INSTAGRAM'
     channel_name VARCHAR(100) NOT NULL,
@@ -111,10 +122,21 @@ CREATE INDEX IF NOT EXISTS idx_media_channels_project ON platform_media_channels
 CREATE INDEX IF NOT EXISTS idx_media_publish_logs_content ON platform_media_publish_logs(content_id);
 
 -- -------------------------------------------------------------------------
--- [순서 6] Media Engine Seeds 채널별 프롬프트 기본 데이터 추가
+-- [순서 6] Media Engine Constraints 제약조건 및 Seeds 채널별 프롬프트 기본 데이터 추가
 -- -------------------------------------------------------------------------
--- ON CONFLICT 대응용 유니크 인덱스 생성
-ALTER TABLE platform_media_templates ADD CONSTRAINT unique_template_key UNIQUE (channel_type, style_name);
+-- unique_template_key 제약 조건 멱등 추가
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'unique_template_key'
+  ) THEN
+    ALTER TABLE platform_media_templates
+    ADD CONSTRAINT unique_template_key
+    UNIQUE (channel_type, style_name);
+  END IF;
+END $$;
 
 INSERT INTO platform_media_templates (channel_type, style_name, prompt_template, max_tokens)
 VALUES 
