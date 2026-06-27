@@ -3,6 +3,7 @@ global.WebSocket = require('ws');
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://your-supabase-project.supabase.co';
@@ -373,7 +374,23 @@ app.get('/api/dashboard/stats', authenticateToken, requireRole(['SYSTEM_ADMIN', 
 
 // 7. 정적 서빙 및 라우트 스왑
 const frontendDist = path.join(__dirname, '../frontend/dist');
-console.log('Serving frontend from:', frontendDist);
+
+console.log('[Static] __dirname:', __dirname);
+console.log('[Static] frontendDist:', frontendDist);
+console.log('[Static] index.html exists:', fs.existsSync(path.join(frontendDist, 'index.html')));
+console.log('[Static] assets exists:', fs.existsSync(path.join(frontendDist, 'assets')));
+
+app.use('/assets', express.static(path.join(frontendDist, 'assets'), {
+  fallthrough: false,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    }
+    if (filePath.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css; charset=utf-8');
+    }
+  }
+}));
 
 app.use(express.static(frontendDist));
 
