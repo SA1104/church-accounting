@@ -215,10 +215,13 @@ END $$;
 CREATE TABLE IF NOT EXISTS platform_workflows (
     workflow_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     service_id VARCHAR(50) NOT NULL REFERENCES platform_services(service_id) ON DELETE CASCADE,
-    workflow_name VARCHAR(100) NOT NULL,
-    pipeline JSONB NOT NULL,                    -- 파이프라인 엔진 실행 순서 (예: ["data", "cleaning", "decision"])
+    workflow_key VARCHAR(100),
+    workflow_name VARCHAR(100),
+    name VARCHAR(100),                          -- 레거시 하위 호환성용 컬럼
+    pipeline JSONB NOT NULL DEFAULT '[]'::jsonb, -- 파이프라인 엔진 실행 순서 (예: ["data", "cleaning", "decision"])
     is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 기존에 core에서 테이블이 생성되어 service_id가 없을 경우를 위한 안전한 동적 컬럼 추가
@@ -233,10 +236,23 @@ BEGIN
 
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'platform_workflows' AND column_name = 'workflow_key'
+  ) THEN
+    ALTER TABLE platform_workflows ADD COLUMN workflow_key VARCHAR(100);
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
     WHERE table_name = 'platform_workflows' AND column_name = 'workflow_name'
   ) THEN
     ALTER TABLE platform_workflows ADD COLUMN workflow_name VARCHAR(100);
-    UPDATE platform_workflows SET workflow_name = name WHERE name IS NOT NULL;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'platform_workflows' AND column_name = 'name'
+  ) THEN
+    ALTER TABLE platform_workflows ADD COLUMN name VARCHAR(100);
   END IF;
 
   IF NOT EXISTS (
@@ -245,7 +261,20 @@ BEGIN
   ) THEN
     ALTER TABLE platform_workflows ADD COLUMN pipeline JSONB DEFAULT '[]'::jsonb;
   END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'platform_workflows' AND column_name = 'updated_at'
+  ) THEN
+    ALTER TABLE platform_workflows ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+  END IF;
 END $$;
+
+-- 기존 레코드 데이터 백포팅 및 동기화 (Not-Null 위반 방지)
+UPDATE platform_workflows SET service_id = 'church_think' WHERE service_id IS NULL;
+UPDATE platform_workflows SET workflow_key = 'wf_' || workflow_id::text WHERE workflow_key IS NULL;
+UPDATE platform_workflows SET workflow_name = name WHERE workflow_name IS NULL AND name IS NOT NULL;
+UPDATE platform_workflows SET name = workflow_name WHERE name IS NULL AND workflow_name IS NOT NULL;
 
 -- 2. 신규/기존 platform_workflow_steps 테이블 처리
 CREATE TABLE IF NOT EXISTS platform_workflow_steps (
@@ -309,24 +338,24 @@ CREATE INDEX IF NOT EXISTS idx_workflow_steps_wf ON platform_workflow_steps(work
 CREATE INDEX IF NOT EXISTS idx_wf_history_wf ON platform_workflow_history(workflow_id);
 CREATE INDEX IF NOT EXISTS idx_wf_history_project ON platform_workflow_history(project_id);
 
--- unique_workflow_name_key 제약조건 추가
+-- unique_workflow_key 제약조건 추가
 DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'unique_workflow_name_key'
+    SELECT 1 FROM pg_constraint WHERE conname = 'unique_workflow_key'
   ) THEN
     ALTER TABLE platform_workflows 
-    ADD CONSTRAINT unique_workflow_name_key 
-    UNIQUE (service_id, workflow_name);
+    ADD CONSTRAINT unique_workflow_key 
+    UNIQUE (service_id, workflow_key);
   END IF;
 END $$;
 
--- Seed data inserting safely
-INSERT INTO platform_workflows (service_id, workflow_name, pipeline)
+-- 기본 파이프라인 워크플로우 씨딩 (legacy name 컬럼도 동시에 입력)
+INSERT INTO platform_workflows (service_id, workflow_key, workflow_name, name, pipeline)
 VALUES 
-  ('church_think', '교회 기본 결재 파이프라인', '["data", "cleaning", "decision", "media"]'::jsonb),
-  ('stock_think', '주식 가치 분석 파이프라인', '["data", "cleaning", "standardization", "intelligence", "decision", "media", "distribution"]'::jsonb)
-ON CONFLICT (service_id, workflow_name) DO NOTHING;
+  ('church_think', 'church_approval_default', '교회 기본 결재 파이프라인', '교회 기본 결재 파이프라인', '["data", "cleaning", "decision", "media"]'::jsonb),
+  ('stock_think', 'stock_daily_analysis', '주식 가치 분석 파이프라인', '주식 가치 분석 파이프라인', '["data", "cleaning", "standardization", "intelligence", "decision", "media", "distribution"]'::jsonb)
+ON CONFLICT (service_id, workflow_key) DO NOTHING;
 
 
 -- -------------------------------------------------------------------------
