@@ -380,6 +380,11 @@ app.get('*', (req, res) => {
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ error: 'API route not found' });
   }
+
+  if (req.path.startsWith('/assets')) {
+    return res.status(404).send('Asset not found');
+  }
+
   res.sendFile(path.join(frontendDist, 'index.html'));
 });
 
