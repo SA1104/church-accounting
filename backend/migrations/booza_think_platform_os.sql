@@ -557,3 +557,57 @@ INSERT INTO platform_ai_models (model_id, provider, api_endpoint, pricing_info, 
   ('claude-3-5-sonnet', 'Anthropic', 'https://api.anthropic.com/v1/messages', '{"input_1k": 0.003, "output_1k": 0.015}', TRUE),
   ('gemini-1.5-pro', 'Google', 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent', '{"input_1k": 0.007, "output_1k": 0.021}', TRUE)
 ON CONFLICT (model_id) DO NOTHING;
+
+
+-- =========================================================================
+-- 5. 공통 SQL 실행기 RPC 함수 (DATABASE_URL 대체 목적, 서비스 역할 전용)
+-- =========================================================================
+
+CREATE OR REPLACE FUNCTION public.exec_sql(query_text text, params jsonb DEFAULT '[]'::jsonb)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  res_json jsonb := '[]'::jsonb;
+  i int;
+  param_val text;
+  final_query text := query_text;
+  row_count int;
+BEGIN
+  -- 파라미터가 있는 경우 플레이스홀더(?)를 안전하게 이스케이프된 문자열 상수로 치환
+  IF jsonb_array_length(params) > 0 THEN
+    FOR i IN 0 .. jsonb_array_length(params) - 1 LOOP
+      param_val := params->>i;
+      IF param_val IS NULL THEN
+        final_query := regexp_replace(final_query, '\?', 'NULL');
+      ELSE
+        -- 홑따옴표가 SQL 인젝션 공격 도구로 오용되지 않도록 이스케이프 처리
+        param_val := replace(param_val, '''', '''''');
+        final_query := regexp_replace(final_query, '\?', '''' || param_val || '''');
+      END IF;
+    END LOOP;
+  END IF;
+
+  -- 쿼리 타입 분기 처리
+  IF upper(final_query) LIKE '%RETURNING%' THEN
+    -- 데이터 수정 및 결과 반환 (CTE 적용)
+    EXECUTE 'WITH t AS (' || final_query || ') SELECT jsonb_agg(t) FROM t' INTO res_json;
+  ELSIF upper(final_query) LIKE 'SELECT%' OR upper(final_query) LIKE 'WITH%' THEN
+    -- 일반 조회 (서브쿼리 적용)
+    EXECUTE 'SELECT jsonb_agg(t) FROM (' || final_query || ') t' INTO res_json;
+  ELSE
+    -- 일반 데이터 수정 (결과 카운트 반환)
+    EXECUTE final_query;
+    GET DIAGNOSTICS row_count = ROW_COUNT;
+    res_json := jsonb_build_array(jsonb_build_object('changes', row_count));
+  END IF;
+
+  RETURN COALESCE(res_json, '[]'::jsonb);
+END;
+$$;
+
+-- 일반 사용자의 호출 권한 회수 및 관리자/PostgreSQL 전용 권한 부여
+REVOKE ALL ON FUNCTION public.exec_sql(text, jsonb) FROM public;
+GRANT EXECUTE ON FUNCTION public.exec_sql(text, jsonb) TO postgres;
+GRANT EXECUTE ON FUNCTION public.exec_sql(text, jsonb) TO service_role;
