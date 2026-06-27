@@ -373,6 +373,7 @@ app.get('/api/dashboard/stats', authenticateToken, requireRole(['SYSTEM_ADMIN', 
 
 // 7. 정적 서빙 및 라우트 스왑
 const frontendDist = path.join(__dirname, '../frontend/dist');
+console.log('Serving frontend from:', frontendDist);
 
 app.use(express.static(frontendDist));
 

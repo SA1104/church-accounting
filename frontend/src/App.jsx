@@ -316,17 +316,44 @@ function MobileLayout() {
 }
 
 export default function App() {
-  const [token, setToken] = useState(localStorage.getItem('token'));
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')));
-  const [fontScale, setFontScale] = useState(localStorage.getItem('font-scale-level') || 'normal');
+  const safeGetItem = (key, fallback = null) => {
+    try {
+      return localStorage.getItem(key) || fallback;
+    } catch (e) {
+      return fallback;
+    }
+  };
+
+  const safeSetItem = (key, value) => {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {}
+  };
+
+  const safeRemoveItem = (key) => {
+    try {
+      localStorage.removeItem(key);
+    } catch (e) {}
+  };
+
+  const [token, setToken] = useState(() => safeGetItem('token'));
+  const [user, setUser] = useState(() => {
+    try {
+      const u = safeGetItem('user');
+      return u && u !== 'undefined' ? JSON.parse(u) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+  const [fontScale, setFontScale] = useState(() => safeGetItem('font-scale-level', 'normal'));
 
   useEffect(() => {
     if (token) {
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      safeSetItem('token', token);
+      safeSetItem('user', JSON.stringify(user));
     } else {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      safeRemoveItem('token');
+      safeRemoveItem('user');
     }
   }, [token, user]);
 
@@ -334,7 +361,7 @@ export default function App() {
     const root = document.documentElement;
     root.classList.remove('font-scale-small', 'font-scale-normal', 'font-scale-large', 'font-scale-xlarge');
     root.classList.add(`font-scale-${fontScale}`);
-    localStorage.setItem('font-scale-level', fontScale);
+    safeSetItem('font-scale-level', fontScale);
   }, [fontScale]);
 
   const login = (newToken, newUser) => {
