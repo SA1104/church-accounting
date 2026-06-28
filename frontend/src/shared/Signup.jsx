@@ -37,6 +37,12 @@ export default function Signup() {
   const [selectedOrgId, setSelectedOrgId] = useState('');
   const [selectedGroupId, setSelectedGroupId] = useState('');
 
+  // 직접 입력 모드 필드
+  const [isCustomOrg, setIsCustomOrg] = useState(false);
+  const [isCustomGroup, setIsCustomGroup] = useState(false);
+  const [customDepartmentName, setCustomDepartmentName] = useState('');
+  const [customGroupName, setCustomGroupName] = useState('');
+
   // 신규 교회 등록 신청 모드
   const [showChurchCreate, setShowChurchCreate] = useState(false);
   const [newChurchName, setNewChurchName] = useState('');
@@ -233,6 +239,14 @@ export default function Signup() {
 
   // 교회 자동완성 필터링
   const filteredChurches = churches.filter(c => {
+    if (!searchQuery) return true;
+    if (selectedChurchId) {
+      const selected = churches.find(ch => ch.church_id === selectedChurchId);
+      if (selected) {
+        const formatted = `${selected.church_name} · ${selected.denomination} · ${selected.region}`;
+        if (searchQuery === formatted) return true;
+      }
+    }
     const query = searchQuery.toLowerCase();
     return (
       (c.church_name && c.church_name.toLowerCase().includes(query)) ||
@@ -277,9 +291,23 @@ export default function Signup() {
       return;
     }
 
-    if (!showChurchCreate && (!selectedOrgId || !selectedGroupId)) {
-      setError('소속 위원회와 그룹을 모두 선택해 주세요.');
-      return;
+    if (!showChurchCreate) {
+      if (isCustomOrg && !customDepartmentName.trim()) {
+        setError('새 위원회/기관명을 입력해 주세요.');
+        return;
+      }
+      if (!isCustomOrg && !selectedOrgId) {
+        setError('소속 위원회/기관을 선택해 주세요.');
+        return;
+      }
+      if (isCustomGroup && !customGroupName.trim()) {
+        setError('새 소속 그룹명을 입력해 주세요.');
+        return;
+      }
+      if (!isCustomGroup && !selectedGroupId) {
+        setError('소속 그룹을 선택해 주세요.');
+        return;
+      }
     }
 
     if (showChurchCreate && (!newChurchName || !newRegion || !newManagerName || !newManagerEmail)) {
@@ -313,8 +341,10 @@ export default function Signup() {
       name,
       role,
       churchProfileId: showChurchCreate ? null : selectedChurchId,
-      departmentId: showChurchCreate ? null : parseInt(selectedOrgId, 10),
-      groupId: showChurchCreate ? null : selectedGroupId,
+      departmentId: (showChurchCreate || isCustomOrg) ? null : parseInt(selectedOrgId, 10),
+      groupId: (showChurchCreate || isCustomGroup) ? null : selectedGroupId,
+      customDepartmentName: (!showChurchCreate && isCustomOrg) ? customDepartmentName.trim() : null,
+      customGroupName: (!showChurchCreate && isCustomGroup) ? customGroupName.trim() : null,
       signature: signatureVal,
       churchCreateRequest: showChurchCreate ? {
         churchName: newChurchName,
@@ -624,35 +654,105 @@ export default function Signup() {
                 </div>
               )}
 
-              {/* 3-3. 소속 위원회 및 소속 그룹 드롭다운 (Cascading) */}
+              {/* 3-3. 소속 위원회 및 소속 그룹 드롭다운 / 직접 입력 (Cascading) */}
               {!showChurchCreate && selectedChurchId && (
                 <div className="grid grid-cols-2 gap-3">
+                  {/* 위원회 / 기관 */}
                   <div className="space-y-1">
                     <label className="text-[11px] font-semibold text-slate-400">소속 위원회/기관 *</label>
-                    <select
-                      value={selectedOrgId}
-                      onChange={(e) => setSelectedOrgId(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white focus:outline-none"
-                    >
-                      <option value="" disabled>선택</option>
-                      {organizations.map(o => (
-                        <option key={o.department_id} value={o.department_id}>{o.name}</option>
-                      ))}
-                    </select>
+                    {isCustomOrg ? (
+                      <div className="space-y-1.5">
+                        <input
+                          type="text"
+                          value={customDepartmentName}
+                          onChange={(e) => setCustomDepartmentName(e.target.value)}
+                          placeholder="새 위원회/기관명 입력"
+                          className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white focus:outline-none focus:border-church-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCustomOrg(false);
+                            setCustomDepartmentName('');
+                          }}
+                          className="text-[9px] text-church-400 hover:text-church-300 underline font-bold"
+                        >
+                          목록에서 선택
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <select
+                          value={selectedOrgId}
+                          onChange={(e) => setSelectedOrgId(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white focus:outline-none"
+                        >
+                          <option value="" disabled>선택</option>
+                          {organizations.map(o => (
+                            <option key={o.department_id} value={o.department_id}>{o.name}</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCustomOrg(true);
+                            setSelectedOrgId('');
+                          }}
+                          className="text-[9px] text-slate-500 hover:text-slate-400 underline font-bold"
+                        >
+                          찾는 위원회/기관이 없나요? 직접 입력
+                        </button>
+                      </div>
+                    )}
                   </div>
 
+                  {/* 소속 그룹 */}
                   <div className="space-y-1">
                     <label className="text-[11px] font-semibold text-slate-400">소속 그룹 *</label>
-                    <select
-                      value={selectedGroupId}
-                      onChange={(e) => setSelectedGroupId(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white focus:outline-none"
-                    >
-                      <option value="" disabled>선택</option>
-                      {groups.map(g => (
-                        <option key={g.group_id} value={g.group_id}>{g.name}</option>
-                      ))}
-                    </select>
+                    {isCustomGroup ? (
+                      <div className="space-y-1.5">
+                        <input
+                          type="text"
+                          value={customGroupName}
+                          onChange={(e) => setCustomGroupName(e.target.value)}
+                          placeholder="새 소속 그룹명 입력"
+                          className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white focus:outline-none focus:border-church-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCustomGroup(false);
+                            setCustomGroupName('');
+                          }}
+                          className="text-[9px] text-church-400 hover:text-church-300 underline font-bold"
+                        >
+                          목록에서 선택
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <select
+                          value={selectedGroupId}
+                          onChange={(e) => setSelectedGroupId(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white focus:outline-none"
+                        >
+                          <option value="" disabled>선택</option>
+                          {groups.map(g => (
+                            <option key={g.group_id} value={g.group_id}>{g.name}</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCustomGroup(true);
+                            setSelectedGroupId('');
+                          }}
+                          className="text-[9px] text-slate-500 hover:text-slate-400 underline font-bold"
+                        >
+                          찾는 소속 그룹이 없나요? 직접 입력
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

@@ -203,3 +203,15 @@ BEGIN
     ALTER TABLE public.church_user_metadata ADD COLUMN group_uuid UUID REFERENCES public.church_groups(id) ON DELETE SET NULL;
   END IF;
 END $$;
+
+
+-- 9. church_user_metadata 테이블에 custom_department_name 및 custom_group_name 컬럼 추가
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='church_user_metadata' AND column_name='custom_department_name') THEN
+    ALTER TABLE public.church_user_metadata ADD COLUMN custom_department_name VARCHAR(100);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='church_user_metadata' AND column_name='custom_group_name') THEN
+    ALTER TABLE public.church_user_metadata ADD COLUMN custom_group_name VARCHAR(100);
+  END IF;
+END $$;

@@ -86,17 +86,51 @@ async function authenticateToken(req, res, next) {
       }
     }
 
+    const email = profile.username && profile.username.includes('@') ? profile.username : `${profile.username}@boozathink.com`;
+    const isSystemAdminRole = 
+      profile.username === 'admin' || 
+      email === 'admin@boozathink.com' ||
+      roles['platform'] === 'SYSTEM_ADMIN' || 
+      roles['church_think'] === 'SYSTEM_ADMIN';
+
     // Bind legacy format context
     req.user = {
       userId: user.id, // Now UUID String
+      id: user.id,
+      email: email,
       username: profile.username,
-      name: profile.display_name,
+      name: isSystemAdminRole ? '관리자' : profile.display_name,
       projectId: projectId,
       roles: {
         platform: roles['platform'] || (roles['church_think'] === 'SYSTEM_ADMIN' ? 'SYSTEM_ADMIN' : 'USER'),
-        accounting: roles['church_think'] || 'USER'
+        accounting: roles['church_think'] || 'USER',
+        church_think: roles['church_think'] === 'SYSTEM_ADMIN' ? 'super_admin' : (roles['church_think'] || 'user')
       },
-      accounting: accountingMeta ? { ...accountingMeta, projectId } : null
+      accounting: {
+        role: isSystemAdminRole ? 'admin' : (roles['church_think'] || 'USER'),
+        organizationName: '신길교회',
+        departmentName: accountingMeta ? accountingMeta.groupName : (isSystemAdminRole ? '전체 조직' : null),
+        position: accountingMeta ? accountingMeta.position : (isSystemAdminRole ? '마스터' : '회원'),
+        signature: accountingMeta ? accountingMeta.signature : null,
+        groupId: accountingMeta ? accountingMeta.groupId : null,
+        groupName: accountingMeta ? accountingMeta.groupName : (isSystemAdminRole ? '전체 조직' : '소속 부서 없음'),
+        projectId: projectId,
+        permissions: isSystemAdminRole ? [
+          "settings:read",
+          "settings:write",
+          "users:manage",
+          "organization:manage",
+          "roles:manage",
+          "closing:manage",
+          "data:manage",
+          "ai:read"
+        ] : []
+      },
+      isAdmin: isSystemAdminRole,
+      // Compatibility fields
+      position: accountingMeta ? accountingMeta.position : (isSystemAdminRole ? '마스터' : '회원'),
+      groupName: accountingMeta ? accountingMeta.groupName : (isSystemAdminRole ? '전체 조직' : '소속 부서 없음'),
+      signature: accountingMeta ? accountingMeta.signature : null
     };
 
     next();
@@ -110,6 +144,11 @@ function requireRole(allowedRoles, serviceId = 'platform') {
   return (req, res, next) => {
     if (!req.user || !req.user.roles) {
       return res.status(403).json({ message: 'Access denied: Insufficient permissions' });
+    }
+
+    // Direct access if user is verified system-wide admin
+    if (req.user.isAdmin === true) {
+      return next();
     }
 
     const legacyServiceId = serviceId === 'accounting' ? 'church_think' : serviceId;
@@ -195,18 +234,50 @@ async function login(req, res) {
       };
     }
 
+    const isSystemAdminRole = 
+      (profile.username || username) === 'admin' || 
+      email === 'admin@boozathink.com' ||
+      roles['platform'] === 'SYSTEM_ADMIN' || 
+      roles['church_think'] === 'SYSTEM_ADMIN';
+
     const responsePayload = {
       token: data.session.access_token,
       user: {
         userId: data.user.id,
+        id: data.user.id,
+        email: email,
         username: profile.username || username,
-        name: profile.display_name,
-        role: roles['church_think'] || 'USER',
+        name: isSystemAdminRole ? '관리자' : profile.display_name,
+        role: isSystemAdminRole ? 'admin' : (roles['church_think'] || 'USER'),
         roles: {
           platform: roles['platform'] || (roles['church_think'] === 'SYSTEM_ADMIN' ? 'SYSTEM_ADMIN' : 'USER'),
-          accounting: roles['church_think'] || 'USER'
+          accounting: roles['church_think'] || 'USER',
+          church_think: roles['church_think'] === 'SYSTEM_ADMIN' ? 'super_admin' : (roles['church_think'] || 'user')
         },
-        accounting: accountingMeta
+        accounting: {
+          role: isSystemAdminRole ? 'admin' : (roles['church_think'] || 'USER'),
+          organizationName: '신길교회',
+          departmentName: accountingMeta ? accountingMeta.groupName : (isSystemAdminRole ? '전체 조직' : null),
+          position: accountingMeta ? accountingMeta.position : (isSystemAdminRole ? '마스터' : '회원'),
+          signature: accountingMeta ? accountingMeta.signature : null,
+          groupId: accountingMeta ? accountingMeta.groupId : null,
+          groupName: accountingMeta ? accountingMeta.groupName : (isSystemAdminRole ? '전체 조직' : '소속 부서 없음'),
+          permissions: isSystemAdminRole ? [
+            "settings:read",
+            "settings:write",
+            "users:manage",
+            "organization:manage",
+            "roles:manage",
+            "closing:manage",
+            "data:manage",
+            "ai:read"
+          ] : []
+        },
+        // Compatibility fields
+        position: accountingMeta ? accountingMeta.position : (isSystemAdminRole ? '마스터' : '회원'),
+        groupName: accountingMeta ? accountingMeta.groupName : (isSystemAdminRole ? '전체 조직' : '소속 부서 없음'),
+        signature: accountingMeta ? accountingMeta.signature : null,
+        isAdmin: isSystemAdminRole
       }
     };
 
@@ -219,7 +290,7 @@ async function login(req, res) {
 
 
 async function signup(req, res) {
-  const { username, password, name, role, churchProfileId, departmentId, groupId, signature, churchCreateRequest } = req.body;
+  const { username, password, name, role, churchProfileId, departmentId, groupId, signature, churchCreateRequest, customDepartmentName, customGroupName } = req.body;
 
   if (!username || !password || !name) {
     return res.status(400).json({ message: 'Missing required user fields' });
@@ -341,13 +412,15 @@ async function signup(req, res) {
 
     // 5. Insert church user metadata
     await query.run(`
-      INSERT INTO public.church_user_metadata (user_id, project_id, department_id, group_uuid, position, signature)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO public.church_user_metadata (user_id, project_id, department_id, group_uuid, custom_department_name, custom_group_name, position, signature)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       userId,
       projectId,
       assignedDeptId,
       assignedGroupUuid,
+      customDepartmentName || null,
+      customGroupName || null,
       '회원',
       signature || `${name} (인)`
     ]);
@@ -363,9 +436,60 @@ async function signup(req, res) {
   }
 }
 
+async function changePassword(req, res) {
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ message: '현재 비밀번호와 새 비밀번호를 모두 입력해 주세요.' });
+  }
+
+  if (newPassword.length < 8) {
+    return res.status(400).json({ message: '새 비밀번호는 최소 8자 이상이어야 합니다.' });
+  }
+
+  if (currentPassword === newPassword) {
+    return res.status(400).json({ message: '새 비밀번호는 현재 비밀번호와 다르게 설정해야 합니다.' });
+  }
+
+  const userId = req.user.userId;
+  const username = req.user.username;
+  const email = username.includes('@') ? username : `${username}@boozathink.com`;
+
+  console.log(`[PASSWORD CHANGE ATTEMPT] User: ${userId}, Email: ${email}`);
+
+  try {
+    // 1. Verify current password
+    const { data: signInData, error: signInError } = await supabasePublic.auth.signInWithPassword({
+      email,
+      password: currentPassword
+    });
+
+    if (signInError || !signInData.user) {
+      console.error(`[PASSWORD CHANGE FAILED] Current password verification failed for ${userId}:`, signInError?.message);
+      return res.status(400).json({ message: '현재 비밀번호가 올바르지 않습니다.' });
+    }
+
+    // 2. Update password
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+      password: newPassword
+    });
+
+    if (updateError) {
+      console.error(`[PASSWORD CHANGE ERROR] Failed to update password for ${userId}:`, updateError.message);
+      return res.status(500).json({ message: '비밀번호 변경 중 오류가 발생했습니다.' });
+    }
+
+    console.log(`[PASSWORD CHANGE SUCCESS] Password updated for User: ${userId}`);
+    res.json({ success: true, message: '비밀번호가 변경되었습니다.' });
+  } catch (error) {
+    console.error(`[PASSWORD CHANGE SYSTEM ERROR] System error for User: ${userId}:`, error.message);
+    res.status(500).json({ message: '비밀번호 변경 중 시스템 오류가 발생했습니다.' });
+  }
+}
+
 module.exports = {
   authenticateToken,
   requireRole,
   login,
-  signup
+  signup,
+  changePassword
 };

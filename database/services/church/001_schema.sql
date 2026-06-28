@@ -19,6 +19,9 @@ CREATE TABLE IF NOT EXISTS public.church_user_metadata (
   user_id UUID PRIMARY KEY REFERENCES public.platform_profiles(user_id) ON DELETE CASCADE,
   project_id UUID NOT NULL REFERENCES public.platform_projects(project_id) ON DELETE CASCADE,
   department_id INTEGER REFERENCES public.church_departments(department_id) ON DELETE SET NULL,
+  group_uuid UUID, -- UUID for user group selection
+  custom_department_name VARCHAR(100),
+  custom_group_name VARCHAR(100),
   position VARCHAR(100) NOT NULL DEFAULT '기타',
   signature TEXT
 );

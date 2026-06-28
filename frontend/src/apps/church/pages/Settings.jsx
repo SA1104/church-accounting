@@ -6,6 +6,30 @@ import {
   Edit2, Save, X, ToggleLeft, ToggleRight
 } from 'lucide-react';
 
+const isAdminUser = (user) => {
+  if (!user) return false;
+
+  const email = user.email || user.username || '';
+  const role = user.role || '';
+  const roles = user.roles || {};
+  const platformRole = roles.platform || '';
+  const churchRole = roles.church_think || '';
+  const accountingRole = user.accounting?.role || '';
+
+  return (
+    email === 'admin@boozathink.com' ||
+    email === 'admin' ||
+    role === 'admin' ||
+    role === 'SYSTEM_ADMIN' ||
+    platformRole === 'SYSTEM_ADMIN' ||
+    churchRole === 'super_admin' ||
+    churchRole === 'admin' ||
+    accountingRole === 'admin' ||
+    accountingRole === 'finance_admin' ||
+    user.isAdmin === true
+  );
+};
+
 export default function Settings() {
   const { token, user, fontScale, setFontScale, logout } = useAuth();
   
@@ -75,7 +99,80 @@ export default function Settings() {
   const [editingGroupSort, setEditingGroupSort] = useState(0);
   const [editingGroupActive, setEditingGroupActive] = useState(true);
 
+  // 비밀번호 변경 기능 상태
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordChangeLoading, setPasswordChangeLoading] = useState(false);
+  const [passwordChangeMessage, setPasswordChangeMessage] = useState(null);
+  const [passwordChangeError, setPasswordChangeError] = useState(null);
 
+  const canAccessTab = (tabKey) => {
+    if (isAdminUser(user)) return true;
+    if (tabKey === 'categories' || tabKey === 'display' || tabKey === 'marketplace') return true;
+    if (['users', 'orgs', 'positions', 'ocr-queue', 'locks', 'database'].includes(tabKey)) {
+      const role = user?.role || '';
+      return role === 'SYSTEM_ADMIN' || role === 'AUDITOR';
+    }
+    return false;
+  };
+
+  const handleTabClick = (tabKey) => {
+    if (canAccessTab(tabKey)) {
+      setActiveTab(tabKey);
+    } else {
+      alert('이 기능은 관리자 권한이 필요합니다.');
+    }
+  };
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    setPasswordChangeMessage(null);
+    setPasswordChangeError(null);
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordChangeError('모든 필드를 입력해 주세요.');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordChangeError('새 비밀번호는 최소 8자 이상이어야 합니다.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordChangeError('새 비밀번호가 일치하지 않습니다.');
+      return;
+    }
+    if (currentPassword === newPassword) {
+      setPasswordChangeError('새 비밀번호는 현재 비밀번호와 다르게 설정해야 합니다.');
+      return;
+    }
+
+    try {
+      setPasswordChangeLoading(true);
+      const response = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ currentPassword, newPassword })
+      });
+      
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || '비밀번호 변경 중 오류가 발생했습니다.');
+      }
+
+      setPasswordChangeMessage('비밀번호가 변경되었습니다. 다음 로그인부터 새 비밀번호를 사용해 주세요.');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      setPasswordChangeError(err.message === '현재 비밀번호가 올바르지 않습니다.' ? '현재 비밀번호가 올바르지 않습니다.' : err.message);
+    } finally {
+      setPasswordChangeLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchCategories();
@@ -802,12 +899,7 @@ export default function Settings() {
     }
   }, [selectedPosGroupId]);
 
-  const isAdminOrAuditor = 
-    user.role === 'SYSTEM_ADMIN' || 
-    user.role === 'AUDITOR' || 
-    user.role === 'admin' || 
-    user.role === 'super_admin' || 
-    user.role === 'project_admin';
+  const isAdminOrAuditor = isAdminUser(user) || user.role === 'SYSTEM_ADMIN' || user.role === 'AUDITOR';
 
   return (
     <div className="p-4 space-y-4 max-w-lg mx-auto pb-16">
@@ -818,84 +910,33 @@ export default function Settings() {
 
       {/* 가로 스크롤 대응 반응형 탭 컨테이너 */}
       <div className="flex gap-1 overflow-x-auto p-1 bg-slate-900/60 rounded-xl border border-slate-800/80 no-scrollbar select-none">
-        <button
-          onClick={() => setActiveTab('categories')}
-          className={`px-3 py-1.5 rounded-lg text-[9px] font-bold transition-all shrink-0 ${
-            activeTab === 'categories' ? 'bg-church-600/30 text-church-400 border border-church-500/30' : 'text-slate-500'
-          }`}
-        >
-          계정과목
-        </button>
-        <button
-          onClick={() => setActiveTab('display')}
-          className={`px-3 py-1.5 rounded-lg text-[9px] font-bold transition-all shrink-0 ${
-            activeTab === 'display' ? 'bg-church-600/30 text-church-400 border border-church-500/30' : 'text-slate-500'
-          }`}
-        >
-          화면설정
-        </button>
-        <button
-          onClick={() => setActiveTab('marketplace')}
-          className={`px-3 py-1.5 rounded-lg text-[9px] font-bold transition-all shrink-0 ${
-            activeTab === 'marketplace' ? 'bg-church-600/30 text-church-400 border border-church-500/30' : 'text-slate-500'
-          }`}
-        >
-          마켓플레이스
-        </button>
-        <button
-          onClick={() => setActiveTab('users')}
-          disabled={!isAdminOrAuditor}
-          className={`px-3 py-1.5 rounded-lg text-[9px] font-bold transition-all shrink-0 disabled:opacity-30 ${
-            activeTab === 'users' ? 'bg-church-600/30 text-church-400 border border-church-500/30' : 'text-slate-500'
-          }`}
-        >
-          사용자
-        </button>
-        <button
-          onClick={() => setActiveTab('orgs')}
-          disabled={!isAdminOrAuditor}
-          className={`px-3 py-1.5 rounded-lg text-[9px] font-bold transition-all shrink-0 disabled:opacity-30 ${
-            activeTab === 'orgs' ? 'bg-church-600/30 text-church-400 border border-church-500/30' : 'text-slate-500'
-          }`}
-        >
-          조직
-        </button>
-        <button
-          onClick={() => setActiveTab('positions')}
-          disabled={!isAdminOrAuditor}
-          className={`px-3 py-1.5 rounded-lg text-[9px] font-bold transition-all shrink-0 disabled:opacity-30 ${
-            activeTab === 'positions' ? 'bg-church-600/30 text-church-400 border border-church-500/30' : 'text-slate-500'
-          }`}
-        >
-          직책설정
-        </button>
-        <button
-          onClick={() => setActiveTab('ocr-queue')}
-          disabled={!isAdminOrAuditor}
-          className={`px-3 py-1.5 rounded-lg text-[9px] font-bold transition-all shrink-0 disabled:opacity-30 ${
-            activeTab === 'ocr-queue' ? 'bg-church-600/30 text-church-400 border border-church-500/30' : 'text-slate-500'
-          }`}
-        >
-          AI 분석 현황
-        </button>
-        <button
-          onClick={() => setActiveTab('locks')}
-          disabled={!isAdminOrAuditor}
-          className={`px-3 py-1.5 rounded-lg text-[9px] font-bold transition-all shrink-0 disabled:opacity-30 ${
-            activeTab === 'locks' ? 'bg-church-600/30 text-church-400 border border-church-500/30' : 'text-slate-500'
-          }`}
-        >
-          결산마감
-        </button>
-        <button
-          onClick={() => setActiveTab('database')}
-          disabled={!isAdminOrAuditor}
-          className={`px-3 py-1.5 rounded-lg text-[9px] font-bold transition-all shrink-0 disabled:opacity-30 ${
-            activeTab === 'database' ? 'bg-church-600/30 text-church-400 border border-church-500/30' : 'text-slate-500'
-          }`}
-        >
-          데이터
-        </button>
+        {[
+          { key: 'categories', label: '계정과목' },
+          { key: 'display', label: '화면설정' },
+          { key: 'marketplace', label: '마켓플레이스' },
+          { key: 'users', label: '사용자' },
+          { key: 'orgs', label: '조직' },
+          { key: 'positions', label: '직책설정' },
+          { key: 'ocr-queue', label: 'AI 분석 현황' },
+          { key: 'locks', label: '결산마감' },
+          { key: 'database', label: '데이터' }
+        ].map(tab => {
+          const hasAccess = canAccessTab(tab.key);
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => handleTabClick(tab.key)}
+              className={`px-3 py-1.5 rounded-lg text-[9px] font-bold transition-all shrink-0 ${
+                !hasAccess ? 'opacity-30 cursor-not-allowed' : ''
+              } ${
+                activeTab === tab.key ? 'bg-church-600/30 text-church-400 border border-church-500/30' : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* 화면설정 (글자 크기 조절) */}
@@ -941,6 +982,72 @@ export default function Settings() {
                 </div>
               </div>
             </div>
+
+            {/* 비밀번호 변경 카드 */}
+            <form onSubmit={handlePasswordChange} className="glass p-5 rounded-2xl space-y-4 border border-slate-800 mt-4 shadow-md">
+              <div className="flex flex-col gap-1">
+                <h3 className="text-xs font-bold text-white">비밀번호 변경</h3>
+                <p className="text-[9px] text-slate-500">보안을 위해 비밀번호는 최소 8자 이상으로 설정해 주세요.</p>
+              </div>
+
+              {passwordChangeError && (
+                <div className="p-2.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-[9px] font-bold leading-normal flex items-start gap-1.5">
+                  <AlertTriangle size={12} className="shrink-0 mt-0.5" />
+                  <span>{passwordChangeError}</span>
+                </div>
+              )}
+
+              {passwordChangeMessage && (
+                <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-[9px] font-bold leading-normal flex items-start gap-1.5">
+                  <CheckCircle2 size={12} className="shrink-0 mt-0.5" />
+                  <span>{passwordChangeMessage}</span>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-slate-400 block">현재 비밀번호</label>
+                  <input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="현재 비밀번호를 입력하세요"
+                    className="w-full bg-slate-950/60 border border-slate-800/80 rounded-xl px-3 py-2 text-slate-200 text-xs placeholder-slate-600 focus:outline-none focus:border-church-500 transition-colors"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-slate-400 block">새 비밀번호</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="새 비밀번호 (최소 8자)"
+                    className="w-full bg-slate-950/60 border border-slate-800/80 rounded-xl px-3 py-2 text-slate-200 text-xs placeholder-slate-600 focus:outline-none focus:border-church-500 transition-colors"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-slate-400 block">새 비밀번호 확인</label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="새 비밀번호 다시 입력"
+                    className="w-full bg-slate-950/60 border border-slate-800/80 rounded-xl px-3 py-2 text-slate-200 text-xs placeholder-slate-600 focus:outline-none focus:border-church-500 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={passwordChangeLoading}
+                className="w-full bg-church-600 hover:bg-church-500 text-white font-bold py-2.5 rounded-xl text-xs shadow-md transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-1.5"
+              >
+                {passwordChangeLoading && <Loader2 size={12} className="animate-spin" />}
+                비밀번호 변경
+              </button>
+            </form>
           </div>
         </div>
       )}
@@ -1190,7 +1297,7 @@ export default function Settings() {
                         {u.name} <span className="text-slate-400 text-[10px]">({u.position})</span>
                       </h4>
                       <p className="text-[9px] text-slate-500 mt-1">
-                        ID: {u.username} · 소속: [{u.organization_name}] {u.group_name || '-'}
+                        ID: {u.username} · 소속: [{u.organization_name || (u.custom_department_name ? `요청: ${u.custom_department_name}` : '기타')}] {u.group_name || (u.custom_group_name ? `요청: ${u.custom_group_name}` : '-')}
                       </p>
                     </div>
                     <button
@@ -1214,7 +1321,7 @@ export default function Settings() {
                 <div key={u.user_id} className="glass p-3 rounded-2xl flex items-center justify-between border border-slate-800/40">
                   <div>
                     <h4 className="text-xs font-bold text-white">{u.name} <span className="text-slate-400 text-[10px]">({u.position})</span></h4>
-                    <p className="text-[9px] text-slate-500 mt-1">소속: [{u.organization_name}] {u.group_name || '-'}</p>
+                    <p className="text-[9px] text-slate-500 mt-1">소속: [{u.organization_name || (u.custom_department_name ? `요청: ${u.custom_department_name}` : '기타')}] {u.group_name || (u.custom_group_name ? `요청: ${u.custom_group_name}` : '-')}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-[9px] font-bold text-church-400 bg-church-500/10 px-2 py-0.5 rounded border border-church-500/20">
@@ -1868,10 +1975,14 @@ export default function Settings() {
         <div className="flex justify-between items-center bg-slate-950/50 p-3.5 rounded-xl border border-slate-900/80">
           <div className="space-y-1">
             <p className="text-xs font-bold text-white leading-none">
-              {user?.name} <span className="text-[9px] text-slate-400 font-medium">({user?.position})</span>
+              {isAdminUser(user) ? '관리자' : user?.name} <span className="text-[9px] text-slate-400 font-medium">({isAdminUser(user) ? '마스터' : (user?.position || '기타')})</span>
             </p>
-            <p className="text-[9px] text-church-400 font-bold mt-1.5 leading-none">{user?.groupName || '소속 부서 없음'}</p>
-            <p className="text-[7.5px] text-slate-500 font-semibold tracking-wider pt-1.5">권한 등급: {user?.role}</p>
+            <p className="text-[9px] text-church-400 font-bold mt-1.5 leading-none">
+              {isAdminUser(user) ? (user?.groupName || '전체 조직') : (user?.groupName || '소속 부서 없음')}
+            </p>
+            <p className="text-[7.5px] text-slate-500 font-semibold tracking-wider pt-1.5">
+              권한 등급: {isAdminUser(user) ? '전체 관리자' : (user?.role || '일반 사용자')}
+            </p>
           </div>
           <button
             type="button"

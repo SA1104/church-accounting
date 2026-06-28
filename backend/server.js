@@ -33,7 +33,7 @@ if (!SUPABASE_ANON_KEY) {
 }
 
 const { initPlatformDb, query } = require('./core/db');
-const { login, signup, authenticateToken, requireRole } = require('./core/auth');
+const { login, signup, authenticateToken, requireRole, changePassword } = require('./core/auth');
 const { loadModules } = require('./core/registry');
 
 const app = express();
@@ -61,15 +61,26 @@ app.use('/uploads', express.static(uploadDir));
 // 1. 공통 인증 API
 app.post('/api/auth/login', login);
 app.post('/api/auth/signup', signup);
+app.post('/api/auth/change-password', authenticateToken, changePassword);
 
 // 1-1. 다교회 온보딩 공통 조회 API (미인증)
 app.get('/api/churches', async (req, res) => {
   try {
     const showAll = req.query.all === 'true';
+    const search = req.query.search;
     let sql = "SELECT church_id, project_id, church_name, denomination, region, address, phone, email, homepage_url, logo_url, primary_color, secondary_color, status FROM public.church_profiles";
     const params = [];
+    const whereClauses = [];
     if (!showAll) {
-      sql += " WHERE status = 'active'";
+      whereClauses.push("status = 'active'");
+    }
+    if (search) {
+      whereClauses.push("(church_name LIKE ? OR denomination LIKE ? OR region LIKE ? OR address LIKE ?)");
+      const searchPattern = `%${search}%`;
+      params.push(searchPattern, searchPattern, searchPattern, searchPattern);
+    }
+    if (whereClauses.length > 0) {
+      sql += " WHERE " + whereClauses.join(" AND ");
     }
     const list = await query.all(sql, params);
     res.json(list);
@@ -272,6 +283,38 @@ app.post('/api/users/:id/approve', authenticateToken, requireRole(['SYSTEM_ADMIN
     // Set user as active and approved
     await query.run("UPDATE platform_profiles SET is_active = TRUE, signup_status = 'approved' WHERE user_id = ?", [id]);
 
+    // Handle custom department/group approval if present
+    const meta = await query.get('SELECT project_id, custom_department_name, custom_group_name FROM church_user_metadata WHERE user_id = ?', [id]);
+    if (meta) {
+      let deptId = null;
+      if (meta.custom_department_name) {
+        // Check if department exists
+        const existingDept = await query.get('SELECT department_id FROM church_departments WHERE project_id = ? AND name = ? LIMIT 1', [meta.project_id, meta.custom_department_name]);
+        if (existingDept) {
+          deptId = existingDept.department_id;
+        } else {
+          const insertResult = await query.run('INSERT INTO church_departments (project_id, name, description, is_active) VALUES (?, ?, ?, TRUE)', [meta.project_id, meta.custom_department_name, '사용자 가입 신청 시 직접 입력으로 생성된 부서']);
+          deptId = insertResult.id;
+        }
+        await query.run('UPDATE church_user_metadata SET department_id = ? WHERE user_id = ?', [deptId, id]);
+      }
+
+      if (meta.custom_group_name) {
+        const finalDeptId = deptId || (await query.get('SELECT department_id FROM church_user_metadata WHERE user_id = ?', [id]))?.department_id;
+        if (finalDeptId) {
+          const existingGroup = await query.get('SELECT id FROM church_groups WHERE department_id = ? AND name = ? LIMIT 1', [finalDeptId, meta.custom_group_name]);
+          let groupUuid = null;
+          if (existingGroup) {
+            groupUuid = existingGroup.id;
+          } else {
+            groupUuid = require('crypto').randomUUID();
+            await query.run('INSERT INTO church_groups (id, church_profile_id, department_id, name, description, is_active) VALUES (?, (SELECT church_id FROM church_profiles WHERE project_id = ? LIMIT 1), ?, ?, ?, TRUE)', [groupUuid, meta.project_id, finalDeptId, meta.custom_group_name, '사용자 가입 신청 시 직접 입력으로 생성된 그룹']);
+          }
+          await query.run('UPDATE church_user_metadata SET group_uuid = ? WHERE user_id = ?', [groupUuid, id]);
+        }
+      }
+    }
+
     await query.run(`
       INSERT INTO platform_audit_logs (user_id, service_id, project_id, action, details, ip_address, result)
       VALUES (?, 'platform', ?, 'APPROVE_USER', ?, ?, 'SUCCESS')
@@ -291,6 +334,7 @@ app.get('/api/users', authenticateToken, requireRole(['SYSTEM_ADMIN', 'AUDITOR']
     const users = await query.all(`
       SELECT u.user_id, u.username, u.display_name as name, u.phone as email, u.is_active, u.created_at,
              m.position, m.department_id as group_id, g.name as group_name, o.name as organization_name,
+             m.custom_department_name, m.custom_group_name,
              r.role_id as role
       FROM platform_profiles u
       LEFT JOIN platform_role_assignments r ON u.user_id = r.user_id AND r.service_id = 'church_think' AND r.project_id = ?
