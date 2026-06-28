@@ -196,6 +196,41 @@ async function initPlatformDb() {
 }
 
 async function seedPlatformRegistries() {
+  // 1. Check platform_registries existence
+  let registriesExists = false;
+  try {
+    const res = await query.get("SELECT to_regclass('public.platform_registries') AS platform_registries_exists");
+    if (res && res.platform_registries_exists) {
+      registriesExists = true;
+    }
+  } catch (err) {
+    console.warn('[DB] Error checking public.platform_registries table:', err.message);
+  }
+
+  if (!registriesExists) {
+    console.warn('[DB] Warning: public.platform_registries table does not exist. Skipping platform registry seeding.');
+  }
+
+  // 2. Check decision_histories existence
+  let decisionHistoriesExists = false;
+  try {
+    const res = await query.get("SELECT to_regclass('public.decision_histories') AS decision_histories_exists");
+    if (res && res.decision_histories_exists) {
+      decisionHistoriesExists = true;
+    }
+  } catch (err) {
+    console.warn('[DB] Error checking public.decision_histories table:', err.message);
+  }
+
+  if (!decisionHistoriesExists) {
+    console.warn('[DB] Warning: public.decision_histories table does not exist. Decision history features may be limited.');
+  }
+
+  // If platform_registries doesn't exist, skip seeding to avoid crashes
+  if (!registriesExists) {
+    return;
+  }
+
   console.log('[Seed] Seeding platform registries...');
   try {
     // 1. Products
