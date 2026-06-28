@@ -998,7 +998,11 @@ async function startServer() {
     await loadModules(app);
     
     // 3. Start AI queue processing
-    await startQueueWorker();
+    if (typeof startQueueWorker === 'function') {
+      await startQueueWorker();
+    } else {
+      console.warn('[Queue] Worker not available. Skipping.');
+    }
 
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`[Platform Server] Running on http://localhost:${PORT}`);
