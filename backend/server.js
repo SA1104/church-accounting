@@ -987,7 +987,7 @@ app.get('*', (req, res) => {
 });
 
 // 8. 플랫폼 및 모듈 초기화 부트스트랩
-const { startQueueWorker } = require('./core/ai');
+const { startQueueWorker } = require('./core/ai.js');
 
 async function startServer() {
   try {

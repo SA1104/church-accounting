@@ -61,11 +61,32 @@ class MockProvider extends AIProviderInterface {
   }
 }
 
+// Legacy stubs to support optional Queue Worker and SSE features
+function addSseClient(res) {
+  console.log('[Queue] Mock addSseClient called.');
+}
+
+function removeSseClient(res) {
+  console.log('[Queue] Mock removeSseClient called.');
+}
+
+function startQueueWorker() {
+  console.log('[Queue] Mock startQueueWorker called. Queue is optional and skipped.');
+}
+
+async function reprocessAttachment(attachmentId) {
+  console.log(`[Queue] Mock reprocessAttachment called for ID: ${attachmentId}`);
+}
+
 module.exports = {
   AIProviderInterface,
   OpenAIProvider,
   GeminiProvider,
   ClaudeProvider,
   LocalProvider,
-  MockProvider
+  MockProvider,
+  addSseClient,
+  removeSseClient,
+  startQueueWorker,
+  reprocessAttachment
 };
