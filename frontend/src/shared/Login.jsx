@@ -107,12 +107,18 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="mt-4 text-center">
+          <div className="mt-4 text-center flex flex-col gap-2">
             <button
               onClick={() => navigate('/signup')}
               className="text-[10px] text-slate-400 hover:text-white transition-colors underline font-medium"
             >
               아직 계정이 없으신가요? 회원가입 신청
+            </button>
+            <button
+              onClick={() => navigate('/')}
+              className="text-[9px] text-slate-500 hover:text-slate-300 transition-colors font-medium mt-1"
+            >
+              ← 전체 서비스 선택기로 이동
             </button>
           </div>
         </div>

@@ -12,9 +12,26 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="/assets/index-Cjs9IsSH.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-kOc_Dvrx.css">
-  <link rel="manifest" href="/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/registerSW.js"></script></head>
+    <script>
+      // 기존 서비스 워커 강제 해제 및 캐시 무효화 자가 치유 스크립트
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          if (registrations.length > 0) {
+            for (var i = 0; i < registrations.length; i++) {
+              registrations[i].unregister().then(function(success) {
+                if (success) {
+                  console.log('[PWA] Service Worker unregistered.');
+                  window.location.reload();
+                }
+              });
+            }
+          }
+        });
+      }
+    </script>
+    <script type="module" crossorigin src="/assets/index-BrDKhjcu.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-ID3Cpxmq.css">
+  </head>
   <body class="h-full overflow-hidden select-none font-sans">
     <div id="root" class="h-full"></div>
   </body>

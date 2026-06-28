@@ -29,6 +29,16 @@ export default function Signup() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // 새로운 교회 생성 온보딩 정보 (TEAM C)
+  const [onboardingMode, setOnboardingMode] = useState('join'); // 'join' or 'create'
+  const [churchName, setChurchName] = useState('');
+  const [denomination, setDenomination] = useState('');
+  const [region, setRegion] = useState('');
+  const [managerName, setManagerName] = useState('');
+  const [primaryColor, setPrimaryColor] = useState('#38669b');
+  const [homepage, setHomepage] = useState('');
+  const [representativeImage, setRepresentativeImage] = useState('');
+
   // 서명 상태
   const [signatureMode, setSignatureMode] = useState('draw'); // 'draw' or 'text'
   const [signatureText, setSignatureText] = useState('');
@@ -198,8 +208,18 @@ export default function Signup() {
   const handleSignupSubmit = async (e) => {
     e.preventDefault();
 
-    if (!username || !password || !name || !selectedGroupId) {
+    if (!username || !password || !name) {
       setError('모든 필수 항목을 입력해 주세요.');
+      return;
+    }
+
+    if (onboardingMode === 'join' && !selectedGroupId) {
+      setError('소속 그룹을 선택해 주세요.');
+      return;
+    }
+
+    if (onboardingMode === 'create' && !churchName) {
+      setError('교회명을 입력해 주세요.');
       return;
     }
 
@@ -232,8 +252,17 @@ export default function Signup() {
           name,
           role,
           position,
-          group_id: parseInt(selectedGroupId, 10),
-          signature: signatureVal
+          group_id: onboardingMode === 'join' ? parseInt(selectedGroupId, 10) : 1, // Default to Administration for new church
+          signature: signatureVal,
+          churchInfo: onboardingMode === 'create' ? {
+            churchName,
+            denomination,
+            region,
+            managerName: managerName || name,
+            primaryColor,
+            homepage,
+            representativeImage
+          } : null
         })
       });
 
@@ -334,37 +363,146 @@ export default function Signup() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-400">소속 위원회/기관 *</label>
-                  <select
-                    value={selectedOrgId}
-                    onChange={(e) => setSelectedOrgId(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white focus:outline-none"
+              {/* 가입 방식 선택 (TEAM C) */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-slate-400">온보딩 유형 선택 *</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setOnboardingMode('join')}
+                    className={`flex-1 py-1.5 px-3 rounded-xl border text-xs font-semibold transition-all ${
+                      onboardingMode === 'join'
+                        ? 'bg-church-600/20 border-church-500 text-church-400'
+                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                    }`}
                   >
-                    <option value="" disabled>선택</option>
-                    {organizations.map(o => (
-                      <option key={o.organization_id} value={o.organization_id}>{o.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-400">소속 그룹(찬양팀) *</label>
-                  <select
-                    value={selectedGroupId}
-                    onChange={(e) => setSelectedGroupId(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white focus:outline-none"
+                    기존 교회 가입
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOnboardingMode('create')}
+                    className={`flex-1 py-1.5 px-3 rounded-xl border text-xs font-semibold transition-all ${
+                      onboardingMode === 'create'
+                        ? 'bg-church-600/20 border-church-500 text-church-400'
+                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                    }`}
                   >
-                    <option value="" disabled>선택</option>
-                    {groups
-                      .filter(g => g.organization_id.toString() === selectedOrgId)
-                      .map(g => (
-                        <option key={g.group_id} value={g.group_id}>{g.name}</option>
-                      ))}
-                  </select>
+                    새로운 교회 생성
+                  </button>
                 </div>
               </div>
+
+              {onboardingMode === 'join' ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-slate-400">소속 위원회/기관 *</label>
+                    <select
+                      value={selectedOrgId}
+                      onChange={(e) => setSelectedOrgId(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white focus:outline-none"
+                    >
+                      <option value="" disabled>선택</option>
+                      {organizations.map(o => (
+                        <option key={o.organization_id} value={o.organization_id}>{o.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-slate-400">소속 그룹(찬양팀) *</label>
+                    <select
+                      value={selectedGroupId}
+                      onChange={(e) => setSelectedGroupId(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white focus:outline-none"
+                    >
+                      <option value="" disabled>선택</option>
+                      {groups
+                        .filter(g => g.organization_id.toString() === selectedOrgId)
+                        .map(g => (
+                          <option key={g.group_id} value={g.group_id}>{g.name}</option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3 p-3.5 rounded-xl border border-slate-800 bg-slate-900/40">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold text-slate-400">교회명 *</label>
+                    <input
+                      type="text"
+                      value={churchName}
+                      onChange={(e) => setChurchName(e.target.value)}
+                      placeholder="예: 신길교회"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-1.5 px-3 text-xs text-white focus:outline-none focus:border-church-500"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-semibold text-slate-400">교단 (선택)</label>
+                      <input
+                        type="text"
+                        value={denomination}
+                        onChange={(e) => setDenomination(e.target.value)}
+                        placeholder="예: 성결교"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-1.5 px-3 text-xs text-white focus:outline-none focus:border-church-500"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-semibold text-slate-400">지역 (선택)</label>
+                      <input
+                        type="text"
+                        value={region}
+                        onChange={(e) => setRegion(e.target.value)}
+                        placeholder="예: 서울 영등포"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-1.5 px-3 text-xs text-white focus:outline-none focus:border-church-500"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-semibold text-slate-400">대표 담당자 (선택)</label>
+                      <input
+                        type="text"
+                        value={managerName}
+                        onChange={(e) => setManagerName(e.target.value)}
+                        placeholder="실명 입력"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-1.5 px-3 text-xs text-white focus:outline-none focus:border-church-500"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-semibold text-slate-400">대표 색상 (선택)</label>
+                      <input
+                        type="color"
+                        value={primaryColor}
+                        onChange={(e) => setPrimaryColor(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl h-8 p-1 focus:outline-none cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-semibold text-slate-400">홈페이지 (선택)</label>
+                      <input
+                        type="text"
+                        value={homepage}
+                        onChange={(e) => setHomepage(e.target.value)}
+                        placeholder="URL 입력"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-1.5 px-3 text-xs text-white focus:outline-none focus:border-church-500"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-semibold text-slate-400">대표 이미지 (선택)</label>
+                      <input
+                        type="text"
+                        value={representativeImage}
+                        onChange={(e) => setRepresentativeImage(e.target.value)}
+                        placeholder="이미지 URL"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-1.5 px-3 text-xs text-white focus:outline-none focus:border-church-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* 서명 등록 섹션 */}
               <div className="space-y-2 border-t border-slate-800/80 pt-3">

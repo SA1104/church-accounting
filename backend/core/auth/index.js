@@ -141,21 +141,29 @@ async function login(req, res) {
     return res.status(400).json({ message: 'Username and password are required' });
   }
 
-  try {
-    // In Supabase, auth is email-based. Convert username to system email format
-    const email = `${username}@boozathink.com`;
+  // Determine email format: if input is already email, use as-is; otherwise append system domain
+  const email = username.includes('@') ? username : `${username}@boozathink.com`;
 
+  // Log only email and keys of req.body (do not log the password)
+  console.log('[AUTH LOGIN REQUEST]', { email, bodyKeys: Object.keys(req.body) });
+
+  try {
     const { data, error } = await supabasePublic.auth.signInWithPassword({
       email,
       password
     });
 
     if (error || !data.user) {
-      return res.status(400).json({ message: error ? error.message : 'Invalid credentials' });
+      console.error('[AUTH LOGIN ERROR]', { 
+        email, 
+        message: error ? error.message : 'No user returned from Supabase', 
+        status: error ? error.status : null 
+      });
+      return res.status(400).json({ message: 'Invalid login credentials' });
     }
 
-    // Resolve user's profile and roles
-    const profile = await query.get('SELECT display_name, is_active FROM platform_profiles WHERE user_id = ?', [data.user.id]);
+    // Resolve user's profile (including database username) and roles
+    const profile = await query.get('SELECT username, display_name, is_active FROM platform_profiles WHERE user_id = ?', [data.user.id]);
     if (!profile || !profile.is_active) {
       return res.status(400).json({ message: 'Profile is inactive' });
     }
@@ -189,7 +197,7 @@ async function login(req, res) {
       token: data.session.access_token,
       user: {
         userId: data.user.id,
-        username,
+        username: profile.username || username,
         name: profile.display_name,
         roles: {
           platform: roles['platform'] || (roles['church_think'] === 'SYSTEM_ADMIN' ? 'SYSTEM_ADMIN' : 'USER'),
@@ -206,6 +214,7 @@ async function login(req, res) {
   }
 }
 
+
 async function signup(req, res) {
   const { username, password, name, email, serviceId, role, accounting } = req.body;
   if (!username || !password || !name) {
@@ -213,7 +222,7 @@ async function signup(req, res) {
   }
 
   try {
-    const systemEmail = `${username}@boozathink.com`;
+    const systemEmail = username.includes('@') ? username : `${username}@boozathink.com`;
 
     // Sign up user in Supabase Auth
     const { data, error } = await supabasePublic.auth.signUp({
