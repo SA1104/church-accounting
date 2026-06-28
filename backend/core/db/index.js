@@ -188,9 +188,74 @@ async function initPlatformDb() {
     
     // Auto seed default users on startup
     await seedDefaultUsers(supabase);
+    await seedPlatformRegistries();
   } catch (err) {
     console.error('Failed to connect to Supabase database:', err);
     throw err;
+  }
+}
+
+async function seedPlatformRegistries() {
+  console.log('[Seed] Seeding platform registries...');
+  try {
+    // 1. Products
+    const products = [
+      { key: 'church_think', name: 'Church Think', owner: 'FINANCE_COMM', enabled: true },
+      { key: 'stock_think', name: 'Stock Think', owner: 'INVEST_COMM', enabled: false },
+      { key: 'estate_think', name: 'Estate Think', owner: 'ESTATE_COMM', enabled: false },
+      { key: 'mission_think', name: 'Mission Think', owner: 'MISSION_COMM', enabled: false },
+      { key: 'education_think', name: 'Education Think', owner: 'EDU_COMM', enabled: false },
+      { key: 'finance_think', name: 'Finance Think', owner: 'FINANCE_COMM', enabled: false },
+      { key: 'construction_think', name: 'Construction Think', owner: 'BUILD_COMM', enabled: false },
+      { key: 'manufacturing_think', name: 'Manufacturing Think', owner: 'MFG_COMM', enabled: false },
+      { key: 'medical_think', name: 'Medical Think', owner: 'MED_COMM', enabled: false },
+      { key: 'legal_think', name: 'Legal Think', owner: 'LEGAL_COMM', enabled: false },
+      { key: 'hr_think', name: 'HR Think', owner: 'HR_COMM', enabled: false },
+      { key: 'esg_think', name: 'ESG Think', owner: 'ESG_COMM', enabled: false }
+    ];
+
+    for (const p of products) {
+      await query.run(`
+        INSERT INTO platform_registries (registry_type, item_key, item_name, owner, enabled)
+        VALUES ('PRODUCT', ?, ?, ?, ?)
+        ON CONFLICT (registry_type, item_key) DO NOTHING
+      `, [p.key, p.name, p.owner, p.enabled]);
+    }
+
+    // 2. Engines (18 Core Engines)
+    const engines = [
+      'DataEngine', 'CleaningEngine', 'StandardizationEngine', 'KnowledgeEngine',
+      'IntelligenceEngine', 'DecisionEngine', 'SimulationEngine', 'PredictionEngine',
+      'LearningEngine', 'WorkflowEngine', 'MediaEngine', 'DistributionEngine',
+      'NotificationEngine', 'PluginEngine', 'MonitoringEngine', 'BillingEngine',
+      'UsageEngine', 'GovernanceEngine'
+    ];
+
+    for (const e of engines) {
+      await query.run(`
+        INSERT INTO platform_registries (registry_type, item_key, item_name, owner, enabled)
+        VALUES ('ENGINE', ?, ?, 'PLATFORM_ADMIN', true)
+        ON CONFLICT (registry_type, item_key) DO NOTHING
+      `, [e, `${e} Component`]);
+    }
+
+    // 3. Plugins
+    const plugins = [
+      { key: 'stripe_pay', name: 'Stripe Payment Gateway Plugin' },
+      { key: 'toss_pay', name: 'Toss Payments Gateway Plugin' },
+      { key: 'naver_ocr', name: 'Naver Clova OCR Parsing Plugin' }
+    ];
+
+    for (const pl of plugins) {
+      await query.run(`
+        INSERT INTO platform_registries (registry_type, item_key, item_name, owner, enabled)
+        VALUES ('PLUGIN', ?, ?, 'PLATFORM_ADMIN', true)
+        ON CONFLICT (registry_type, item_key) DO NOTHING
+      `, [pl.key, pl.name]);
+    }
+    console.log('[Seed] Seeding platform registries completed.');
+  } catch (err) {
+    console.error('[Seed] Failed to seed platform registries:', err);
   }
 }
 

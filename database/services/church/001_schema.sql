@@ -138,3 +138,22 @@ CREATE TABLE IF NOT EXISTS public.church_closing_periods (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   UNIQUE (project_id, period_type, period_value)
 );
+
+-- church_profiles: 개별 교회의 온보딩 브랜드 프로필 및 테마 속성
+CREATE TABLE IF NOT EXISTS public.church_profiles (
+  church_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES public.platform_projects(project_id) ON DELETE CASCADE,
+  church_name VARCHAR(100) NOT NULL,
+  denomination VARCHAR(100),               -- 교단 (예: 기독교대한성결교회)
+  region VARCHAR(100),                     -- 지역 (예: 서울시 영등포구)
+  manager_name VARCHAR(100),               -- 담당자 이름
+  logo_url TEXT,                           -- AI Logo Generator 생성 결과 이미지 경로
+  primary_color VARCHAR(20) DEFAULT '#38669b',  -- UI 주요 테마 색상 (Vite/CSS 연동)
+  secondary_color VARCHAR(20) DEFAULT '#2b517d',-- UI 보조 테마 색상
+  logo_prompt TEXT,                        -- 로고 생성 시 입력 프롬프트
+  theme_settings JSONB DEFAULT '{}'::jsonb,-- 폰트, 보조 디자인 테마 정보
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_church_profiles_project ON public.church_profiles(project_id);

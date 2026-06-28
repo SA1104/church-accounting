@@ -2,6 +2,8 @@ import React, { useState, useEffect, createContext, useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, FileText, PlusCircle, CheckSquare, BarChart2, Settings as SettingsIcon, LogOut, User, Bell } from 'lucide-react';
 import Signup from './shared/Signup';
+import Portal from './shared/Portal';
+import PremiumPlaceholder from './shared/PremiumPlaceholder';
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -29,6 +31,33 @@ function MobileLayout() {
   const { user, token, logout, fontScale, setFontScale } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // 동적 교회 테넌트 브랜딩 프로필 데이터 상태 (TEAM B & TEAM G)
+  const [churchProfile, setChurchProfile] = useState({
+    church_name: '신길교회',
+    denomination: '기독교대한성결교회',
+    primary_color: '#38669b',
+    secondary_color: '#2b517d',
+    logo_url: '/church_logo.png'
+  });
+
+  useEffect(() => {
+    if (!token) return;
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch('/api/church/profile', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setChurchProfile(data);
+        }
+      } catch (err) {
+        console.error('Error fetching church profile:', err);
+      }
+    };
+    fetchProfile();
+  }, [token]);
 
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -126,31 +155,31 @@ function MobileLayout() {
   };
 
   const isActive = (path) => {
-    if (path === '/') return location.pathname === '/';
+    if (path === '/app/church') return location.pathname === '/app/church';
     return location.pathname.startsWith(path);
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-950 text-slate-100 overflow-hidden">
-      {/* 1. 상단 신길교회 로고 탑재 헤더 */}
+    <div className="flex flex-col h-full bg-slate-950 text-slate-100 overflow-hidden" style={{ '--church-primary': churchProfile.primary_color }}>
+      {/* 1. 상단 동적 로고 및 개별 브랜딩 헤더 (TEAM B) */}
       <header className="glass flex items-center justify-between px-4 py-2 z-10 shrink-0">
         <div className="flex items-center gap-2">
           {/* 교회 로고 이미지 적용 */}
           <div className="h-10 flex items-center justify-center p-0.5 rounded bg-white border border-slate-700/30">
             <img 
-              src="/church_logo.png" 
-              alt="신길교회" 
+              src={churchProfile.logo_url} 
+              alt={churchProfile.church_name} 
               className="h-full w-auto object-contain max-w-[110px] xs:max-w-[130px] md:max-w-[160px]" 
             />
           </div>
           <div className="border-l border-slate-800 pl-2 leading-none flex items-center gap-2">
             <div>
-              <h1 className="text-[9px] font-bold text-slate-400 tracking-tight">Booza Think OS</h1>
+              <h1 className="text-[9px] font-bold text-slate-400 tracking-tight">Church Think | {churchProfile.church_name}</h1>
               <select
                 value={location.pathname.startsWith('/app/stock') ? 'stock' : location.pathname.startsWith('/app/estate') ? 'estate' : location.pathname.startsWith('/app/mission') ? 'mission' : 'church'}
                 onChange={(e) => {
                   const selectedApp = e.target.value;
-                  if (selectedApp === 'church') navigate('/');
+                  if (selectedApp === 'church') navigate('/app/church');
                   else navigate(`/app/${selectedApp}`);
                 }}
                 className="bg-slate-900 border border-slate-800 text-[8px] font-bold text-church-400 rounded px-1.5 py-0.5 mt-0.5 focus:outline-none cursor-pointer"
@@ -257,7 +286,7 @@ function MobileLayout() {
       {/* 2. 메인 콘텐츠 */}
       <main className="flex-1 overflow-y-auto no-scrollbar pb-6">
         <Routes>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/app/church" element={<Dashboard />} />
           <Route path="/vouchers/new" element={<VoucherForm />} />
           <Route path="/vouchers/edit/:id" element={<VoucherForm />} />
           <Route path="/vouchers" element={<VoucherList />} />
@@ -267,19 +296,18 @@ function MobileLayout() {
           {(user?.role === 'AUDITOR' || user?.role === 'SYSTEM_ADMIN') && <Route path="/audit" element={<AuditView />} />}
           <Route path="/settings" element={<Settings />} />
 
-          {/* 신규 멀티 앱 스텁 경로 */}
-          <Route path="/app/church" element={<Navigate to="/" replace />} />
-          <Route path="/app/stock" element={<StockDashboard />} />
-          <Route path="/app/estate" element={<EstateDashboard />} />
-          <Route path="/app/mission" element={<MissionDashboard />} />
+          {/* Premium Placeholders (TEAM E) */}
+          <Route path="/app/stock" element={<PremiumPlaceholder appId="stock" />} />
+          <Route path="/app/estate" element={<PremiumPlaceholder appId="estate" />} />
+          <Route path="/app/mission" element={<PremiumPlaceholder appId="mission" />} />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/app/church" replace />} />
         </Routes>
       </main>
 
       {/* 3. 하단 탭 네비게이션 바 */}
       <nav className="glass py-2 px-3 flex justify-around items-center shrink-0 border-t border-slate-800/80 safe-bottom">
-        <Link to="/" className={`flex flex-col items-center gap-1 transition-all ${isActive('/') ? 'text-church-400 scale-105 font-semibold' : 'text-slate-500'}`}>
+        <Link to="/app/church" className={`flex flex-col items-center gap-1 transition-all ${isActive('/app/church') ? 'text-church-400 scale-105 font-semibold' : 'text-slate-500'}`}>
           <Home size={18} />
           <span className="text-[9px]">홈</span>
         </Link>
@@ -378,6 +406,7 @@ export default function App() {
     <AuthContext.Provider value={{ token, user, login, logout, fontScale, setFontScale }}>
       <Router>
         <Routes>
+          <Route path="/" element={<Portal />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route 

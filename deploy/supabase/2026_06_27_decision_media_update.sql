@@ -389,8 +389,123 @@ ON CONFLICT (service_id, workflow_key) DO NOTHING;
 
 
 -- -------------------------------------------------------------------------
+-- PART 5-2. Church Branding & Profiles DDL
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.church_profiles (
+  church_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES public.platform_projects(project_id) ON DELETE CASCADE,
+  church_name VARCHAR(100) NOT NULL,
+  denomination VARCHAR(100),               -- 교단
+  region VARCHAR(100),                     -- 지역
+  manager_name VARCHAR(100),               -- 담당자 이름
+  logo_url TEXT,                           -- AI Logo URL
+  primary_color VARCHAR(20) DEFAULT '#38669b',  
+  secondary_color VARCHAR(20) DEFAULT '#2b517d',
+  logo_prompt TEXT,                        
+  theme_settings JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_church_profiles_project ON public.church_profiles(project_id);
+
+-- -------------------------------------------------------------------------
+-- PART 5-3. Billing, Usage & Governance Stub DDL
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.billing_stubs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES public.platform_projects(project_id) ON DELETE CASCADE,
+  tier VARCHAR(50) DEFAULT 'Free',
+  status VARCHAR(50) DEFAULT 'ACTIVE',
+  amount NUMERIC(15, 2) DEFAULT 0.00,
+  billing_cycle VARCHAR(20) DEFAULT 'MONTHLY',
+  next_billing_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP + INTERVAL '30 days',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS public.usage_stubs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES public.platform_projects(project_id) ON DELETE CASCADE,
+  metric_name VARCHAR(100) NOT NULL, -- 'LLM_TOKEN', 'OCR', 'STORAGE', etc.
+  quantity NUMERIC(15, 2) DEFAULT 0.00,
+  unit VARCHAR(20) DEFAULT 'COUNT',
+  measured_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS public.governance_stubs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  registry_type VARCHAR(50) NOT NULL, -- 'PRODUCT', 'PLUGIN', 'ENGINE', etc.
+  item_key VARCHAR(100) NOT NULL,
+  item_name VARCHAR(100) NOT NULL,
+  config JSONB DEFAULT '{}'::jsonb,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (registry_type, item_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_billing_stubs_project ON public.billing_stubs(project_id);
+CREATE INDEX IF NOT EXISTS idx_usage_stubs_project ON public.usage_stubs(project_id);
+CREATE INDEX IF NOT EXISTS idx_governance_stubs_type ON public.governance_stubs(registry_type);
+
+-- -------------------------------------------------------------------------
+-- PART 5-4. Platform Registry & Decision History DDL (Phase 6-4)
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.platform_registries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  registry_type VARCHAR(50) NOT NULL, -- 'PRODUCT', 'ENGINE', 'PLUGIN', 'DATASET', 'API', 'VERSION', 'MIGRATION', 'BILLING', 'LICENSE'
+  item_key VARCHAR(100) NOT NULL,
+  item_name VARCHAR(100) NOT NULL,
+  version VARCHAR(50) DEFAULT '1.0.0',
+  owner VARCHAR(100) DEFAULT 'PLATFORM_ADMIN',
+  enabled BOOLEAN DEFAULT TRUE,
+  config JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (registry_type, item_key)
+);
+
+CREATE TABLE IF NOT EXISTS public.decision_histories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES public.platform_projects(project_id) ON DELETE CASCADE,
+  service_id VARCHAR(50) NOT NULL,
+  decision_score INTEGER NOT NULL,
+  confidence NUMERIC(5,2) NOT NULL,
+  recommendation TEXT NOT NULL,
+  alternative JSONB DEFAULT '[]'::jsonb,
+  risk TEXT,
+  opportunity TEXT,
+  reason TEXT,
+  evidence JSONB DEFAULT '[]'::jsonb,
+  expected_impact TEXT,
+  priority VARCHAR(20) DEFAULT 'MEDIUM',
+  action VARCHAR(100) NOT NULL,
+  timeline VARCHAR(100) NOT NULL,
+  status VARCHAR(50) DEFAULT 'Generated', -- 'Generated', 'Reviewed', 'Approved', 'Executed', 'Measured', 'Learned', 'Archived'
+  outcome_measurement JSONB DEFAULT '{}'::jsonb,
+  learned_deviation JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_platform_registries_type ON public.platform_registries(registry_type);
+CREATE INDEX IF NOT EXISTS idx_decision_histories_project ON public.decision_histories(project_id);
+CREATE INDEX IF NOT EXISTS idx_decision_histories_status ON public.decision_histories(status);
+
+-- -------------------------------------------------------------------------
 -- PART 6. Verification SELECT Queries
 -- -------------------------------------------------------------------------
 SELECT 'platform_workflows' as table_name, COUNT(*) as record_count FROM platform_workflows
 UNION ALL
-SELECT 'platform_data_sources' as table_name, COUNT(*) as record_count FROM platform_data_sources;
+SELECT 'platform_data_sources' as table_name, COUNT(*) as record_count FROM platform_data_sources
+UNION ALL
+SELECT 'church_profiles' as table_name, COUNT(*) as record_count FROM church_profiles
+UNION ALL
+SELECT 'billing_stubs' as table_name, COUNT(*) as record_count FROM billing_stubs
+UNION ALL
+SELECT 'usage_stubs' as table_name, COUNT(*) as record_count FROM usage_stubs
+UNION ALL
+SELECT 'governance_stubs' as table_name, COUNT(*) as record_count FROM governance_stubs
+UNION ALL
+SELECT 'platform_registries' as table_name, COUNT(*) as record_count FROM platform_registries
+UNION ALL
+SELECT 'decision_histories' as table_name, COUNT(*) as record_count FROM decision_histories;

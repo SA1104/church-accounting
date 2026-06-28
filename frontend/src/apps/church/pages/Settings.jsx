@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../App';
 import { 
   Settings as SettingsIcon, Plus, Users, User, FolderTree, Landmark, ShieldCheck,
-  Loader2, CheckCircle2, AlertTriangle, Clock, RefreshCw, Play, Tag, FileText, Trash2
+  Loader2, CheckCircle2, AlertTriangle, Clock, RefreshCw, Play, Tag, FileText, Trash2,
+  Edit2, Save, X, ToggleLeft, ToggleRight
 } from 'lucide-react';
 
 export default function Settings() {
@@ -57,6 +58,24 @@ export default function Settings() {
   const [newPosName, setNewPosName] = useState('');
   const [newPosRole, setNewPosRole] = useState('DEPARTMENT_ACCOUNTANT');
 
+  // 다교회 SaaS 위원회/그룹 관리 상태 및 에디터 폼
+  const [adminOrgs, setAdminOrgs] = useState([]);
+  const [selectedAdminOrgId, setSelectedAdminOrgId] = useState('');
+  const [adminGroups, setAdminGroups] = useState([]);
+  const [newGroupSort, setNewGroupSort] = useState(0);
+
+  const [editingOrgId, setEditingOrgId] = useState(null);
+  const [editingOrgName, setEditingOrgName] = useState('');
+  const [editingOrgDesc, setEditingOrgDesc] = useState('');
+  const [editingOrgActive, setEditingOrgActive] = useState(true);
+
+  const [editingGroupId, setEditingGroupId] = useState(null);
+  const [editingGroupName, setEditingGroupName] = useState('');
+  const [editingGroupDesc, setEditingGroupDesc] = useState('');
+  const [editingGroupSort, setEditingGroupSort] = useState(0);
+  const [editingGroupActive, setEditingGroupActive] = useState(true);
+
+
 
   useEffect(() => {
     fetchCategories();
@@ -74,6 +93,53 @@ export default function Settings() {
       fetchOcrQueue();
     }
   }, [activeTab, token]);
+
+  // 다교회 SaaS 어드민 조직/그룹 관리 훅
+  const fetchAdminOrgs = async () => {
+    try {
+      const response = await fetch('/api/admin/departments', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (response.ok && Array.isArray(data)) {
+        setAdminOrgs(data);
+        if (data.length > 0 && !selectedAdminOrgId) {
+          setSelectedAdminOrgId(data[0].department_id.toString());
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchAdminGroups = async (deptId) => {
+    if (!deptId) return;
+    try {
+      const response = await fetch(`/api/admin/departments/${deptId}/groups`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (response.ok && Array.isArray(data)) {
+        setAdminGroups(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'orgs' && isAdminOrAuditor) {
+      fetchAdminOrgs();
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (selectedAdminOrgId) {
+      fetchAdminGroups(selectedAdminOrgId);
+    } else {
+      setAdminGroups([]);
+    }
+  }, [selectedAdminOrgId]);
 
   // SSE Real-time Updates for OCR Queue
   useEffect(() => {
@@ -419,6 +485,144 @@ export default function Settings() {
     }
   };
 
+  const handleAddAdminOrg = async (e) => {
+    e.preventDefault();
+    if (!newOrgName) return;
+    try {
+      const response = await fetch('/api/admin/departments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ name: newOrgName, description: newOrgDesc })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
+      setNewOrgName('');
+      setNewOrgDesc('');
+      fetchAdminOrgs();
+      alert('부서(위원회) 등록 성공');
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleUpdateAdminOrg = async (e) => {
+    e.preventDefault();
+    if (!editingOrgName) return;
+    try {
+      const response = await fetch(`/api/admin/departments/${editingOrgId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: editingOrgName,
+          description: editingOrgDesc,
+          is_active: editingOrgActive
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
+      setEditingOrgId(null);
+      fetchAdminOrgs();
+      alert('부서 정보 수정 완료');
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleDeleteAdminOrg = async (deptId) => {
+    if (!window.confirm('정말 이 부서를 비활성화하시겠습니까?')) return;
+    try {
+      const response = await fetch(`/api/admin/departments/${deptId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
+      fetchAdminOrgs();
+      alert('부서 비활성화 완료');
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleAddAdminGroup = async (e) => {
+    e.preventDefault();
+    if (!selectedAdminOrgId || !newGroupName) return;
+    try {
+      const response = await fetch('/api/admin/groups', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          department_id: parseInt(selectedAdminOrgId, 10),
+          name: newGroupName,
+          description: newGroupDesc,
+          sort_order: parseInt(newGroupSort || 0, 10)
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
+      setNewGroupName('');
+      setNewGroupDesc('');
+      setNewGroupSort(0);
+      fetchAdminGroups(selectedAdminOrgId);
+      alert('소속 그룹 등록 성공');
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleUpdateAdminGroup = async (e) => {
+    e.preventDefault();
+    if (!editingGroupName) return;
+    try {
+      const response = await fetch(`/api/admin/groups/${editingGroupId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: editingGroupName,
+          description: editingGroupDesc,
+          sort_order: parseInt(editingGroupSort || 0, 10),
+          is_active: editingGroupActive
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
+      setEditingGroupId(null);
+      fetchAdminGroups(selectedAdminOrgId);
+      alert('그룹 정보 수정 완료');
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleDeleteAdminGroup = async (groupId) => {
+    if (!window.confirm('정말 이 그룹을 비활성화하시겠습니까?')) return;
+    try {
+      const response = await fetch(`/api/admin/groups/${groupId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
+      fetchAdminGroups(selectedAdminOrgId);
+      alert('그룹 비활성화 완료');
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+
   const handleAddUser = async (e) => {
     e.preventDefault();
     if (!newUserUsername || !newUserPassword || !newUserName) return;
@@ -598,7 +802,12 @@ export default function Settings() {
     }
   }, [selectedPosGroupId]);
 
-  const isAdminOrAuditor = user.role === 'SYSTEM_ADMIN' || user.role === 'AUDITOR';
+  const isAdminOrAuditor = 
+    user.role === 'SYSTEM_ADMIN' || 
+    user.role === 'AUDITOR' || 
+    user.role === 'admin' || 
+    user.role === 'super_admin' || 
+    user.role === 'project_admin';
 
   return (
     <div className="p-4 space-y-4 max-w-lg mx-auto pb-16">
@@ -624,6 +833,14 @@ export default function Settings() {
           }`}
         >
           화면설정
+        </button>
+        <button
+          onClick={() => setActiveTab('marketplace')}
+          className={`px-3 py-1.5 rounded-lg text-[9px] font-bold transition-all shrink-0 ${
+            activeTab === 'marketplace' ? 'bg-church-600/30 text-church-400 border border-church-500/30' : 'text-slate-500'
+          }`}
+        >
+          마켓플레이스
         </button>
         <button
           onClick={() => setActiveTab('users')}
@@ -724,6 +941,59 @@ export default function Settings() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {/* 마켓플레이스 설정 (타 서비스 토글) (TEAM F) */}
+      {activeTab === 'marketplace' && (
+        <div className="space-y-4">
+          <div className="glass p-5 rounded-2xl space-y-4 shadow-md border border-slate-800">
+            <div className="flex flex-col gap-1">
+              <h3 className="text-xs font-bold text-white">플랫폼 마켓플레이스 연동 설정</h3>
+              <p className="text-[9px] text-slate-500">Booza Think 플랫폼의 다른 AI 의사결정 모듈들을 활성화하거나 제어합니다.</p>
+            </div>
+
+            <div className="space-y-3">
+              {/* Stock Think Switch */}
+              <div className="flex items-center justify-between p-3.5 bg-slate-900/60 border border-slate-800 rounded-xl">
+                <div>
+                  <h4 className="text-xs font-bold text-slate-200">Stock Think 연동</h4>
+                  <p className="text-[9px] text-slate-500">AI 주식 가치 평가 분석 모듈 활성화</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" className="sr-only peer" disabled />
+                  <div className="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-church-600"></div>
+                </label>
+              </div>
+
+              {/* Estate Think Switch */}
+              <div className="flex items-center justify-between p-3.5 bg-slate-900/60 border border-slate-800 rounded-xl">
+                <div>
+                  <h4 className="text-xs font-bold text-slate-200">Estate Think 연동</h4>
+                  <p className="text-[9px] text-slate-500">AI 부동산 분석 의사결정 모듈 활성화</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" className="sr-only peer" disabled />
+                  <div className="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-church-600"></div>
+                </label>
+              </div>
+
+              {/* Mission Think Switch */}
+              <div className="flex items-center justify-between p-3.5 bg-slate-900/60 border border-slate-800 rounded-xl">
+                <div>
+                  <h4 className="text-xs font-bold text-slate-200">Mission Think 연동</h4>
+                  <p className="text-[9px] text-slate-500">AI 선교 협력 네트워크 모듈 활성화</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" className="sr-only peer" disabled />
+                  <div className="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-church-600"></div>
+                </label>
+              </div>
+            </div>
+            
+            <p className="text-[8px] text-amber-500 font-semibold leading-normal">
+              ※ 마켓플레이스 연동 스위치는 현재 준비중(Coming Soon) 모드 상태이므로 비활성화 상태가 유지됩니다. 서비스 공식 오픈 시 구독 등급에 맞춰 잠금 해제 가능합니다.
+            </p>
           </div>
         </div>
       )}
@@ -969,20 +1239,22 @@ export default function Settings() {
 
       {/* 3. 조직 및 그룹 관리 */}
       {activeTab === 'orgs' && isAdminOrAuditor && (
-        <div className="space-y-4">
-          <form onSubmit={handleAddOrg} className="glass p-4 rounded-2xl space-y-3 shadow-md border border-slate-800">
-            <h3 className="text-xs font-bold text-white flex items-center gap-1">
+        <div className="space-y-4 text-slate-300">
+          
+          {/* 부서(위원회) 추가 폼 */}
+          <form onSubmit={handleAddAdminOrg} className="glass p-4 rounded-2xl space-y-3 shadow-md border border-slate-800">
+            <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
               <Plus size={14} className="text-church-400" /> 신규 위원회/기관 추가
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <span className="text-[9px] text-slate-500 font-semibold">위원회명 *</span>
+                <span className="text-[9px] text-slate-500 font-semibold">위원회/기관명 *</span>
                 <input
                   type="text"
                   value={newOrgName}
                   onChange={(e) => setNewOrgName(e.target.value)}
-                  placeholder="예: 찬양위원회"
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+                  placeholder="예: 예배위원회"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-church-500"
                 />
               </div>
               <div className="space-y-1">
@@ -992,7 +1264,7 @@ export default function Settings() {
                   value={newOrgDesc}
                   onChange={(e) => setNewOrgDesc(e.target.value)}
                   placeholder="설명 기재"
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-church-500"
                 />
               </div>
             </div>
@@ -1001,41 +1273,52 @@ export default function Settings() {
             </button>
           </form>
 
-          <form onSubmit={handleAddGroup} className="glass p-4 rounded-2xl space-y-3 shadow-md border border-slate-800">
-            <h3 className="text-xs font-bold text-white flex items-center gap-1">
+          {/* 소속 그룹 추가 폼 */}
+          <form onSubmit={handleAddAdminGroup} className="glass p-4 rounded-2xl space-y-3 shadow-md border border-slate-800">
+            <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
               <Plus size={14} className="text-church-400" /> 위원회 산하 소속그룹 추가
             </h3>
             <div className="space-y-1">
-              <span className="text-[9px] text-slate-500 font-semibold block">소속 위원회 선택 *</span>
+              <span className="text-[9px] text-slate-500 font-semibold block">대상 위원회 선택 *</span>
               <select
-                value={selectedOrgId}
-                onChange={(e) => setSelectedOrgId(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+                value={selectedAdminOrgId}
+                onChange={(e) => setSelectedAdminOrgId(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-church-500"
               >
-                {organizations.map(o => (
-                  <option key={o.organization_id} value={o.organization_id}>{o.name}</option>
+                <option value="" disabled>선택하세요</option>
+                {adminOrgs.map(o => (
+                  <option key={o.department_id} value={o.department_id}>{o.name}</option>
                 ))}
               </select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-1 col-span-1">
                 <span className="text-[9px] text-slate-500 font-semibold">소속그룹명 *</span>
                 <input
                   type="text"
                   value={newGroupName}
                   onChange={(e) => setNewGroupName(e.target.value)}
-                  placeholder="예: 예뜰찬양팀"
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+                  placeholder="예: 시온찬양대"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-church-500"
                 />
               </div>
-              <div className="space-y-1">
-                <span className="text-[9px] text-slate-500 font-semibold">그룹 설명</span>
+              <div className="space-y-1 col-span-1">
+                <span className="text-[9px] text-slate-500 font-semibold">설명</span>
                 <input
                   type="text"
                   value={newGroupDesc}
                   onChange={(e) => setNewGroupDesc(e.target.value)}
                   placeholder="설명 기재"
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-church-500"
+                />
+              </div>
+              <div className="space-y-1 col-span-1">
+                <span className="text-[9px] text-slate-500 font-semibold">정렬 순서</span>
+                <input
+                  type="number"
+                  value={newGroupSort}
+                  onChange={(e) => setNewGroupSort(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-church-500"
                 />
               </div>
             </div>
@@ -1044,64 +1327,208 @@ export default function Settings() {
             </button>
           </form>
 
-          <div className="space-y-4">
-            <h3 className="text-xs font-bold text-slate-400 flex items-center gap-1">
-              <Landmark size={13} className="text-church-400" /> 위원회 및 그룹 목록
+          {/* 위원회(부서) 목록 및 편집 */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold text-slate-400 flex items-center gap-1.5">
+              <Landmark size={13} className="text-church-400" /> 위원회 및 기관 목록
             </h3>
-
-            {/* 위원회 목록 */}
-            <div className="space-y-2">
-              <span className="text-[9px] text-slate-500 font-semibold block">현재 위원회 목록</span>
-              <div className="max-h-[180px] overflow-y-auto no-scrollbar space-y-2">
-                {organizations.length === 0 ? (
-                  <p className="text-[9px] text-slate-500 text-center py-3">등록된 위원회가 없습니다.</p>
-                ) : (
-                  organizations.map((o) => (
-                    <div key={o.organization_id} className="glass p-3 rounded-2xl flex items-center justify-between text-xs border border-slate-800/40">
-                      <div>
-                        <h4 className="font-bold text-white">{o.name}</h4>
-                        <p className="text-[9px] text-slate-500 mt-1">{o.description || '설명 없음'}</p>
+            
+            <div className="max-h-[220px] overflow-y-auto no-scrollbar space-y-2">
+              {adminOrgs.length === 0 ? (
+                <p className="text-[10px] text-slate-500 text-center py-4">등록된 위원회가 없습니다.</p>
+              ) : (
+                adminOrgs.map((o) => (
+                  <div key={o.department_id} className="glass p-3.5 rounded-2xl border border-slate-800/60">
+                    {editingOrgId === o.department_id ? (
+                      <form onSubmit={handleUpdateAdminOrg} className="space-y-2.5">
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            type="text"
+                            value={editingOrgName}
+                            onChange={(e) => setEditingOrgName(e.target.value)}
+                            className="bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-xs text-white"
+                            placeholder="위원회명"
+                          />
+                          <input
+                            type="text"
+                            value={editingOrgDesc}
+                            onChange={(e) => setEditingOrgDesc(e.target.value)}
+                            className="bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-xs text-white"
+                            placeholder="설명"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between border-t border-slate-800/80 pt-2 text-[10px]">
+                          <label className="flex items-center gap-1.5 cursor-pointer">
+                            <span className="text-slate-500">활성화 여부:</span>
+                            <button
+                              type="button"
+                              onClick={() => setEditingOrgActive(!editingOrgActive)}
+                              className="text-church-400 focus:outline-none"
+                            >
+                              {editingOrgActive ? <ToggleRight size={18} /> : <ToggleLeft size={18} className="text-slate-600" />}
+                            </button>
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <button type="submit" className="text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-0.5">
+                              <Save size={12} /> 저장
+                            </button>
+                            <button type="button" onClick={() => setEditingOrgId(null)} className="text-slate-500 hover:text-white flex items-center gap-0.5">
+                              <X size={12} /> 취소
+                            </button>
+                          </div>
+                        </div>
+                      </form>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-xs text-white">{o.name}</span>
+                            {!o.is_active && (
+                              <span className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[8px] px-1 py-0.2 rounded">비활성</span>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-slate-500">{o.description || '설명 없음'}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingOrgId(o.department_id);
+                              setEditingOrgName(o.name);
+                              setEditingOrgDesc(o.description || '');
+                              setEditingOrgActive(!!o.is_active);
+                            }}
+                            className="text-slate-500 hover:text-white p-1"
+                            title="부서 수정"
+                          >
+                            <Edit2 size={12} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteAdminOrg(o.department_id)}
+                            className="text-rose-500 hover:text-rose-400 p-1"
+                            title="부서 비활성화"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
                       </div>
-                      <button
-                        onClick={() => handleDeleteOrg(o.organization_id, o.name)}
-                        className="text-rose-400 hover:text-rose-300 p-1 hover:bg-rose-500/10 rounded transition-colors active:scale-90"
-                        title="위원회 삭제"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* 소속 그룹 목록 및 편집 */}
+          <div className="space-y-3 border-t border-slate-800/80 pt-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-slate-400 flex items-center gap-1.5">
+                <FolderTree size={13} className="text-church-400" /> 위원회 산하 소속 그룹 관리
+              </h3>
+              <select
+                value={selectedAdminOrgId}
+                onChange={(e) => setSelectedAdminOrgId(e.target.value)}
+                className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-[10px] text-white focus:outline-none"
+              >
+                <option value="" disabled>위원회 선택</option>
+                {adminOrgs.map(o => (
+                  <option key={o.department_id} value={o.department_id}>{o.name}</option>
+                ))}
+              </select>
             </div>
 
-            {/* 그룹 목록 */}
-            <div className="space-y-2">
-              <span className="text-[9px] text-slate-500 font-semibold block">현재 소속 그룹 목록</span>
-              <div className="max-h-[180px] overflow-y-auto no-scrollbar space-y-2">
-                {groups.length === 0 ? (
-                  <p className="text-[9px] text-slate-500 text-center py-3">등록된 소속 그룹이 없습니다.</p>
-                ) : (
-                  groups.map((g) => (
-                    <div key={g.group_id} className="glass p-3 rounded-2xl flex items-center justify-between text-xs border border-slate-800/40">
-                      <div>
-                        <h4 className="font-bold text-white">{g.name}</h4>
-                        <p className="text-[9px] text-slate-500 mt-1">소속 위원회: {g.organization_name}</p>
+            <div className="max-h-[220px] overflow-y-auto no-scrollbar space-y-2">
+              {!selectedAdminOrgId ? (
+                <p className="text-[10px] text-slate-500 text-center py-4">조회할 위원회를 먼저 선택해 주세요.</p>
+              ) : adminGroups.length === 0 ? (
+                <p className="text-[10px] text-slate-500 text-center py-4">이 위원회 아래 등록된 소속 그룹이 없습니다.</p>
+              ) : (
+                adminGroups.map((g) => (
+                  <div key={g.group_id} className="glass p-3.5 rounded-2xl border border-slate-800/60">
+                    {editingGroupId === g.group_id ? (
+                      <form onSubmit={handleUpdateAdminGroup} className="space-y-2.5">
+                        <div className="grid grid-cols-3 gap-2">
+                          <input
+                            type="text"
+                            value={editingGroupName}
+                            onChange={(e) => setEditingGroupName(e.target.value)}
+                            className="bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-xs text-white"
+                            placeholder="그룹명"
+                          />
+                          <input
+                            type="text"
+                            value={editingGroupDesc}
+                            onChange={(e) => setEditingGroupDesc(e.target.value)}
+                            className="bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-xs text-white"
+                            placeholder="설명"
+                          />
+                          <input
+                            type="number"
+                            value={editingGroupSort}
+                            onChange={(e) => setEditingGroupSort(e.target.value)}
+                            className="bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-xs text-white"
+                            placeholder="정렬순서"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between border-t border-slate-800/80 pt-2 text-[10px]">
+                          <label className="flex items-center gap-1.5 cursor-pointer">
+                            <span className="text-slate-500">활성화 여부:</span>
+                            <button
+                              type="button"
+                              onClick={() => setEditingGroupActive(!editingGroupActive)}
+                              className="text-church-400 focus:outline-none"
+                            >
+                              {editingGroupActive ? <ToggleRight size={18} /> : <ToggleLeft size={18} className="text-slate-600" />}
+                            </button>
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <button type="submit" className="text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-0.5">
+                              <Save size={12} /> 저장
+                            </button>
+                            <button type="button" onClick={() => setEditingGroupId(null)} className="text-slate-500 hover:text-white flex items-center gap-0.5">
+                              <X size={12} /> 취소
+                            </button>
+                          </div>
+                        </div>
+                      </form>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-xs text-white">{g.name}</span>
+                            <span className="text-[8px] bg-slate-800 text-slate-400 border border-slate-700 px-1 rounded">정렬: {g.sort_order}</span>
+                            {!g.is_active && (
+                              <span className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[8px] px-1 py-0.2 rounded">비활성</span>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-slate-500">{g.description || '설명 없음'}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingGroupId(g.group_id);
+                              setEditingGroupName(g.name);
+                              setEditingGroupDesc(g.description || '');
+                              setEditingGroupSort(g.sort_order || 0);
+                              setEditingGroupActive(!!g.is_active);
+                            }}
+                            className="text-slate-500 hover:text-white p-1"
+                            title="그룹 수정"
+                          >
+                            <Edit2 size={12} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteAdminGroup(g.group_id)}
+                            className="text-rose-500 hover:text-rose-400 p-1"
+                            title="그룹 비활성화"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9px] text-slate-500 italic mr-2">{g.description || '-'}</span>
-                        <button
-                          onClick={() => handleDeleteGroup(g.group_id, g.name)}
-                          className="text-rose-400 hover:text-rose-300 p-1 hover:bg-rose-500/10 rounded transition-colors active:scale-90"
-                          title="소속 그룹 삭제"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

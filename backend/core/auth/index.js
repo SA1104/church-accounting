@@ -58,7 +58,8 @@ async function authenticateToken(req, res, next) {
     const roles = {};
     rolesRows.forEach(row => {
       // Map to old roles style (SYSTEM_ADMIN, AUDITOR, etc.)
-      roles[row.service_id] = row.role_id === 'super_admin' ? 'SYSTEM_ADMIN' : 
+      const isSystemAdminRole = row.role_id === 'super_admin' || row.role_id === 'admin' || row.role_id === 'project_admin' || row.role_id === 'SYSTEM_ADMIN';
+      roles[row.service_id] = isSystemAdminRole ? 'SYSTEM_ADMIN' : 
                               (row.role_id === 'service_admin' ? 'AUDITOR' : row.role_id);
     });
 
@@ -171,7 +172,8 @@ async function login(req, res) {
     const rolesRows = await query.all('SELECT service_id, role_id FROM platform_role_assignments WHERE user_id = ?', [data.user.id]);
     const roles = {};
     rolesRows.forEach(row => {
-      roles[row.service_id] = row.role_id === 'super_admin' ? 'SYSTEM_ADMIN' : 
+      const isSystemAdminRole = row.role_id === 'super_admin' || row.role_id === 'admin' || row.role_id === 'project_admin' || row.role_id === 'SYSTEM_ADMIN';
+      roles[row.service_id] = isSystemAdminRole ? 'SYSTEM_ADMIN' : 
                               (row.role_id === 'service_admin' ? 'AUDITOR' : row.role_id);
     });
 
@@ -199,6 +201,7 @@ async function login(req, res) {
         userId: data.user.id,
         username: profile.username || username,
         name: profile.display_name,
+        role: roles['church_think'] || 'USER',
         roles: {
           platform: roles['platform'] || (roles['church_think'] === 'SYSTEM_ADMIN' ? 'SYSTEM_ADMIN' : 'USER'),
           accounting: roles['church_think'] || 'USER'
@@ -216,17 +219,27 @@ async function login(req, res) {
 
 
 async function signup(req, res) {
-  const { username, password, name, email, serviceId, role, accounting } = req.body;
+  const { username, password, name, role, churchProfileId, departmentId, groupId, signature, churchCreateRequest } = req.body;
+
   if (!username || !password || !name) {
     return res.status(400).json({ message: 'Missing required user fields' });
   }
 
-  try {
-    const systemEmail = username.includes('@') ? username : `${username}@boozathink.com`;
+  // Enforce email format for new signups
+  if (!username.includes('@')) {
+    return res.status(400).json({ message: '이메일 형식의 아이디만 가입 가능합니다. (예: example@church.com)' });
+  }
 
-    // Sign up user in Supabase Auth
+  try {
+    // 1. Check if email already exists in platform_profiles
+    const existingUser = await query.get('SELECT user_id FROM platform_profiles WHERE username = ?', [username]);
+    if (existingUser) {
+      return res.status(400).json({ message: '이미 가입된 이메일 주소입니다.' });
+    }
+
+    // 2. Sign up user in Supabase Auth
     const { data, error } = await supabasePublic.auth.signUp({
-      email: systemEmail,
+      email: username,
       password,
       options: {
         data: { name: name }
@@ -238,71 +251,115 @@ async function signup(req, res) {
     }
 
     const userId = data.user.id;
-    const legacyServiceId = serviceId === 'accounting' ? 'church_think' : serviceId;
+    let projectId = null;
+    let signupStatus = 'pending_approval';
+    let assignedDeptId = departmentId ? parseInt(departmentId, 10) : null;
+    let assignedGroupUuid = groupId || null;
 
-    // Assign project membership
-    if (legacyServiceId) {
-      const targetRole = role === 'SYSTEM_ADMIN' ? 'super_admin' :
-                         (role === 'AUDITOR' ? 'service_admin' : 'user');
+    if (churchCreateRequest) {
+      // Flow A: Request new church
+      signupStatus = 'pending_church_approval';
+      const newChurchId = require('crypto').randomUUID();
+      const newProjectId = require('crypto').randomUUID();
 
-      await query.run(
-        `INSERT INTO platform_project_members (project_id, user_id, role_id) 
-         VALUES ((SELECT project_id FROM platform_projects WHERE service_id = ? LIMIT 1), ?, ?)
-         ON CONFLICT (project_id, user_id) DO NOTHING`,
-        [legacyServiceId, userId, targetRole]
-      );
+      const { churchName, denomination, region, address, managerName, managerEmail } = churchCreateRequest;
 
-      await query.run(
-        `INSERT INTO platform_role_assignments (user_id, service_id, project_id, role_id) 
-         VALUES (?, ?, (SELECT project_id FROM platform_projects WHERE service_id = ? LIMIT 1), ?)
-         ON CONFLICT (user_id, service_id, project_id, role_id) DO NOTHING`,
-        [userId, legacyServiceId, legacyServiceId, targetRole]
-      );
+      // 2a. Insert pending church profile
+      await query.run(`
+        INSERT INTO public.church_profiles (
+          church_id, project_id, church_name, denomination, region, address, email, manager_name, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+      `, [
+        newChurchId,
+        newProjectId,
+        churchName,
+        denomination || '',
+        region || '',
+        address || '',
+        managerEmail || username,
+        managerName || name
+      ]);
 
-      // Handle Church Think Metadata hook
-      if (legacyServiceId === 'church_think' && accounting) {
-        const { group_id, position, signature } = accounting;
+      // 2b. Insert pending platform project
+      await query.run(`
+        INSERT INTO public.platform_projects (
+          project_id, org_id, service_id, project_name, description, status, is_active
+        ) VALUES (?, 'd7a049e0-06b2-4d26-8809-17be7bf6e491', 'church_think', ?, ?, 'PENDING', FALSE)
+      `, [
+        newProjectId,
+        churchName,
+        `${churchName} 스마트 회계 관리 시스템 (승인 대기중)`
+      ]);
+
+      // 2c. Create default departments for the new church
+      const deptResult = await query.run(`
+        INSERT INTO public.church_departments (project_id, name, description, church_profile_id)
+        VALUES (?, '재정위원회', '예산 편성 및 회계 감사 위원회', ?)
+        RETURNING department_id
+      `, [newProjectId, newChurchId]);
+
+      // Generate additional default departments in background/parallel to enrich the new church
+      const defaultDepts = ['예배위원회', '선교위원회', '교육위원회', '관리위원회'];
+      for (const deptName of defaultDepts) {
         await query.run(`
-          INSERT INTO church_user_metadata (user_id, project_id, department_id, position, signature)
-          VALUES (
-            ?, 
-            (SELECT project_id FROM platform_projects WHERE service_id = 'church_think' LIMIT 1),
-            ?, 
-            ?, 
-            ?
-          ) ON CONFLICT DO NOTHING
-        `, [
-          userId,
-          group_id ? parseInt(group_id, 10) : null,
-          position || '기타',
-          signature || `${name} (${position || '기타'}) (인)`
-        ]);
+          INSERT INTO public.church_departments (project_id, name, description, church_profile_id)
+          VALUES (?, ?, ?, ?)
+        `, [newProjectId, deptName, `${deptName} 업무 통괄`, newChurchId]);
       }
 
-      // Handle Church Profile onboarding if provided (Team C)
-      if (legacyServiceId === 'church_think' && req.body.churchInfo) {
-        const { churchName, denomination, region, managerName } = req.body.churchInfo;
-        if (churchName) {
-          await query.run(`
-            INSERT INTO church_profiles (project_id, church_name, denomination, region, manager_name)
-            VALUES (
-              (SELECT project_id FROM platform_projects WHERE service_id = 'church_think' LIMIT 1),
-              ?, ?, ?, ?
-            ) ON CONFLICT DO NOTHING
-          `, [
-            churchName,
-            denomination || '',
-            region || '',
-            managerName || name
-          ]);
-        }
+      assignedDeptId = deptResult.id;
+      projectId = newProjectId;
+    } else {
+      // Flow B: Register to existing church
+      if (!churchProfileId) {
+        return res.status(400).json({ message: '소속 교회를 선택해 주세요.' });
       }
+
+      const church = await query.get('SELECT project_id FROM public.church_profiles WHERE church_id = ?', [churchProfileId]);
+      if (!church) {
+        return res.status(404).json({ message: '선택한 교회를 찾을 수 없습니다.' });
+      }
+      projectId = church.project_id;
     }
 
-    res.status(201).json({ message: 'Signup request submitted successfully. Awaiting administrator approval.' });
+    // 3. Update platform_profiles status and signup_status
+    await query.run(
+      'UPDATE public.platform_profiles SET is_active = FALSE, signup_status = ? WHERE user_id = ?',
+      [signupStatus, userId]
+    );
+
+    // 4. Assign project membership
+    await query.run(
+      `INSERT INTO public.platform_project_members (project_id, user_id, role_id) VALUES (?, ?, ?)`,
+      [projectId, userId, 'user']
+    );
+
+    await query.run(
+      `INSERT INTO public.platform_role_assignments (user_id, service_id, project_id, role_id) VALUES (?, 'church_think', ?, ?)`,
+      [userId, projectId, 'user']
+    );
+
+    // 5. Insert church user metadata
+    await query.run(`
+      INSERT INTO public.church_user_metadata (user_id, project_id, department_id, group_uuid, position, signature)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, [
+      userId,
+      projectId,
+      assignedDeptId,
+      assignedGroupUuid,
+      '회원',
+      signature || `${name} (인)`
+    ]);
+
+    res.status(201).json({ 
+      message: churchCreateRequest 
+        ? '새 교회 등록 및 가입 신청이 성공적으로 접수되었습니다. 관리자 승인을 기다려 주세요.' 
+        : '가입 신청이 성공적으로 접수되었습니다. 관리자 승인을 기다려 주세요.' 
+    });
   } catch (error) {
     console.error('Signup proxy error:', error);
-    res.status(500).json({ message: 'Database error during signup.' });
+    res.status(500).json({ message: error.message || 'Database error during signup.' });
   }
 }
 

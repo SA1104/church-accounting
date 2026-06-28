@@ -62,6 +62,177 @@ app.use('/uploads', express.static(uploadDir));
 app.post('/api/auth/login', login);
 app.post('/api/auth/signup', signup);
 
+// 1-1. 다교회 온보딩 공통 조회 API (미인증)
+app.get('/api/churches', async (req, res) => {
+  try {
+    const showAll = req.query.all === 'true';
+    let sql = "SELECT church_id, project_id, church_name, denomination, region, address, phone, email, homepage_url, logo_url, primary_color, secondary_color, status FROM public.church_profiles";
+    const params = [];
+    if (!showAll) {
+      sql += " WHERE status = 'active'";
+    }
+    const list = await query.all(sql, params);
+    res.json(list);
+  } catch (error) {
+    console.error('Error fetching churches:', error);
+    res.status(500).json({ message: 'Database error fetching churches' });
+  }
+});
+
+app.get('/api/churches/:id/departments', async (req, res) => {
+  const { id } = req.params; // church_id (UUID)
+  try {
+    const list = await query.all(
+      "SELECT department_id, parent_id, name, description, is_active FROM public.church_departments WHERE church_profile_id = ? AND parent_id IS NULL AND is_active = TRUE ORDER BY name ASC",
+      [id]
+    );
+    res.json(list);
+  } catch (error) {
+    console.error('Error fetching departments:', error);
+    res.status(500).json({ message: 'Database error fetching departments' });
+  }
+});
+
+app.get('/api/departments/:id/groups', async (req, res) => {
+  const { id } = req.params; // department_id (INTEGER)
+  try {
+    const list = await query.all(
+      "SELECT id as group_id, church_profile_id, department_id, name, description, sort_order, is_active FROM public.church_groups WHERE department_id = ? AND is_active = TRUE ORDER BY sort_order ASC, name ASC",
+      [parseInt(id, 10)]
+    );
+    res.json(list);
+  } catch (error) {
+    console.error('Error fetching groups:', error);
+    res.status(500).json({ message: 'Database error fetching groups' });
+  }
+});
+
+// 1-2. 관리자용 조직 관리 API (인증 필수)
+const requireAdminRole = requireRole(['SYSTEM_ADMIN', 'AUDITOR'], 'accounting');
+
+app.get('/api/admin/departments', authenticateToken, requireAdminRole, async (req, res) => {
+  try {
+    const church = await query.get("SELECT church_id FROM public.church_profiles WHERE project_id = ? LIMIT 1", [req.user.projectId]);
+    if (!church) return res.status(404).json({ message: '교회 프로필을 찾을 수 없습니다.' });
+
+    const list = await query.all(
+      "SELECT department_id, parent_id, name, description, is_active FROM public.church_departments WHERE church_profile_id = ? AND parent_id IS NULL ORDER BY name ASC",
+      [church.church_id]
+    );
+    res.json(list);
+  } catch (error) {
+    console.error('Error fetching admin departments:', error);
+    res.status(500).json({ message: 'Database error' });
+  }
+});
+
+app.post('/api/admin/departments', authenticateToken, requireAdminRole, async (req, res) => {
+  const { name, description } = req.body;
+  if (!name) return res.status(400).json({ message: '부서명이 누락되었습니다.' });
+
+  try {
+    const church = await query.get("SELECT church_id FROM public.church_profiles WHERE project_id = ? LIMIT 1", [req.user.projectId]);
+    if (!church) return res.status(404).json({ message: '교회 프로필을 찾을 수 없습니다.' });
+
+    const result = await query.run(
+      "INSERT INTO public.church_departments (project_id, parent_id, name, description, church_profile_id, is_active) VALUES (?, NULL, ?, ?, ?, TRUE) RETURNING department_id",
+      [req.user.projectId, name, description || '', church.church_id]
+    );
+    res.status(201).json({ id: result.id, message: '부서가 생성되었습니다.' });
+  } catch (error) {
+    console.error('Error creating department:', error);
+    res.status(500).json({ message: 'Database error' });
+  }
+});
+
+app.put('/api/admin/departments/:id', authenticateToken, requireAdminRole, async (req, res) => {
+  const { id } = req.params;
+  const { name, description, is_active } = req.body;
+  try {
+    await query.run(
+      "UPDATE public.church_departments SET name = COALESCE(?, name), description = COALESCE(?, description), is_active = COALESCE(?, is_active) WHERE department_id = ? AND project_id = ?",
+      [name, description, is_active, parseInt(id, 10), req.user.projectId]
+    );
+    res.json({ message: '부서 정보가 수정되었습니다.' });
+  } catch (error) {
+    console.error('Error updating department:', error);
+    res.status(500).json({ message: 'Database error' });
+  }
+});
+
+app.delete('/api/admin/departments/:id', authenticateToken, requireAdminRole, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await query.run(
+      "UPDATE public.church_departments SET is_active = FALSE WHERE department_id = ? AND project_id = ?",
+      [parseInt(id, 10), req.user.projectId]
+    );
+    res.json({ message: '부서가 비활성화되었습니다.' });
+  } catch (error) {
+    console.error('Error deleting department:', error);
+    res.status(500).json({ message: 'Database error' });
+  }
+});
+
+app.get('/api/admin/departments/:id/groups', authenticateToken, requireAdminRole, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const list = await query.all(
+      "SELECT id as group_id, church_profile_id, department_id, name, description, sort_order, is_active FROM public.church_groups WHERE department_id = ? ORDER BY sort_order ASC, name ASC",
+      [parseInt(id, 10)]
+    );
+    res.json(list);
+  } catch (error) {
+    console.error('Error fetching admin groups:', error);
+    res.status(500).json({ message: 'Database error' });
+  }
+});
+
+app.post('/api/admin/groups', authenticateToken, requireAdminRole, async (req, res) => {
+  const { department_id, name, description, sort_order } = req.body;
+  if (!department_id || !name) return res.status(400).json({ message: '부서 ID와 그룹명이 누락되었습니다.' });
+
+  try {
+    const church = await query.get("SELECT church_id FROM public.church_profiles WHERE project_id = ? LIMIT 1", [req.user.projectId]);
+    if (!church) return res.status(404).json({ message: '교회 프로필을 찾을 수 없습니다.' });
+
+    const result = await query.run(
+      "INSERT INTO public.church_groups (church_profile_id, department_id, name, description, sort_order, is_active) VALUES (?, ?, ?, ?, ?, TRUE) RETURNING id",
+      [church.church_id, parseInt(department_id, 10), name, description || '', sort_order || 0]
+    );
+    res.status(201).json({ id: result.id, message: '소속 그룹이 생성되었습니다.' });
+  } catch (error) {
+    console.error('Error creating group:', error);
+    res.status(500).json({ message: 'Database error' });
+  }
+});
+
+app.put('/api/admin/groups/:id', authenticateToken, requireAdminRole, async (req, res) => {
+  const { id } = req.params; // UUID
+  const { name, description, sort_order, is_active } = req.body;
+  try {
+    await query.run(
+      "UPDATE public.church_groups SET name = COALESCE(?, name), description = COALESCE(?, description), sort_order = COALESCE(?, sort_order), is_active = COALESCE(?, is_active) WHERE id = ?",
+      [name, description, sort_order, is_active, id]
+    );
+    res.json({ message: '소속 그룹 정보가 수정되었습니다.' });
+  } catch (error) {
+    console.error('Error updating group:', error);
+    res.status(500).json({ message: 'Database error' });
+  }
+});
+
+app.delete('/api/admin/groups/:id', authenticateToken, requireAdminRole, async (req, res) => {
+  const { id } = req.params; // UUID
+  try {
+    await query.run("UPDATE public.church_groups SET is_active = FALSE WHERE id = ?", [id]);
+    res.json({ message: '소속 그룹이 비활성화되었습니다.' });
+  } catch (error) {
+    console.error('Error deleting group:', error);
+    res.status(500).json({ message: 'Database error' });
+  }
+});
+
 // Decision Engine & Media Engine Mounts
 const decisionRouter = require('./core/decision/index.js');
 const mediaRouter = require('./core/media/index.js');
@@ -84,17 +255,29 @@ app.post('/api/users/:id/approve', authenticateToken, requireRole(['SYSTEM_ADMIN
   const { id } = req.params; // UUID
   const projectId = req.user.projectId || (await query.get("SELECT project_id FROM platform_projects LIMIT 1"))?.project_id;
   try {
-    const targetUser = await query.get('SELECT user_id, display_name FROM platform_profiles WHERE user_id = ?', [id]);
+    const targetUser = await query.get('SELECT user_id, display_name, signup_status FROM platform_profiles WHERE user_id = ?', [id]);
     if (!targetUser) return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
 
-    await query.run('UPDATE platform_profiles SET is_active = TRUE WHERE user_id = ?', [id]);
+    if (targetUser.signup_status === 'pending_church_approval') {
+      // Find the associated project_id from platform_project_members
+      const membership = await query.get('SELECT project_id FROM platform_project_members WHERE user_id = ? LIMIT 1', [id]);
+      if (membership && membership.project_id) {
+        // Activate church profile
+        await query.run("UPDATE church_profiles SET status = 'active', approved_by = ?, approved_at = CURRENT_TIMESTAMP WHERE project_id = ?", [req.user.userId, membership.project_id]);
+        // Activate platform project
+        await query.run("UPDATE platform_projects SET status = 'ACTIVE', is_active = TRUE WHERE project_id = ?", [membership.project_id]);
+      }
+    }
+
+    // Set user as active and approved
+    await query.run("UPDATE platform_profiles SET is_active = TRUE, signup_status = 'approved' WHERE user_id = ?", [id]);
 
     await query.run(`
       INSERT INTO platform_audit_logs (user_id, service_id, project_id, action, details, ip_address, result)
       VALUES (?, 'platform', ?, 'APPROVE_USER', ?, ?, 'SUCCESS')
     `, [req.user.userId, projectId, `가입 승인: ${targetUser.display_name} (ID: ${id})`, req.ip]);
 
-    res.json({ message: '사용자 가입 승인이 완료되었습니다.' });
+    res.json({ message: '사용자 및 교회 승인이 완료되었습니다.' });
   } catch (error) {
     console.error('User approve error:', error);
     res.status(500).json({ message: 'Database error' });
