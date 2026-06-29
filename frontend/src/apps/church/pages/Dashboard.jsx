@@ -33,13 +33,37 @@ export default function Dashboard() {
   }, [token]);
 
   const renderWorkspaceBranding = () => (
-    <div className="flex items-center gap-3 p-3 bg-slate-900/40 rounded-2xl border border-slate-800/85 mb-4">
-      <div className="h-10 w-10 flex items-center justify-center p-1 rounded-xl bg-white border border-slate-700/30 overflow-hidden shrink-0">
-        <img src={churchProfile.logo_url} alt={churchProfile.church_name} className="h-full w-auto object-contain" />
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 bg-slate-900/40 rounded-2xl border border-slate-800/85 mb-4">
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 flex items-center justify-center p-1 rounded-xl bg-white border border-slate-700/30 overflow-hidden shrink-0">
+          <img src={churchProfile.logo_url} alt={churchProfile.church_name} className="h-full w-auto object-contain" />
+        </div>
+        <div>
+          <h2 className="text-xs font-bold text-white leading-normal">{churchProfile.church_name}</h2>
+          <p className="text-[8.5px] text-slate-500 font-bold tracking-wider">{churchProfile.denomination}</p>
+        </div>
       </div>
-      <div>
-        <h2 className="text-xs font-bold text-white leading-normal">{churchProfile.church_name}</h2>
-        <p className="text-[8.5px] text-slate-500 font-bold tracking-wider">{churchProfile.denomination}</p>
+
+      <div className="flex items-center gap-2">
+        {/* 회계/전표등록 */}
+        <button
+          onClick={() => navigate('/vouchers/new')}
+          disabled={user?.role === 'AUDITOR'}
+          title={user?.role === 'AUDITOR' ? '감사위원은 전표 등록 권한이 없습니다.' : '신규 전표 등록'}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:hover:bg-indigo-600 disabled:cursor-not-allowed text-white font-extrabold text-[9px] sm:text-[10px] transition active:scale-95 shadow-sm"
+        >
+          <Plus size={11} />
+          <span>회계/전표등록</span>
+        </button>
+
+        {/* 전표목록 */}
+        <button
+          onClick={() => navigate('/vouchers')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-100 font-extrabold text-[9px] sm:text-[10px] transition active:scale-95 shadow-sm"
+        >
+          <FileText size={11} className="text-slate-400" />
+          <span>전표목록</span>
+        </button>
       </div>
     </div>
   );
