@@ -72,7 +72,7 @@ router.post('/organizations', authenticateToken, requireAccountingRole(['SYSTEM_
     if (existing) return res.status(400).json({ message: 'Organization already exists' });
 
     const result = await query.run(
-      'INSERT INTO church_departments (project_id, parent_id, name, description, church_profile_id) VALUES (?, NULL, ?, ?, ?) RETURNING department_id',
+      'INSERT INTO church_departments (project_id, parent_id, name, description, church_profile_id, is_active) VALUES (?, NULL, ?, ?, ?, TRUE) RETURNING department_id',
       [projectId, name, description, churchProfileId]
     );
     res.status(201).json({ id: result.id, message: 'Organization created successfully' });
@@ -134,7 +134,7 @@ router.post('/groups', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN',
     if (existing) return res.status(400).json({ message: 'Group name already exists in this organization' });
 
     const result = await query.run(
-      'INSERT INTO church_departments (project_id, parent_id, name, description, church_profile_id) VALUES (?, ?, ?, ?, ?) RETURNING department_id',
+      'INSERT INTO church_departments (project_id, parent_id, name, description, church_profile_id, is_active) VALUES (?, ?, ?, ?, ?, TRUE) RETURNING department_id',
       [projectId, organization_id, name, description, churchProfileId]
     );
 

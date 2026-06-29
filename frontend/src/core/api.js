@@ -46,12 +46,7 @@ export async function apiClient(url, options = {}) {
       throw err;
     }
 
-    if (response.status === 500) {
-      alert('서버 처리 중 오류가 발생했습니다.');
-      const err = new Error('Internal Server Error');
-      err.status = 500;
-      throw err;
-    }
+
 
     // Handle binary responses if requested
     if (options.responseType === 'blob') {
