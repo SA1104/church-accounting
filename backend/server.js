@@ -439,6 +439,29 @@ app.put('/api/users/:id', authenticateToken, requireRole(['SYSTEM_ADMIN']), asyn
   }
 });
 
+app.get('/api/diagnose-db-v2', async (req, res) => {
+  try {
+    const profiles = await query.all(`
+      SELECT column_name, data_type, is_nullable 
+      FROM information_schema.columns 
+      WHERE table_name = 'church_profiles'
+    `);
+    const depts = await query.all(`
+      SELECT column_name, data_type, is_nullable 
+      FROM information_schema.columns 
+      WHERE table_name = 'church_departments'
+    `);
+    const groups = await query.all(`
+      SELECT column_name, data_type, is_nullable 
+      FROM information_schema.columns 
+      WHERE table_name = 'church_groups'
+    `);
+    res.json({ profiles, depts, groups });
+  } catch (err) {
+    res.status(500).json({ message: err.message, stack: err.stack });
+  }
+});
+
 // Platform Onboarding & Branding APIs (TEAM G & TEAM C)
 app.get('/api/church/profile', authenticateToken, async (req, res) => {
   try {
