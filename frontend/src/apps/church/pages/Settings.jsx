@@ -572,17 +572,28 @@ export default function Settings() {
   const handleAddAdminOrg = async (e) => {
     e.preventDefault();
     if (!newOrgName) return;
+    const payload = { name: newOrgName, description: newOrgDesc };
+    console.log('[CREATE DEPARTMENT PAYLOAD]', payload);
     try {
       await apiClient('/api/admin/departments', {
         method: 'POST',
-        body: JSON.stringify({ name: newOrgName, description: newOrgDesc })
+        body: JSON.stringify(payload)
       });
       setNewOrgName('');
       setNewOrgDesc('');
       fetchAdminOrgs();
       alert('부서(위원회) 등록 성공');
     } catch (err) {
-      alert(err.message);
+      const errData = err.data || {};
+      const errorMessage =
+        errData.details ||
+        errData.sqlMessage ||
+        errData.constraint ||
+        err.message ||
+        errData.message ||
+        errData.error ||
+        '위원회 등록 중 알 수 없는 오류가 발생했습니다.';
+      alert(`위원회 등록 실패:\n${errorMessage}`);
     }
   };
 
@@ -622,15 +633,17 @@ export default function Settings() {
   const handleAddAdminGroup = async (e) => {
     e.preventDefault();
     if (!selectedAdminOrgId || !newGroupName) return;
+    const payload = {
+      department_id: parseInt(selectedAdminOrgId, 10),
+      name: newGroupName,
+      description: newGroupDesc,
+      sort_order: parseInt(newGroupSort || 0, 10)
+    };
+    console.log('[CREATE DEPARTMENT PAYLOAD]', payload);
     try {
       await apiClient('/api/admin/groups', {
         method: 'POST',
-        body: JSON.stringify({
-          department_id: parseInt(selectedAdminOrgId, 10),
-          name: newGroupName,
-          description: newGroupDesc,
-          sort_order: parseInt(newGroupSort || 0, 10)
-        })
+        body: JSON.stringify(payload)
       });
       setNewGroupName('');
       setNewGroupDesc('');
@@ -638,7 +651,16 @@ export default function Settings() {
       fetchAdminGroups(selectedAdminOrgId);
       alert('소속 그룹 등록 성공');
     } catch (err) {
-      alert(err.message);
+      const errData = err.data || {};
+      const errorMessage =
+        errData.details ||
+        errData.sqlMessage ||
+        errData.constraint ||
+        err.message ||
+        errData.message ||
+        errData.error ||
+        '그룹 등록 중 알 수 없는 오류가 발생했습니다.';
+      alert(`소속 그룹 등록 실패:\n${errorMessage}`);
     }
   };
 

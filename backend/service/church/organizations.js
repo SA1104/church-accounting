@@ -51,16 +51,22 @@ async function resolveChurchProfileId(req, bodyChurchId) {
 
 // 2. 위원회/기관 등록
 router.post('/organizations', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN', 'AUDITOR']), async (req, res) => {
-  console.log('[ORG CREATE] auth user:', {
-    id: req.user?.id,
-    email: req.user?.email,
-    role: req.user?.role,
-    isAdmin: req.user?.isAdmin,
-    projectId: req.user?.projectId,
-    accounting: req.user?.accounting
+  console.log('[CREATE DEPARTMENT REQUEST]', {
+    user: {
+      id: req.user?.id,
+      email: req.user?.email,
+      role: req.user?.role,
+      isAdmin: req.user?.isAdmin,
+      projectId: req.user?.projectId,
+      activeProjectId: req.user?.activeProjectId,
+      accounting: req.user?.accounting
+    },
+    body: req.body
   });
+
   const { name, description, churchId } = req.body;
-  if (!name) return res.status(400).json({ message: 'Organization name is required' });
+  if (!name) return res.status(400).json({ message: '부서명이 누락되었습니다.' });
+
   try {
     const projectId = await getActiveProjectId(req);
     const churchProfileId = await resolveChurchProfileId(req, churchId);
@@ -69,20 +75,39 @@ router.post('/organizations', authenticateToken, requireAccountingRole(['SYSTEM_
     }
 
     const existing = await query.get('SELECT department_id FROM church_departments WHERE parent_id IS NULL AND name = ? AND project_id = ?', [name, projectId]);
-    if (existing) return res.status(400).json({ message: 'Organization already exists' });
+    if (existing) {
+      return res.status(400).json({ 
+        success: false, 
+        message: '이미 등록된 위원회/기관명입니다.' 
+      });
+    }
 
     const result = await query.run(
       'INSERT INTO church_departments (project_id, parent_id, name, description, is_active) VALUES (?, NULL, ?, ?, TRUE) RETURNING department_id',
-      [projectId, name, description]
+      [projectId, name, description || '']
     );
-    res.status(201).json({ id: result.id, message: 'Organization created successfully' });
-  } catch (error) {
-    console.error('Database Error details:', error.message, error.stack);
-    res.status(500).json({ 
-      message: 'Database error', 
-      details: error.message, 
-      stack: error.stack,
-      requestBody: req.body 
+
+    res.status(201).json({ success: true, id: result.id, message: 'Organization created successfully' });
+  } catch (err) {
+    console.error('[CREATE DEPARTMENT ERROR]', {
+      message: err.message,
+      code: err.code,
+      detail: err.detail,
+      hint: err.hint,
+      constraint: err.constraint,
+      stack: err.stack,
+      body: req.body,
+      user: req.user
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: '위원회 등록 중 데이터베이스 오류가 발생했습니다.',
+      details: err.message,
+      code: err.code,
+      detail: err.detail,
+      hint: err.hint,
+      constraint: err.constraint
     });
   }
 });
@@ -113,16 +138,22 @@ router.get('/groups', async (req, res) => {
 
 // 4. 소속 그룹 등록
 router.post('/groups', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN', 'AUDITOR']), async (req, res) => {
-  console.log('[ORG CREATE] auth user:', {
-    id: req.user?.id,
-    email: req.user?.email,
-    role: req.user?.role,
-    isAdmin: req.user?.isAdmin,
-    projectId: req.user?.projectId,
-    accounting: req.user?.accounting
+  console.log('[CREATE DEPARTMENT REQUEST]', {
+    user: {
+      id: req.user?.id,
+      email: req.user?.email,
+      role: req.user?.role,
+      isAdmin: req.user?.isAdmin,
+      projectId: req.user?.projectId,
+      activeProjectId: req.user?.activeProjectId,
+      accounting: req.user?.accounting
+    },
+    body: req.body
   });
+
   const { organization_id, name, description, churchId } = req.body;
-  if (!organization_id || !name) return res.status(400).json({ message: 'Organization ID and group name are required' });
+  if (!organization_id || !name) return res.status(400).json({ message: '부서 ID와 그룹명이 누락되었습니다.' });
+
   try {
     const projectId = await getActiveProjectId(req);
     const churchProfileId = await resolveChurchProfileId(req, churchId);
@@ -131,21 +162,39 @@ router.post('/groups', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN',
     }
 
     const existing = await query.get('SELECT department_id FROM church_departments WHERE parent_id = ? AND name = ? AND project_id = ?', [organization_id, name, projectId]);
-    if (existing) return res.status(400).json({ message: 'Group name already exists in this organization' });
+    if (existing) {
+      return res.status(400).json({ 
+        success: false, 
+        message: '이미 등록된 그룹명입니다.' 
+      });
+    }
 
     const result = await query.run(
       'INSERT INTO church_departments (project_id, parent_id, name, description, is_active) VALUES (?, ?, ?, ?, TRUE) RETURNING department_id',
-      [projectId, organization_id, name, description]
+      [projectId, organization_id, name, description || '']
     );
 
-    res.status(201).json({ id: result.id, message: 'Group created successfully' });
-  } catch (error) {
-    console.error('Database Error details:', error.message, error.stack);
-    res.status(500).json({ 
-      message: 'Database error', 
-      details: error.message, 
-      stack: error.stack,
-      requestBody: req.body 
+    res.status(201).json({ success: true, id: result.id, message: 'Group created successfully' });
+  } catch (err) {
+    console.error('[CREATE DEPARTMENT ERROR]', {
+      message: err.message,
+      code: err.code,
+      detail: err.detail,
+      hint: err.hint,
+      constraint: err.constraint,
+      stack: err.stack,
+      body: req.body,
+      user: req.user
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: '그룹 등록 중 데이터베이스 오류가 발생했습니다.',
+      details: err.message,
+      code: err.code,
+      detail: err.detail,
+      hint: err.hint,
+      constraint: err.constraint
     });
   }
 });

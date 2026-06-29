@@ -172,29 +172,60 @@ app.get('/api/admin/departments', authenticateToken, requireAdminRole, async (re
 });
 
 app.post('/api/admin/departments', authenticateToken, requireAdminRole, async (req, res) => {
-  console.log('[ORG CREATE] auth user:', {
-    id: req.user?.id,
-    email: req.user?.email,
-    role: req.user?.role,
-    isAdmin: req.user?.isAdmin,
-    projectId: req.user?.projectId,
-    accounting: req.user?.accounting
+  console.log('[CREATE DEPARTMENT REQUEST]', {
+    user: {
+      id: req.user?.id,
+      email: req.user?.email,
+      role: req.user?.role,
+      isAdmin: req.user?.isAdmin,
+      projectId: req.user?.projectId,
+      activeProjectId: req.user?.activeProjectId,
+      accounting: req.user?.accounting
+    },
+    body: req.body
   });
+
   const { name, description } = req.body;
   if (!name) return res.status(400).json({ message: '부서명이 누락되었습니다.' });
 
   try {
-    const church = await query.get("SELECT church_id FROM public.church_profiles WHERE project_id = ? LIMIT 1", [req.user.projectId]);
-    if (!church) return res.status(404).json({ message: '교회 프로필을 찾을 수 없습니다.' });
+    const existing = await query.get(
+      'SELECT department_id FROM public.church_departments WHERE parent_id IS NULL AND name = ? AND project_id = ?',
+      [name, req.user.projectId]
+    );
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: '이미 등록된 위원회/기관명입니다.'
+      });
+    }
 
     const result = await query.run(
-      "INSERT INTO public.church_departments (project_id, parent_id, name, description, church_profile_id, is_active) VALUES (?, NULL, ?, ?, ?, TRUE) RETURNING department_id",
-      [req.user.projectId, name, description || '', church.church_id]
+      "INSERT INTO public.church_departments (project_id, parent_id, name, description, is_active) VALUES (?, NULL, ?, ?, TRUE) RETURNING department_id",
+      [req.user.projectId, name, description || '']
     );
-    res.status(201).json({ id: result.id, message: '부서가 생성되었습니다.' });
-  } catch (error) {
-    console.error('Error creating department:', error);
-    res.status(500).json({ message: 'Database error' });
+    res.status(201).json({ success: true, department: { id: result.id, name }, message: '부서가 생성되었습니다.' });
+  } catch (err) {
+    console.error('[CREATE DEPARTMENT ERROR]', {
+      message: err.message,
+      code: err.code,
+      detail: err.detail,
+      hint: err.hint,
+      constraint: err.constraint,
+      stack: err.stack,
+      body: req.body,
+      user: req.user
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: '위원회 등록 중 데이터베이스 오류가 발생했습니다.',
+      details: err.message,
+      code: err.code,
+      detail: err.detail,
+      hint: err.hint,
+      constraint: err.constraint
+    });
   }
 });
 
@@ -231,7 +262,7 @@ app.get('/api/admin/departments/:id/groups', authenticateToken, requireAdminRole
   const { id } = req.params;
   try {
     const list = await query.all(
-      "SELECT id as group_id, church_profile_id, department_id, name, description, sort_order, is_active FROM public.church_groups WHERE department_id = ? ORDER BY sort_order ASC, name ASC",
+      "SELECT department_id as group_id, parent_id as department_id, name, description, is_active FROM public.church_departments WHERE parent_id = ? ORDER BY name ASC",
       [parseInt(id, 10)]
     );
     res.json(list);
@@ -242,39 +273,70 @@ app.get('/api/admin/departments/:id/groups', authenticateToken, requireAdminRole
 });
 
 app.post('/api/admin/groups', authenticateToken, requireAdminRole, async (req, res) => {
-  console.log('[ORG CREATE] auth user:', {
-    id: req.user?.id,
-    email: req.user?.email,
-    role: req.user?.role,
-    isAdmin: req.user?.isAdmin,
-    projectId: req.user?.projectId,
-    accounting: req.user?.accounting
+  console.log('[CREATE DEPARTMENT REQUEST]', {
+    user: {
+      id: req.user?.id,
+      email: req.user?.email,
+      role: req.user?.role,
+      isAdmin: req.user?.isAdmin,
+      projectId: req.user?.projectId,
+      activeProjectId: req.user?.activeProjectId,
+      accounting: req.user?.accounting
+    },
+    body: req.body
   });
+
   const { department_id, name, description, sort_order } = req.body;
   if (!department_id || !name) return res.status(400).json({ message: '부서 ID와 그룹명이 누락되었습니다.' });
 
   try {
-    const church = await query.get("SELECT church_id FROM public.church_profiles WHERE project_id = ? LIMIT 1", [req.user.projectId]);
-    if (!church) return res.status(404).json({ message: '교회 프로필을 찾을 수 없습니다.' });
+    const existing = await query.get(
+      'SELECT department_id FROM public.church_departments WHERE parent_id = ? AND name = ? AND project_id = ?',
+      [parseInt(department_id, 10), name, req.user.projectId]
+    );
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: '이미 등록된 그룹명입니다.'
+      });
+    }
 
     const result = await query.run(
-      "INSERT INTO public.church_groups (church_profile_id, department_id, name, description, sort_order, is_active) VALUES (?, ?, ?, ?, ?, TRUE) RETURNING id",
-      [church.church_id, parseInt(department_id, 10), name, description || '', sort_order || 0]
+      "INSERT INTO public.church_departments (project_id, parent_id, name, description, is_active) VALUES (?, ?, ?, ?, TRUE) RETURNING department_id",
+      [req.user.projectId, parseInt(department_id, 10), name, description || '']
     );
-    res.status(201).json({ id: result.id, message: '소속 그룹이 생성되었습니다.' });
-  } catch (error) {
-    console.error('Error creating group:', error);
-    res.status(500).json({ message: 'Database error' });
+    res.status(201).json({ success: true, department: { id: result.id, name }, message: '소속 그룹이 생성되었습니다.' });
+  } catch (err) {
+    console.error('[CREATE DEPARTMENT ERROR]', {
+      message: err.message,
+      code: err.code,
+      detail: err.detail,
+      hint: err.hint,
+      constraint: err.constraint,
+      stack: err.stack,
+      body: req.body,
+      user: req.user
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: '위원회 등록 중 데이터베이스 오류가 발생했습니다.',
+      details: err.message,
+      code: err.code,
+      detail: err.detail,
+      hint: err.hint,
+      constraint: err.constraint
+    });
   }
 });
 
 app.put('/api/admin/groups/:id', authenticateToken, requireAdminRole, async (req, res) => {
-  const { id } = req.params; // UUID
-  const { name, description, sort_order, is_active } = req.body;
+  const { id } = req.params; // integer department_id
+  const { name, description, is_active } = req.body;
   try {
     await query.run(
-      "UPDATE public.church_groups SET name = COALESCE(?, name), description = COALESCE(?, description), sort_order = COALESCE(?, sort_order), is_active = COALESCE(?, is_active) WHERE id = ?",
-      [name, description, sort_order, is_active, id]
+      "UPDATE public.church_departments SET name = COALESCE(?, name), description = COALESCE(?, description), is_active = COALESCE(?, is_active) WHERE department_id = ? AND project_id = ?",
+      [name, description, is_active, parseInt(id, 10), req.user.projectId]
     );
     res.json({ message: '소속 그룹 정보가 수정되었습니다.' });
   } catch (error) {
@@ -284,9 +346,12 @@ app.put('/api/admin/groups/:id', authenticateToken, requireAdminRole, async (req
 });
 
 app.delete('/api/admin/groups/:id', authenticateToken, requireAdminRole, async (req, res) => {
-  const { id } = req.params; // UUID
+  const { id } = req.params; // integer department_id
   try {
-    await query.run("UPDATE public.church_groups SET is_active = FALSE WHERE id = ?", [id]);
+    await query.run(
+      "UPDATE public.church_departments SET is_active = FALSE WHERE department_id = ? AND project_id = ?",
+      [parseInt(id, 10), req.user.projectId]
+    );
     res.json({ message: '소속 그룹이 비활성화되었습니다.' });
   } catch (error) {
     console.error('Error deleting group:', error);
@@ -436,29 +501,6 @@ app.put('/api/users/:id', authenticateToken, requireRole(['SYSTEM_ADMIN']), asyn
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Database error' });
-  }
-});
-
-app.get('/api/diagnose-db-v2', async (req, res) => {
-  try {
-    const tables = await query.all(`
-      SELECT table_name 
-      FROM information_schema.tables 
-      WHERE table_schema = 'public'
-    `);
-    const groupCols = await query.all(`
-      SELECT column_name, data_type, is_nullable 
-      FROM information_schema.columns 
-      WHERE table_name = 'church_groups'
-    `);
-    const profileCols = await query.all(`
-      SELECT column_name, data_type, is_nullable 
-      FROM information_schema.columns 
-      WHERE table_name = 'church_profiles'
-    `);
-    res.json({ tables, groupCols, profileCols });
-  } catch (err) {
-    res.status(500).json({ message: err.message, stack: err.stack });
   }
 });
 
