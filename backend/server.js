@@ -441,22 +441,22 @@ app.put('/api/users/:id', authenticateToken, requireRole(['SYSTEM_ADMIN']), asyn
 
 app.get('/api/diagnose-db-v2', async (req, res) => {
   try {
-    const profiles = await query.all(`
-      SELECT column_name, data_type, is_nullable 
-      FROM information_schema.columns 
-      WHERE table_name = 'church_profiles'
+    const tables = await query.all(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public'
     `);
-    const depts = await query.all(`
-      SELECT column_name, data_type, is_nullable 
-      FROM information_schema.columns 
-      WHERE table_name = 'church_departments'
-    `);
-    const groups = await query.all(`
+    const groupCols = await query.all(`
       SELECT column_name, data_type, is_nullable 
       FROM information_schema.columns 
       WHERE table_name = 'church_groups'
     `);
-    res.json({ profiles, depts, groups });
+    const profileCols = await query.all(`
+      SELECT column_name, data_type, is_nullable 
+      FROM information_schema.columns 
+      WHERE table_name = 'church_profiles'
+    `);
+    res.json({ tables, groupCols, profileCols });
   } catch (err) {
     res.status(500).json({ message: err.message, stack: err.stack });
   }
