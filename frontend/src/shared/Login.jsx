@@ -50,14 +50,15 @@ export default function Login() {
   return (
     <div className="flex flex-col justify-center items-center min-h-screen bg-slate-950 px-6 select-none">
       <div className="w-full max-w-sm">
-        {/* 신길교회 타이틀 표시 */}
-        <div className="flex flex-col items-center mb-6">
-          <h2 className="text-md font-bold tracking-tight text-white">스마트 교회 회계 시스템</h2>
-          <p className="text-[10px] text-slate-500 mt-1">길을 만드는 사람들 · 기독교대한성결교회 신길교회</p>
+        {/* BOOZA THINK 플랫폼 타이틀 표시 */}
+        <div className="flex flex-col items-center mb-8">
+          <h1 className="text-2xl font-extrabold tracking-widest bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-200 bg-clip-text text-transparent">BOOZA THINK</h1>
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Decision Intelligence Platform</p>
+          <p className="text-[11px] text-slate-500 mt-3 font-medium">오늘 무엇을 결정하시겠습니까?</p>
         </div>
 
         {/* 로그인 카드 */}
-        <div className="glass p-6 rounded-2xl shadow-xl">
+        <div className="glass p-6 rounded-2xl shadow-xl border border-slate-800/60 bg-slate-900/30 backdrop-blur-md">
           <form onSubmit={handleLogin} className="space-y-4">
             {error && (
               <div className="flex items-center gap-2 bg-rose-500/10 border border-rose-500/30 text-rose-400 p-3 rounded-lg text-xs">
@@ -77,7 +78,7 @@ export default function Login() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="아이디 입력"
-                  className="w-full bg-slate-900/80 border border-slate-800 rounded-xl py-2 pl-10 pr-4 text-xs text-white focus:outline-none focus:border-church-500"
+                  className="w-full bg-slate-900/80 border border-slate-800 rounded-xl py-2 pl-10 pr-4 text-xs text-white focus:outline-none focus:border-indigo-500 transition-colors"
                 />
               </div>
             </div>
@@ -93,7 +94,7 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="비밀번호 입력"
-                  className="w-full bg-slate-900/80 border border-slate-800 rounded-xl py-2 pl-10 pr-4 text-xs text-white focus:outline-none focus:border-church-500"
+                  className="w-full bg-slate-900/80 border border-slate-800 rounded-xl py-2 pl-10 pr-4 text-xs text-white focus:outline-none focus:border-indigo-500 transition-colors"
                 />
               </div>
             </div>
@@ -101,7 +102,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-church-600 to-church-500 text-white font-semibold py-2 rounded-xl text-xs shadow-md hover:brightness-110 active:scale-[0.98] transition-all"
+              className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold py-2 rounded-xl text-xs shadow-md shadow-indigo-500/10 hover:brightness-110 active:scale-[0.98] transition-all"
             >
               {loading ? '로그인 중...' : '로그인'}
             </button>
@@ -118,7 +119,7 @@ export default function Login() {
               onClick={() => navigate('/')}
               className="text-[9px] text-slate-500 hover:text-slate-300 transition-colors font-medium mt-1"
             >
-              ← 전체 서비스 선택기로 이동
+              ← 플랫폼 홈(Decision Hub)으로 이동
             </button>
           </div>
         </div>

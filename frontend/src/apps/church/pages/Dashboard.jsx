@@ -1,11 +1,75 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../App';
-import { TrendingUp, TrendingDown, Clock, AlertTriangle, XOctagon, Plus, ChevronRight, Users, RefreshCw, FileText, Activity } from 'lucide-react';
+import { TrendingUp, TrendingDown, Clock, AlertTriangle, XOctagon, Plus, ChevronRight, Users, RefreshCw, FileText, Activity, Cpu } from 'lucide-react';
 
 export default function Dashboard() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
+
+  // Workspace Profile State
+  const [churchProfile, setChurchProfile] = useState({
+    church_name: '신길교회',
+    denomination: '기독교대한성결교회',
+    logo_url: '/church_logo.png'
+  });
+
+  useEffect(() => {
+    if (!token) return;
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch('/api/church/profile', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setChurchProfile(data);
+        }
+      } catch (err) {
+        console.error('Error fetching church profile:', err);
+      }
+    };
+    fetchProfile();
+  }, [token]);
+
+  const renderWorkspaceBranding = () => (
+    <div className="flex items-center gap-3 p-3 bg-slate-900/40 rounded-2xl border border-slate-800/85 mb-4">
+      <div className="h-10 w-10 flex items-center justify-center p-1 rounded-xl bg-white border border-slate-700/30 overflow-hidden shrink-0">
+        <img src={churchProfile.logo_url} alt={churchProfile.church_name} className="h-full w-auto object-contain" />
+      </div>
+      <div>
+        <h2 className="text-xs font-bold text-white leading-normal">{churchProfile.church_name}</h2>
+        <p className="text-[8.5px] text-slate-500 font-bold tracking-wider">{churchProfile.denomination}</p>
+      </div>
+    </div>
+  );
+
+  const renderAiSummaryCard = () => (
+    <div className="glass p-4 rounded-2xl border border-indigo-500/20 bg-indigo-950/10 backdrop-blur-md relative overflow-hidden mb-4">
+      <div className="absolute -right-10 -top-10 w-24 h-24 bg-indigo-500/5 rounded-full blur-2xl" />
+      <div className="flex items-center gap-2 text-indigo-400 mb-2">
+        <Cpu size={14} className="animate-pulse" />
+        <span className="text-[10px] font-black uppercase tracking-widest text-slate-200">AI Copilot 재정 분석 요약</span>
+      </div>
+      <p className="text-[10.5px] text-slate-300 leading-relaxed font-semibold">
+        신길교회 6월 재정 상황 분석 결과: 일반회계 수입이 전월 대비 4.2% 증가하였으나, 중등부 지출이 예산 대비 12% 초과되었습니다. 결재 대기 중인 전표가 3건 있습니다.
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3 pt-3 border-t border-slate-900 text-[9px] font-semibold">
+        <div className="flex items-center gap-1 text-amber-400">
+          <span>⚠️</span>
+          <span>교육부서 예산 대비 초과 지출 경보</span>
+        </div>
+        <div className="flex items-center gap-1 text-sky-400">
+          <span>📝</span>
+          <span>결재 요청 전표 3건 승인 대기 중</span>
+        </div>
+        <div className="flex items-center gap-1 text-emerald-400">
+          <span>📊</span>
+          <span>이번 달 지출 상위 부서 확인 필요</span>
+        </div>
+      </div>
+    </div>
+  );
 
   const [stats, setStats] = useState({
     income: 0,
@@ -150,6 +214,10 @@ export default function Dashboard() {
   if (activeTab === 'admin' && adminStats) {
     return (
       <div className="p-4 space-y-4">
+        {/* Workspace Branding & AI Summary first */}
+        {renderWorkspaceBranding()}
+        {renderAiSummaryCard()}
+
         {/* Toggle Bar */}
         <div className="flex bg-slate-900/60 p-1 rounded-xl border border-slate-800/80">
           <button
@@ -318,6 +386,10 @@ export default function Dashboard() {
   // Standard Personal Dashboard View
   return (
     <div className="p-4 space-y-4">
+      {/* Workspace Branding & AI Summary first */}
+      {renderWorkspaceBranding()}
+      {renderAiSummaryCard()}
+
       {/* Toggle Bar for Admin/Auditor */}
       {(user?.role === 'SYSTEM_ADMIN' || user?.role === 'AUDITOR') && (
         <div className="flex bg-slate-900/60 p-1 rounded-xl border border-slate-800/80">
