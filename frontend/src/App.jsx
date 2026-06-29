@@ -23,6 +23,9 @@ import SettlementView from './apps/church/pages/SettlementView';
 import AuditView from './apps/church/pages/AuditView';
 import Settings from './apps/church/pages/Settings';
 
+// Stock page imports
+import StockDashboard from './apps/stock/pages/StockDashboard';
+
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
@@ -254,7 +257,7 @@ function MobileLayout() {
             <Route path="/decisions" element={<DecisionHistory />} />
 
             {/* Premium Placeholders (TEAM E) */}
-            <Route path="/app/stock" element={<PremiumPlaceholder appId="stock" />} />
+            <Route path="/app/stock" element={<StockDashboard />} />
             <Route path="/app/estate" element={<PremiumPlaceholder appId="estate" />} />
             <Route path="/app/mission" element={<PremiumPlaceholder appId="mission" />} />
 

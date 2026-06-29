@@ -516,7 +516,10 @@ export default function VoucherForm() {
           {/* 거래일자 */}
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] font-bold text-slate-400">거래일자 *</label>
+              <div className="flex items-center gap-1">
+                <label className="text-[10px] font-bold text-slate-400">거래일자 *</label>
+                {activeOcr && <span className="text-[7.5px] text-amber-500 font-extrabold bg-amber-500/10 px-1 rounded">⚠️ 검증 필요</span>}
+              </div>
               {activeOcr?.transaction_date && activeOcr.transaction_date !== transactionDate && (
                 <button
                   type="button"
@@ -538,7 +541,10 @@ export default function VoucherForm() {
           {/* 금액 */}
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] font-bold text-slate-400">금액 * (숫자만)</label>
+              <div className="flex items-center gap-1">
+                <label className="text-[10px] font-bold text-slate-400">금액 * (숫자만)</label>
+                {activeOcr && <span className="text-[7.5px] text-amber-500 font-extrabold bg-amber-500/10 px-1 rounded">⚠️ 검증 필요</span>}
+              </div>
               {activeOcr?.amount > 0 && activeOcr.amount.toString() !== amount && (
                 <button
                   type="button"
@@ -563,7 +569,10 @@ export default function VoucherForm() {
           {/* 계정과목 */}
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] font-bold text-slate-400">계정과목 *</label>
+              <div className="flex items-center gap-1">
+                <label className="text-[10px] font-bold text-slate-400">계정과목 *</label>
+                {activeOcr && <span className="text-[7.5px] text-amber-500 font-extrabold bg-amber-500/10 px-1 rounded">⚠️ 검증 필요</span>}
+              </div>
               {activeOcr?.recommendations?.categoryId && activeOcr.recommendations.categoryId.toString() !== categoryId && (
                 <button
                   type="button"
@@ -592,7 +601,10 @@ export default function VoucherForm() {
           {/* 사용처 */}
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] font-bold text-slate-400">사용처/가맹점</label>
+              <div className="flex items-center gap-1">
+                <label className="text-[10px] font-bold text-slate-400">사용처/가맹점</label>
+                {activeOcr && <span className="text-[7.5px] text-amber-500 font-extrabold bg-amber-500/10 px-1 rounded">⚠️ 검증 필요</span>}
+              </div>
               {activeOcr?.vendor && activeOcr.vendor !== '식별 불가(수동 입력)' && activeOcr.vendor !== vendor && (
                 <button
                   type="button"
