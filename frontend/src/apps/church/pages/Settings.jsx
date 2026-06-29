@@ -257,6 +257,7 @@ export default function Settings() {
   const fetchAdminOrgs = async () => {
     try {
       const data = await apiClient('/api/admin/departments');
+      console.log('[FETCH DEPARTMENTS RESPONSE]', data);
       if (Array.isArray(data)) {
         setAdminOrgs(data);
         if (data.length > 0 && !selectedAdminOrgId) {
@@ -272,6 +273,7 @@ export default function Settings() {
     if (!deptId) return;
     try {
       const data = await apiClient(`/api/admin/departments/${deptId}/groups`);
+      console.log('[FETCH GROUPS RESPONSE]', data);
       if (Array.isArray(data)) {
         setAdminGroups(data);
       }
@@ -575,13 +577,28 @@ export default function Settings() {
     const payload = { name: newOrgName, description: newOrgDesc };
     console.log('[CREATE DEPARTMENT PAYLOAD]', payload);
     try {
-      await apiClient('/api/admin/departments', {
+      const result = await apiClient('/api/admin/departments', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
       setNewOrgName('');
       setNewOrgDesc('');
-      fetchAdminOrgs();
+      
+      if (result.department) {
+        const newDept = {
+          department_id: result.department.id,
+          name: result.department.name,
+          description: newOrgDesc,
+          is_active: true
+        };
+        setAdminOrgs(prev => {
+          const exists = prev.some(item => item.department_id === newDept.department_id);
+          return exists ? prev : [...prev, newDept];
+        });
+        setSelectedAdminOrgId(newDept.department_id.toString());
+      }
+      
+      await fetchAdminOrgs();
       alert('부서(위원회) 등록 성공');
     } catch (err) {
       const errData = err.data || {};
@@ -641,14 +658,29 @@ export default function Settings() {
     };
     console.log('[CREATE DEPARTMENT PAYLOAD]', payload);
     try {
-      await apiClient('/api/admin/groups', {
+      const result = await apiClient('/api/admin/groups', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
       setNewGroupName('');
       setNewGroupDesc('');
       setNewGroupSort(0);
-      fetchAdminGroups(selectedAdminOrgId);
+      
+      if (result.department) {
+        const newGroup = {
+          group_id: result.department.id,
+          department_id: parseInt(selectedAdminOrgId, 10),
+          name: result.department.name,
+          description: newGroupDesc,
+          is_active: true
+        };
+        setAdminGroups(prev => {
+          const exists = prev.some(item => item.group_id === newGroup.group_id);
+          return exists ? prev : [...prev, newGroup];
+        });
+      }
+      
+      await fetchAdminGroups(selectedAdminOrgId);
       alert('소속 그룹 등록 성공');
     } catch (err) {
       const errData = err.data || {};
@@ -1339,7 +1371,8 @@ export default function Settings() {
               <select
                 value={selectedAdminOrgId}
                 onChange={(e) => setSelectedAdminOrgId(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-church-500"
+                disabled={!adminOrgs.length}
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-church-500 disabled:opacity-50"
               >
                 <option value="" disabled>선택하세요</option>
                 {adminOrgs.map(o => (

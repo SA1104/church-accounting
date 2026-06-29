@@ -152,17 +152,30 @@ app.get('/api/departments/:id/groups', async (req, res) => {
   }
 });
 
+// Helper to resolve active project ID
+async function getActiveProjectId(req) {
+  if (req.user && req.user.projectId) {
+    return req.user.projectId;
+  }
+  if (req.user && req.user.activeProjectId) {
+    return req.user.activeProjectId;
+  }
+  const fallback = await query.get("SELECT project_id FROM public.platform_projects WHERE service_id = 'church_think' LIMIT 1");
+  if (fallback) return fallback.project_id;
+  
+  const anyProject = await query.get("SELECT project_id FROM public.platform_projects LIMIT 1");
+  return anyProject ? anyProject.project_id : null;
+}
+
 // 1-2. 관리자용 조직 관리 API (인증 필수)
 const requireAdminRole = requireRole(['SYSTEM_ADMIN', 'AUDITOR'], 'accounting');
 
 app.get('/api/admin/departments', authenticateToken, requireAdminRole, async (req, res) => {
   try {
-    const church = await query.get("SELECT church_id FROM public.church_profiles WHERE project_id = ? LIMIT 1", [req.user.projectId]);
-    if (!church) return res.status(404).json({ message: '교회 프로필을 찾을 수 없습니다.' });
-
+    const projectId = await getActiveProjectId(req);
     const list = await query.all(
-      "SELECT department_id, parent_id, name, description, is_active FROM public.church_departments WHERE church_profile_id = ? AND parent_id IS NULL ORDER BY name ASC",
-      [church.church_id]
+      "SELECT department_id, name, description, is_active FROM public.church_departments WHERE parent_id IS NULL AND project_id = ? ORDER BY name ASC",
+      [projectId]
     );
     res.json(list);
   } catch (error) {
@@ -189,9 +202,10 @@ app.post('/api/admin/departments', authenticateToken, requireAdminRole, async (r
   if (!name) return res.status(400).json({ message: '부서명이 누락되었습니다.' });
 
   try {
+    const projectId = await getActiveProjectId(req);
     const existing = await query.get(
       'SELECT department_id FROM public.church_departments WHERE parent_id IS NULL AND name = ? AND project_id = ?',
-      [name, req.user.projectId]
+      [name, projectId]
     );
     if (existing) {
       return res.status(400).json({
@@ -202,7 +216,7 @@ app.post('/api/admin/departments', authenticateToken, requireAdminRole, async (r
 
     const result = await query.run(
       "INSERT INTO public.church_departments (project_id, parent_id, name, description, is_active) VALUES (?, NULL, ?, ?, TRUE) RETURNING department_id",
-      [req.user.projectId, name, description || '']
+      [projectId, name, description || '']
     );
     res.status(201).json({ success: true, department: { id: result.id, name }, message: '부서가 생성되었습니다.' });
   } catch (err) {
@@ -233,9 +247,10 @@ app.put('/api/admin/departments/:id', authenticateToken, requireAdminRole, async
   const { id } = req.params;
   const { name, description, is_active } = req.body;
   try {
+    const projectId = await getActiveProjectId(req);
     await query.run(
       "UPDATE public.church_departments SET name = COALESCE(?, name), description = COALESCE(?, description), is_active = COALESCE(?, is_active) WHERE department_id = ? AND project_id = ?",
-      [name, description, is_active, parseInt(id, 10), req.user.projectId]
+      [name, description, is_active, parseInt(id, 10), projectId]
     );
     res.json({ message: '부서 정보가 수정되었습니다.' });
   } catch (error) {
@@ -247,9 +262,10 @@ app.put('/api/admin/departments/:id', authenticateToken, requireAdminRole, async
 app.delete('/api/admin/departments/:id', authenticateToken, requireAdminRole, async (req, res) => {
   const { id } = req.params;
   try {
+    const projectId = await getActiveProjectId(req);
     await query.run(
       "UPDATE public.church_departments SET is_active = FALSE WHERE department_id = ? AND project_id = ?",
-      [parseInt(id, 10), req.user.projectId]
+      [parseInt(id, 10), projectId]
     );
     res.json({ message: '부서가 비활성화되었습니다.' });
   } catch (error) {
@@ -261,9 +277,10 @@ app.delete('/api/admin/departments/:id', authenticateToken, requireAdminRole, as
 app.get('/api/admin/departments/:id/groups', authenticateToken, requireAdminRole, async (req, res) => {
   const { id } = req.params;
   try {
+    const projectId = await getActiveProjectId(req);
     const list = await query.all(
-      "SELECT department_id as group_id, parent_id as department_id, name, description, is_active FROM public.church_departments WHERE parent_id = ? ORDER BY name ASC",
-      [parseInt(id, 10)]
+      "SELECT department_id as group_id, parent_id as department_id, name, description, is_active FROM public.church_departments WHERE parent_id = ? AND project_id = ? ORDER BY name ASC",
+      [parseInt(id, 10), projectId]
     );
     res.json(list);
   } catch (error) {
@@ -290,9 +307,10 @@ app.post('/api/admin/groups', authenticateToken, requireAdminRole, async (req, r
   if (!department_id || !name) return res.status(400).json({ message: '부서 ID와 그룹명이 누락되었습니다.' });
 
   try {
+    const projectId = await getActiveProjectId(req);
     const existing = await query.get(
       'SELECT department_id FROM public.church_departments WHERE parent_id = ? AND name = ? AND project_id = ?',
-      [parseInt(department_id, 10), name, req.user.projectId]
+      [parseInt(department_id, 10), name, projectId]
     );
     if (existing) {
       return res.status(400).json({
@@ -303,7 +321,7 @@ app.post('/api/admin/groups', authenticateToken, requireAdminRole, async (req, r
 
     const result = await query.run(
       "INSERT INTO public.church_departments (project_id, parent_id, name, description, is_active) VALUES (?, ?, ?, ?, TRUE) RETURNING department_id",
-      [req.user.projectId, parseInt(department_id, 10), name, description || '']
+      [projectId, parseInt(department_id, 10), name, description || '']
     );
     res.status(201).json({ success: true, department: { id: result.id, name }, message: '소속 그룹이 생성되었습니다.' });
   } catch (err) {
@@ -334,9 +352,10 @@ app.put('/api/admin/groups/:id', authenticateToken, requireAdminRole, async (req
   const { id } = req.params; // integer department_id
   const { name, description, is_active } = req.body;
   try {
+    const projectId = await getActiveProjectId(req);
     await query.run(
       "UPDATE public.church_departments SET name = COALESCE(?, name), description = COALESCE(?, description), is_active = COALESCE(?, is_active) WHERE department_id = ? AND project_id = ?",
-      [name, description, is_active, parseInt(id, 10), req.user.projectId]
+      [name, description, is_active, parseInt(id, 10), projectId]
     );
     res.json({ message: '소속 그룹 정보가 수정되었습니다.' });
   } catch (error) {
@@ -348,9 +367,10 @@ app.put('/api/admin/groups/:id', authenticateToken, requireAdminRole, async (req
 app.delete('/api/admin/groups/:id', authenticateToken, requireAdminRole, async (req, res) => {
   const { id } = req.params; // integer department_id
   try {
+    const projectId = await getActiveProjectId(req);
     await query.run(
       "UPDATE public.church_departments SET is_active = FALSE WHERE department_id = ? AND project_id = ?",
-      [parseInt(id, 10), req.user.projectId]
+      [parseInt(id, 10), projectId]
     );
     res.json({ message: '소속 그룹이 비활성화되었습니다.' });
   } catch (error) {
