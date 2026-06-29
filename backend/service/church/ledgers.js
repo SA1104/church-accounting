@@ -3,6 +3,7 @@ const router = express.Router();
 const ExcelJS = require('exceljs');
 const { query } = require('../../core/db');
 const { authenticateToken } = require('../../core/auth');
+const { enforceContextSecurity } = require('./contextScope');
 
 // Helper to get active project ID
 async function getActiveProjectId(req) {
@@ -22,9 +23,9 @@ function getAccountingUser(req) {
 }
 
 // 1. 월별 장부 조회
-router.get('/', authenticateToken, async (req, res) => {
-  const { groupId, role, hasGlobalAccess } = getAccountingUser(req);
+router.get('/', authenticateToken, enforceContextSecurity, async (req, res) => {
   const { group, org, yearMonth } = req.query; // format: 'YYYY-MM'
+  const scope = req.contextScope;
 
   if (!yearMonth) {
     return res.status(400).json({ message: 'yearMonth is required' });
@@ -33,9 +34,22 @@ router.get('/', authenticateToken, async (req, res) => {
   let targetGroupId = group ? parseInt(group, 10) : null;
   let targetOrgId = org ? parseInt(org, 10) : null;
 
-  if (!hasGlobalAccess) {
-    targetGroupId = groupId;
-    targetOrgId = null;
+  if (!scope.canViewChurchWide) {
+    if (targetGroupId) {
+      if (!scope.allowedGroupIds.includes(targetGroupId)) {
+        return res.status(403).json({ error: 'FORBIDDEN_CONTEXT', message: '해당 조직 범위의 데이터를 조회할 권한이 없습니다.' });
+      }
+    } else if (targetOrgId) {
+      if (!scope.allowedCommitteeIds.includes(targetOrgId)) {
+        return res.status(403).json({ error: 'FORBIDDEN_CONTEXT', message: '해당 조직 범위의 데이터를 조회할 권한이 없습니다.' });
+      }
+    } else {
+      if (scope.role === 'FINANCE_MANAGER' && scope.allowedCommitteeIds.length > 0) {
+        targetOrgId = scope.allowedCommitteeIds[0];
+      } else if (scope.allowedGroupIds.length > 0) {
+        targetGroupId = scope.allowedGroupIds[0];
+      }
+    }
   }
 
   try {
@@ -208,17 +222,25 @@ router.post('/close', authenticateToken, async (req, res) => {
 });
 
 // 3. 반기/연도별 결산보고서 생성 및 조회
-router.get('/settlement', authenticateToken, async (req, res) => {
-  const { groupId, role, hasGlobalAccess } = getAccountingUser(req);
+router.get('/settlement', authenticateToken, enforceContextSecurity, async (req, res) => {
   const { group, fiscalYear, halfCycle } = req.query; // halfCycle: 'FIRST', 'SECOND', 'YEAR'
+  const scope = req.contextScope;
 
   if (!fiscalYear || !halfCycle) {
     return res.status(400).json({ message: 'fiscalYear and halfCycle are required' });
   }
 
   let targetGroupId = group ? parseInt(group, 10) : null;
-  if (!hasGlobalAccess) {
-    targetGroupId = groupId;
+  if (!scope.canViewChurchWide) {
+    if (targetGroupId) {
+      if (!scope.allowedGroupIds.includes(targetGroupId)) {
+        return res.status(403).json({ error: 'FORBIDDEN_CONTEXT', message: '해당 조직 범위의 데이터를 조회할 권한이 없습니다.' });
+      }
+    } else {
+      if (scope.allowedGroupIds.length > 0) {
+        targetGroupId = scope.allowedGroupIds[0];
+      }
+    }
   }
 
   if (!targetGroupId) {
@@ -321,17 +343,25 @@ router.post('/settlement/submit', authenticateToken, async (req, res) => {
 });
 
 // 5. 회계 장부 엑셀 내보내기 (ExcelJS)
-router.get('/export-excel', authenticateToken, async (req, res) => {
-  const { groupId, role, hasGlobalAccess } = getAccountingUser(req);
+router.get('/export-excel', authenticateToken, enforceContextSecurity, async (req, res) => {
   const { group, yearMonth } = req.query;
+  const scope = req.contextScope;
 
   if (!yearMonth) {
     return res.status(400).send('yearMonth is required');
   }
 
   let targetGroupId = group ? parseInt(group, 10) : null;
-  if (!hasGlobalAccess) {
-    targetGroupId = groupId;
+  if (!scope.canViewChurchWide) {
+    if (targetGroupId) {
+      if (!scope.allowedGroupIds.includes(targetGroupId)) {
+        return res.status(403).send('해당 조직 범위의 데이터를 조회할 권한이 없습니다.');
+      }
+    } else {
+      if (scope.allowedGroupIds.length > 0) {
+        targetGroupId = scope.allowedGroupIds[0];
+      }
+    }
   }
 
   if (!targetGroupId) {

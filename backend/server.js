@@ -34,6 +34,14 @@ if (!SUPABASE_ANON_KEY) {
 
 const { initPlatformDb, query } = require('./core/db');
 const { login, signup, authenticateToken, requireRole, changePassword } = require('./core/auth');
+const {
+  getRegisterOptions,
+  verifyRegister,
+  getLoginOptions,
+  verifyLogin,
+  listCredentials,
+  deleteCredential
+} = require('./core/auth/passkey');
 const { loadModules } = require('./core/registry');
 
 const app = express();
@@ -45,12 +53,30 @@ app.use(express.json());
 
 // Legacy URL compatibility rewriter middleware (Forwarding to service/church)
 app.use((req, res, next) => {
-  if (req.url === '/api/organizations') {
-    req.url = '/api/services/church/organizations';
-    console.log(`[Platform Router] Rewrote legacy path: /api/organizations -> /api/services/church/organizations`);
-  } else if (req.url === '/api/groups') {
-    req.url = '/api/services/church/groups';
-    console.log(`[Platform Router] Rewrote legacy path: /api/groups -> /api/services/church/groups`);
+  if (req.url.startsWith('/api/organizations')) {
+    req.url = req.url.replace('/api/organizations', '/api/services/church/organizations');
+    console.log(`[Platform Router] Rewrote: /api/organizations -> /api/services/church/organizations`);
+  } else if (req.url.startsWith('/api/groups')) {
+    req.url = req.url.replace('/api/groups', '/api/services/church/groups');
+    console.log(`[Platform Router] Rewrote: /api/groups -> /api/services/church/groups`);
+  } else if (req.url.startsWith('/api/church/context-scope')) {
+    req.url = req.url.replace('/api/church/context-scope', '/api/services/church/context-scope');
+    console.log(`[Platform Router] Rewrote: /api/church/context-scope -> /api/services/church/context-scope`);
+  } else if (req.url.startsWith('/api/vouchers')) {
+    req.url = req.url.replace('/api/vouchers', '/api/services/church/vouchers');
+    console.log(`[Platform Router] Rewrote: /api/vouchers -> /api/services/church/vouchers`);
+  } else if (req.url.startsWith('/api/ledgers')) {
+    req.url = req.url.replace('/api/ledgers', '/api/services/church/ledgers');
+    console.log(`[Platform Router] Rewrote: /api/ledgers -> /api/services/church/ledgers`);
+  } else if (req.url.startsWith('/api/approvals')) {
+    req.url = req.url.replace('/api/approvals', '/api/services/church/approvals');
+    console.log(`[Platform Router] Rewrote: /api/approvals -> /api/services/church/approvals`);
+  } else if (req.url.startsWith('/api/period-locks')) {
+    req.url = req.url.replace('/api/period-locks', '/api/services/church/period-locks');
+    console.log(`[Platform Router] Rewrote: /api/period-locks -> /api/services/church/period-locks`);
+  } else if (req.url.startsWith('/api/categories')) {
+    req.url = req.url.replace('/api/categories', '/api/services/church/categories');
+    console.log(`[Platform Router] Rewrote: /api/categories -> /api/services/church/categories`);
   }
   next();
 });
@@ -62,6 +88,14 @@ app.use('/uploads', express.static(uploadDir));
 app.post('/api/auth/login', login);
 app.post('/api/auth/signup', signup);
 app.post('/api/auth/change-password', authenticateToken, changePassword);
+
+// Passkey/WebAuthn API
+app.post('/api/auth/passkey/register/options', authenticateToken, getRegisterOptions);
+app.post('/api/auth/passkey/register/verify', authenticateToken, verifyRegister);
+app.post('/api/auth/passkey/login/options', getLoginOptions);
+app.post('/api/auth/passkey/login/verify', verifyLogin);
+app.get('/api/auth/passkey/credentials', authenticateToken, listCredentials);
+app.delete('/api/auth/passkey/credentials/:id', authenticateToken, deleteCredential);
 
 // 1-1. 다교회 온보딩 공통 조회 API (미인증)
 app.get('/api/churches', async (req, res) => {
@@ -138,6 +172,14 @@ app.get('/api/admin/departments', authenticateToken, requireAdminRole, async (re
 });
 
 app.post('/api/admin/departments', authenticateToken, requireAdminRole, async (req, res) => {
+  console.log('[ORG CREATE] auth user:', {
+    id: req.user?.id,
+    email: req.user?.email,
+    role: req.user?.role,
+    isAdmin: req.user?.isAdmin,
+    projectId: req.user?.projectId,
+    accounting: req.user?.accounting
+  });
   const { name, description } = req.body;
   if (!name) return res.status(400).json({ message: '부서명이 누락되었습니다.' });
 
@@ -200,6 +242,14 @@ app.get('/api/admin/departments/:id/groups', authenticateToken, requireAdminRole
 });
 
 app.post('/api/admin/groups', authenticateToken, requireAdminRole, async (req, res) => {
+  console.log('[ORG CREATE] auth user:', {
+    id: req.user?.id,
+    email: req.user?.email,
+    role: req.user?.role,
+    isAdmin: req.user?.isAdmin,
+    projectId: req.user?.projectId,
+    accounting: req.user?.accounting
+  });
   const { department_id, name, description, sort_order } = req.body;
   if (!department_id || !name) return res.status(400).json({ message: '부서 ID와 그룹명이 누락되었습니다.' });
 
@@ -774,9 +824,49 @@ app.put('/api/notifications/:id/read', authenticateToken, async (req, res) => {
 });
 
 // 6. 공통 대시보드 통계 API (교회 회계 모듈 연동 포함)
-app.get('/api/dashboard/stats', authenticateToken, requireRole(['SYSTEM_ADMIN', 'AUDITOR'], 'accounting'), async (req, res) => {
+const { enforceContextSecurity } = require('./service/church/contextScope');
+
+app.get('/api/dashboard/stats', authenticateToken, enforceContextSecurity, async (req, res) => {
+  const { group, committee, fiscalYear } = req.query;
+  const scope = req.contextScope;
+  const activeYear = fiscalYear || '2026';
+
   try {
     const projectId = req.user.projectId || (await query.get("SELECT project_id FROM platform_projects LIMIT 1"))?.project_id;
+    
+    // Build where clause for group filtering based on scope permissions
+    let groupFilterSql = '';
+    const groupParams = [];
+    if (!scope.canViewChurchWide) {
+      if (group) {
+        const groupInt = parseInt(group, 10);
+        if (!scope.allowedGroupIds.includes(groupInt)) {
+          return res.status(403).json({ error: 'FORBIDDEN_CONTEXT', message: '해당 조직 범위의 데이터를 조회할 권한이 없습니다.' });
+        }
+        groupFilterSql = ' AND department_id = ?';
+        groupParams.push(groupInt);
+      } else {
+        if (scope.allowedGroupIds.length > 0) {
+          groupFilterSql = ` AND department_id IN (${scope.allowedGroupIds.map(() => '?').join(',')})`;
+          groupParams.push(...scope.allowedGroupIds);
+        } else {
+          groupFilterSql = ' AND 1=0';
+        }
+      }
+    } else if (group) {
+      groupFilterSql = ' AND department_id = ?';
+      groupParams.push(parseInt(group, 10));
+    }
+
+    if (committee) {
+      const committeeInt = parseInt(committee, 10);
+      if (!scope.canViewAllCommittees && !scope.allowedCommitteeIds.includes(committeeInt)) {
+        return res.status(403).json({ error: 'FORBIDDEN_CONTEXT', message: '해당 조직 범위의 데이터를 조회할 권한이 없습니다.' });
+      }
+      groupFilterSql += ' AND department_id IN (SELECT department_id FROM church_departments WHERE parent_id = ?)';
+      groupParams.push(committeeInt);
+    }
+
     const userCounts = await query.get(`
       SELECT 
         COUNT(*) as total_users,
@@ -790,39 +880,46 @@ app.get('/api/dashboard/stats', authenticateToken, requireRole(['SYSTEM_ADMIN', 
         SUM(CASE WHEN status = 'SUBMITTED' AND CAST(created_at AS DATE) = CAST(? AS DATE) THEN 1 ELSE 0 END) as today_submitted,
         SUM(CASE WHEN status = 'APPROVED' AND CAST(updated_at AS DATE) = CAST(? AS DATE) THEN 1 ELSE 0 END) as today_approved
       FROM church_vouchers
-      WHERE project_id = ?
-    `, [today, today, projectId]);
+      WHERE project_id = ? ${groupFilterSql}
+    `, [today, today, projectId, ...groupParams]);
 
-    const currentMonth = new Date().toISOString().slice(0, 7);
+    const startDate = `${activeYear}-01-01`;
+    const endDate = `${activeYear}-12-31`;
+
     const monthFinance = await query.get(`
       SELECT 
         SUM(CASE WHEN v.transaction_type = 'EXPENSE' THEN vi.amount ELSE 0.00 END) as monthly_expense,
         SUM(CASE WHEN v.transaction_type = 'INCOME' THEN vi.amount ELSE 0.00 END) as monthly_income
       FROM church_vouchers v
       JOIN church_voucher_items vi ON v.voucher_id = vi.voucher_id
-      WHERE v.status = 'APPROVED' AND to_char(v.transaction_date, 'YYYY-MM') = ? AND v.project_id = ?
-    `, [currentMonth, projectId]);
+      WHERE v.status = 'APPROVED' 
+        AND v.transaction_date >= ? AND v.transaction_date <= ? 
+        AND v.project_id = ? ${groupFilterSql.replace(/department_id/g, 'v.department_id')}
+    `, [startDate, endDate, projectId, ...groupParams]);
 
     const deptExpenses = await query.all(`
       SELECT g.name as group_name, SUM(vi.amount) as total_expense
       FROM church_vouchers v
       JOIN church_departments g ON v.department_id = g.department_id
       JOIN church_voucher_items vi ON v.voucher_id = vi.voucher_id
-      WHERE v.status = 'APPROVED' AND v.transaction_type = 'EXPENSE' AND to_char(v.transaction_date, 'YYYY-MM') = ? AND v.project_id = ?
+      WHERE v.status = 'APPROVED' 
+        AND v.transaction_type = 'EXPENSE' 
+        AND v.transaction_date >= ? AND v.transaction_date <= ? 
+        AND v.project_id = ? ${groupFilterSql.replace(/department_id/g, 'v.department_id')}
       GROUP BY g.name
       ORDER BY total_expense DESC
-    `, [currentMonth, projectId]);
+    `, [startDate, endDate, projectId, ...groupParams]);
 
     const topCategory = await query.get(`
       SELECT c.parent_category || ' > ' || c.child_category as category_name, COUNT(*) as count
       FROM church_vouchers v
       JOIN church_voucher_items vi ON v.voucher_id = vi.voucher_id
       JOIN church_account_categories c ON vi.category_id = c.category_id
-      WHERE v.project_id = ?
+      WHERE v.project_id = ? ${groupFilterSql.replace(/department_id/g, 'v.department_id')}
       GROUP BY c.parent_category, c.child_category
       ORDER BY count DESC
       LIMIT 1
-    `, [projectId]);
+    `, [projectId, ...groupParams]);
 
     let recentLogs = [];
     if (req.user.roles['accounting'] === 'AUDITOR' || req.user.roles['platform'] === 'SYSTEM_ADMIN') {
@@ -859,7 +956,7 @@ app.get('/api/dashboard/stats', authenticateToken, requireRole(['SYSTEM_ADMIN', 
     });
   } catch (error) {
     console.error('Stats error:', error);
-    res.status(500).json({ message: 'Database error' });
+    res.status(500).json({ message: 'Database error', details: error.message });
   }
 });
 
@@ -971,7 +1068,6 @@ app.get('/api/health/auth', async (req, res) => {
   });
 });
 
-app.get('*', (req, res) => {
 // In-memory Decisions Store initialized with standardized mock decisions (Phase 7)
 let decisionsStore = [
   {
@@ -1173,13 +1269,30 @@ app.post('/api/research', authenticateToken, (req, res) => {
   res.status(201).json(newRes);
 });
 
-app.get('/api/decisions', authenticateToken, (req, res) => {
+app.get('/api/decisions', authenticateToken, enforceContextSecurity, (req, res) => {
+  const scope = req.contextScope;
+  if (!scope.canViewChurchWide) {
+    const filtered = decisionsStore.filter(d => {
+      if (d.workspaceId === 'ws-church') {
+        return scope.canViewAllCommittees || (d.committeeId && scope.allowedCommitteeIds.includes(parseInt(d.committeeId, 10)));
+      }
+      return true;
+    });
+    return res.json(filtered);
+  }
   res.json(decisionsStore);
 });
 
-app.get('/api/decisions/:id', authenticateToken, (req, res) => {
+app.get('/api/decisions/:id', authenticateToken, enforceContextSecurity, (req, res) => {
   const item = decisionsStore.find(d => d.id === req.params.id);
   if (!item) return res.status(404).json({ message: 'Decision not found' });
+  
+  const scope = req.contextScope;
+  if (!scope.canViewChurchWide && item.workspaceId === 'ws-church') {
+    if (item.committeeId && !scope.allowedCommitteeIds.includes(parseInt(item.committeeId, 10))) {
+      return res.status(403).json({ error: 'FORBIDDEN_CONTEXT', message: '해당 의사결정 내역을 조회할 권한이 없습니다.' });
+    }
+  }
   res.json(item);
 });
 
@@ -1254,20 +1367,6 @@ app.post('/api/decisions/:id/feedback', authenticateToken, (req, res) => {
   res.json(item);
 });
 
-  if (req.path.startsWith('/api')) {
-    return res.status(404).json({ error: 'API route not found' });
-  }
-
-  if (req.path.startsWith('/assets')) {
-    return res.status(404).send('Asset not found');
-  }
-
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  res.sendFile(path.join(frontendDist, 'index.html'));
-});
-
 // 8. 플랫폼 및 모듈 초기화 부트스트랩
 const { startQueueWorker } = require('./core/ai.js');
 
@@ -1278,6 +1377,22 @@ async function startServer() {
     
     // 2. Load all service modules dynamically
     await loadModules(app);
+    
+    // 2b. Register fallback wildcard route at the very bottom of Express stack
+    app.get('*', (req, res) => {
+      if (req.path.startsWith('/api')) {
+        return res.status(404).json({ error: 'API route not found' });
+      }
+
+      if (req.path.startsWith('/assets')) {
+        return res.status(404).send('Asset not found');
+      }
+
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.sendFile(path.join(frontendDist, 'index.html'));
+    });
     
     // 3. Start AI queue processing
     if (typeof startQueueWorker === 'function') {

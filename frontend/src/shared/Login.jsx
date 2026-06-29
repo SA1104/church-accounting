@@ -1,15 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
-import { KeyRound, User, Lock, AlertCircle } from 'lucide-react';
+import { KeyRound, User, Lock, AlertCircle, Fingerprint } from 'lucide-react';
+import { apiClient } from '../core/api';
 
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isPasskeySupported, setIsPasskeySupported] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    setIsPasskeySupported(!!window.PublicKeyCredential);
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -22,21 +28,56 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const data = await apiClient('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || '로그인에 실패했습니다.');
-      }
 
       login(data.token, data.user);
       navigate('/');
     } catch (err) {
-      setError(err.message);
+      setError(err.message || '로그인에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasskeyLogin = async () => {
+    if (!username) {
+      setError('생체인증 로그인을 위해 아이디(이메일)를 먼저 입력해주세요.');
+      return;
+    }
+
+    setError('');
+    setLoading(true);
+
+    try {
+      const { startAuthentication } = await import('@simplewebauthn/browser');
+      
+      // 1. Get options
+      const options = await apiClient('/api/auth/passkey/login/options', {
+        method: 'POST',
+        body: JSON.stringify({ email: username })
+      });
+
+      // 2. Browser biometric challenge
+      const authResponse = await startAuthentication(options);
+
+      // 3. Verify
+      const result = await apiClient('/api/auth/passkey/login/verify', {
+        method: 'POST',
+        body: JSON.stringify({ email: username, authResponse })
+      });
+
+      if (result.success) {
+        login(result.token, result.user);
+        navigate('/');
+      } else {
+        throw new Error(result.message || 'Passkey 인증에 실패했습니다.');
+      }
+    } catch (err) {
+      console.error(err);
+      setError(err.message || '지문/Face ID 로그인에 실패했습니다. 비밀번호 로그인을 사용해 주세요.');
     } finally {
       setLoading(false);
     }
@@ -106,6 +147,27 @@ export default function Login() {
             >
               {loading ? '로그인 중...' : '로그인'}
             </button>
+
+            <button
+              type="button"
+              onClick={handlePasskeyLogin}
+              disabled={loading || !isPasskeySupported}
+              className={`w-full flex items-center justify-center gap-2 border border-slate-700 text-white font-semibold py-2 rounded-xl text-xs shadow-md transition-all active:scale-[0.98] ${
+                isPasskeySupported 
+                  ? 'bg-slate-800/80 hover:bg-slate-700/80' 
+                  : 'bg-slate-900/50 text-slate-500 cursor-not-allowed'
+              }`}
+            >
+              <Fingerprint size={15} className={isPasskeySupported ? 'text-indigo-400' : 'text-slate-600'} />
+              <span>지문 / Face ID로 로그인</span>
+            </button>
+
+            {!isPasskeySupported && (
+              <p className="text-[10px] text-rose-400 text-center mt-1">
+                이 브라우저에서는 생체인증 로그인을 지원하지 않습니다.<br />
+                기존 비밀번호 로그인을 사용해 주세요.
+              </p>
+            )}
           </form>
 
           <div className="mt-4 text-center flex flex-col gap-2">

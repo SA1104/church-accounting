@@ -49,6 +49,7 @@ const StorageService = {
   },
 
   getFileUrl: (fileKey) => {
+    if (!fileKey) return '';
     const { data } = supabase.storage.from('receipts').getPublicUrl(fileKey);
     return data ? data.publicUrl : '';
   },

@@ -29,23 +29,61 @@ router.get('/organizations', async (req, res) => {
   }
 });
 
+// Helper to resolve church_profile_id from user context fallback order
+async function resolveChurchProfileId(req, bodyChurchId) {
+  if (bodyChurchId) return bodyChurchId;
+  
+  const projectId = req.user?.projectId || req.user?.activeProjectId;
+  if (projectId) {
+    const cp = await query.get('SELECT church_id FROM public.church_profiles WHERE project_id = ? LIMIT 1', [projectId]);
+    if (cp) return cp.church_id;
+  }
+  
+  if (req.user?.accounting?.churchId) {
+    return req.user.accounting.churchId;
+  }
+  
+  const defaultCp = await query.get('SELECT church_id FROM public.church_profiles LIMIT 1');
+  if (defaultCp) return defaultCp.church_id;
+  
+  return null;
+}
+
 // 2. 위원회/기관 등록
 router.post('/organizations', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN', 'AUDITOR']), async (req, res) => {
-  const { name, description } = req.body;
+  console.log('[ORG CREATE] auth user:', {
+    id: req.user?.id,
+    email: req.user?.email,
+    role: req.user?.role,
+    isAdmin: req.user?.isAdmin,
+    projectId: req.user?.projectId,
+    accounting: req.user?.accounting
+  });
+  const { name, description, churchId } = req.body;
   if (!name) return res.status(400).json({ message: 'Organization name is required' });
   try {
     const projectId = await getActiveProjectId(req);
+    const churchProfileId = await resolveChurchProfileId(req, churchId);
+    if (!churchProfileId) {
+      return res.status(400).json({ message: 'Church Profile ID could not be resolved. Please specify churchId.' });
+    }
+
     const existing = await query.get('SELECT department_id FROM church_departments WHERE parent_id IS NULL AND name = ? AND project_id = ?', [name, projectId]);
     if (existing) return res.status(400).json({ message: 'Organization already exists' });
 
     const result = await query.run(
-      'INSERT INTO church_departments (project_id, parent_id, name, description) VALUES (?, NULL, ?, ?) RETURNING department_id',
-      [projectId, name, description]
+      'INSERT INTO church_departments (project_id, parent_id, name, description, church_profile_id) VALUES (?, NULL, ?, ?, ?) RETURNING department_id',
+      [projectId, name, description, churchProfileId]
     );
     res.status(201).json({ id: result.id, message: 'Organization created successfully' });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Database error' });
+    console.error('Database Error details:', error.message, error.stack);
+    res.status(500).json({ 
+      message: 'Database error', 
+      details: error.message, 
+      stack: error.stack,
+      requestBody: req.body 
+    });
   }
 });
 
@@ -68,29 +106,95 @@ router.get('/groups', async (req, res) => {
     const groups = await query.all(sql, params);
     res.json(groups);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Database error' });
+    console.error('Database Error details:', error.message, error.stack);
+    res.status(500).json({ message: 'Database error', details: error.message });
   }
 });
 
 // 4. 소속 그룹 등록
 router.post('/groups', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN', 'AUDITOR']), async (req, res) => {
-  const { organization_id, name, description } = req.body;
+  console.log('[ORG CREATE] auth user:', {
+    id: req.user?.id,
+    email: req.user?.email,
+    role: req.user?.role,
+    isAdmin: req.user?.isAdmin,
+    projectId: req.user?.projectId,
+    accounting: req.user?.accounting
+  });
+  const { organization_id, name, description, churchId } = req.body;
   if (!organization_id || !name) return res.status(400).json({ message: 'Organization ID and group name are required' });
   try {
     const projectId = await getActiveProjectId(req);
+    const churchProfileId = await resolveChurchProfileId(req, churchId);
+    if (!churchProfileId) {
+      return res.status(400).json({ message: 'Church Profile ID could not be resolved. Please specify churchId.' });
+    }
+
     const existing = await query.get('SELECT department_id FROM church_departments WHERE parent_id = ? AND name = ? AND project_id = ?', [organization_id, name, projectId]);
     if (existing) return res.status(400).json({ message: 'Group name already exists in this organization' });
 
     const result = await query.run(
-      'INSERT INTO church_departments (project_id, parent_id, name, description) VALUES (?, ?, ?, ?) RETURNING department_id',
-      [projectId, organization_id, name, description]
+      'INSERT INTO church_departments (project_id, parent_id, name, description, church_profile_id) VALUES (?, ?, ?, ?, ?) RETURNING department_id',
+      [projectId, organization_id, name, description, churchProfileId]
     );
 
     res.status(201).json({ id: result.id, message: 'Group created successfully' });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Database error' });
+    console.error('Database Error details:', error.message, error.stack);
+    res.status(500).json({ 
+      message: 'Database error', 
+      details: error.message, 
+      stack: error.stack,
+      requestBody: req.body 
+    });
+  }
+});
+
+// 4b. GET Context Scope configuration for Cascading Dropdowns
+const { resolveUserScope } = require('./contextScope');
+router.get('/context-scope', authenticateToken, async (req, res) => {
+  try {
+    const scope = await resolveUserScope(req);
+    const projectId = await getActiveProjectId(req);
+
+    // Fetch all active committees
+    const committeesList = await query.all(
+      'SELECT department_id as id, name FROM public.church_departments WHERE parent_id IS NULL AND is_active = TRUE AND project_id = ?',
+      [projectId]
+    );
+
+    // Fetch all active groups
+    const groupsList = await query.all(
+      'SELECT department_id as id, parent_id, name FROM public.church_departments WHERE parent_id IS NOT NULL AND is_active = TRUE AND project_id = ?',
+      [projectId]
+    );
+
+    const committees = committeesList.map(c => {
+      const subGroups = groupsList.filter(g => g.parent_id === c.id).map(g => ({
+        id: g.id,
+        name: g.name,
+        selectable: scope.canViewChurchWide || scope.allowedGroupIds.includes(g.id)
+      }));
+      return {
+        id: c.id,
+        name: c.name,
+        selectable: scope.canViewAllCommittees || scope.allowedCommitteeIds.includes(c.id),
+        groups: subGroups
+      };
+    });
+
+    res.json({
+      fiscalYears: [2025, 2026, 2027],
+      defaultFiscalYear: 2026,
+      committees,
+      permissions: {
+        canViewChurchWide: scope.canViewChurchWide,
+        canManageOrganizations: scope.canManageOrganizations
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching context scope:', err);
+    res.status(500).json({ message: 'Internal server error', details: err.message });
   }
 });
 

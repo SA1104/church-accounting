@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell, Clock, Cpu, X, FileText, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
 
 export default function NotificationCenter({ isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState('notifications'); // 'notifications' | 'activity'
+  const navigate = useNavigate();
 
   const notifications = [
     { id: 1, title: 'AI 분석 완료', desc: '신길교회 6월 재정 분석 레포트 생성이 완료되었습니다.', time: '10분 전', type: 'AI', icon: <Cpu size={14} className="text-purple-400" /> },
@@ -10,6 +12,17 @@ export default function NotificationCenter({ isOpen, onClose }) {
     { id: 3, title: '예산 초과 경고', desc: '중등부 여름 행사 지출 금액이 예산을 12% 초과하였습니다.', time: '2시간 전', type: 'Risk Alert', icon: <AlertTriangle size={14} className="text-rose-400" /> },
     { id: 4, title: '보고서 자동 검토', desc: '분기 감사 보고서 초안에 대한 피드백 작성이 완료되었습니다.', time: '5시간 전', type: 'Report', icon: <ShieldCheck size={14} className="text-emerald-400" /> }
   ];
+
+  const handleNotiClick = (n) => {
+    if (n.type === 'Approval') {
+      // Direct routing with complete context parameter routing
+      navigate('/vouchers/1?fiscalYear=2026&committeeId=11&groupId=1');
+      onClose();
+    } else if (n.type === 'AI' || n.type === 'Report') {
+      navigate('/decisions');
+      onClose();
+    }
+  };
 
   const activities = [
     { time: '오늘 09:10', action: '전표 작성', detail: '교육부 간식비 지출 전표 25,000원 등록', user: '나종민 전도사' },
@@ -67,7 +80,8 @@ export default function NotificationCenter({ isOpen, onClose }) {
             {notifications.map(n => (
               <div 
                 key={n.id} 
-                className="p-3 bg-slate-900/40 rounded-xl border border-slate-800/40 text-[10px] space-y-1.5"
+                onClick={() => handleNotiClick(n)}
+                className="p-3 bg-slate-900/40 rounded-xl border border-slate-800/40 text-[10px] space-y-1.5 cursor-pointer hover:bg-slate-900/80 hover:border-slate-700/60 active:scale-[0.98] transition-all"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 font-bold text-slate-200">

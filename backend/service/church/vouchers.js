@@ -52,10 +52,13 @@ async function isPeriodLocked(dateStr, projectId) {
   }
 }
 
+const { enforceContextSecurity } = require('./contextScope');
+
 // 2. 전표 목록 조회
-router.get('/', authenticateToken, async (req, res) => {
-  const { groupId, role, hasGlobalAccess } = getAccountingUser(req);
-  const { group, status, type, startDate, endDate, search } = req.query;
+router.get('/', authenticateToken, enforceContextSecurity, async (req, res) => {
+  const { userId } = getAccountingUser(req);
+  const { group, committee, fiscalYear, status, type, startDate, endDate, search } = req.query;
+  const scope = req.contextScope;
 
   try {
     const projectId = await getActiveProjectId(req);
@@ -74,12 +77,40 @@ router.get('/', authenticateToken, async (req, res) => {
     `;
     const params = [projectId];
 
-    if (!hasGlobalAccess) {
-      sql += ' AND v.department_id = ?';
-      params.push(groupId);
+    // Backend context security enforcement
+    if (!scope.canViewChurchWide) {
+      if (group) {
+        const groupInt = parseInt(group, 10);
+        if (!scope.allowedGroupIds.includes(groupInt)) {
+          return res.status(403).json({ error: 'FORBIDDEN_CONTEXT', message: '해당 조직 범위의 데이터를 조회할 권한이 없습니다.' });
+        }
+        sql += ' AND v.department_id = ?';
+        params.push(groupInt);
+      } else {
+        if (scope.allowedGroupIds.length > 0) {
+          sql += ` AND v.department_id IN (${scope.allowedGroupIds.map(() => '?').join(',')})`;
+          params.push(...scope.allowedGroupIds);
+        } else {
+          sql += ' AND 1=0';
+        }
+      }
     } else if (group) {
       sql += ' AND v.department_id = ?';
       params.push(parseInt(group, 10));
+    }
+
+    if (committee) {
+      const committeeInt = parseInt(committee, 10);
+      if (!scope.canViewAllCommittees && !scope.allowedCommitteeIds.includes(committeeInt)) {
+        return res.status(403).json({ error: 'FORBIDDEN_CONTEXT', message: '해당 조직 범위의 데이터를 조회할 권한이 없습니다.' });
+      }
+      sql += ' AND d.parent_id = ?';
+      params.push(committeeInt);
+    }
+
+    if (fiscalYear) {
+      sql += ' AND v.transaction_date >= ? AND v.transaction_date <= ?';
+      params.push(`${fiscalYear}-01-01`, `${fiscalYear}-12-31`);
     }
 
     if (status) {
@@ -153,9 +184,10 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // 3. 전표 상세 조회
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', authenticateToken, enforceContextSecurity, async (req, res) => {
   const { id } = req.params;
-  const { userId, groupId, hasGlobalAccess } = getAccountingUser(req);
+  const { userId } = getAccountingUser(req);
+  const scope = req.contextScope;
 
   try {
     const projectId = await getActiveProjectId(req);
@@ -177,8 +209,8 @@ router.get('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ message: 'Voucher not found' });
     }
 
-    if (!hasGlobalAccess && voucher.writer_id !== userId && voucher.department_id !== groupId) {
-      return res.status(403).json({ message: 'Access denied: You do not belong to this group' });
+    if (!scope.canViewChurchWide && voucher.writer_id !== userId && !scope.allowedGroupIds.includes(voucher.department_id)) {
+      return res.status(403).json({ error: 'FORBIDDEN_CONTEXT', message: '해당 조직 범위의 데이터를 조회할 권한이 없습니다.' });
     }
 
     // Attachments query

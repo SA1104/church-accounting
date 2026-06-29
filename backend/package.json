@@ -9,6 +9,7 @@
     "build": "cd ../frontend && npm install --include=dev && npx vite build"
   },
   "dependencies": {
+    "@simplewebauthn/server": "^13.3.2",
     "@supabase/supabase-js": "^2.108.2",
     "adm-zip": "^0.5.17",
     "bcryptjs": "^2.4.3",

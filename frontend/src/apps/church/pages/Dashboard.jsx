@@ -145,18 +145,70 @@ export default function Dashboard() {
     user?.role === 'SYSTEM_ADMIN' || user?.role === 'AUDITOR' ? 'admin' : 'user'
   );
 
+  const [contextScope, setContextScope] = useState(null);
+  const [selectedFiscalYear, setSelectedFiscalYear] = useState('2026');
+  const [selectedCommitteeId, setSelectedCommitteeId] = useState('');
+  const [selectedGroupId, setSelectedGroupId] = useState('');
+
+  // Fetch allowed context scope on load
   useEffect(() => {
-    fetchDashboardData();
+    if (!token) return;
+    const fetchContextScope = async () => {
+      try {
+        const res = await fetch('/api/church/context-scope', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setContextScope(data);
+          
+          // Auto select first selectable committee/group
+          const firstSelectableComm = data.committees.find(c => c.selectable) || data.committees[0];
+          if (firstSelectableComm) {
+            setSelectedCommitteeId(firstSelectableComm.id.toString());
+            const firstSelectableGroup = firstSelectableComm.groups.find(g => g.selectable) || firstSelectableComm.groups[0];
+            if (firstSelectableGroup) {
+              setSelectedGroupId(firstSelectableGroup.id.toString());
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching context scope:', err);
+      }
+    };
+    fetchContextScope();
   }, [token]);
 
-  const fetchDashboardData = async () => {
+  // Handle committee selection cascading group resets
+  const handleCommitteeChange = (commId) => {
+    setSelectedCommitteeId(commId);
+    if (contextScope) {
+      const comm = contextScope.committees.find(c => c.id.toString() === commId);
+      if (comm && comm.groups.length > 0) {
+        const firstSelectableGroup = comm.groups.find(g => g.selectable) || comm.groups[0];
+        setSelectedGroupId(firstSelectableGroup.id.toString());
+      } else {
+        setSelectedGroupId('');
+      }
+    }
+  };
+
+  // Trigger reloading dashboard statistics when parameters change
+  useEffect(() => {
+    if (token && selectedFiscalYear) {
+      fetchDashboardData(selectedFiscalYear, selectedCommitteeId, selectedGroupId);
+    }
+  }, [token, selectedFiscalYear, selectedCommitteeId, selectedGroupId]);
+
+  const fetchDashboardData = async (fYear, commId, grpId) => {
     setLoading(true);
     try {
-      const today = new Date();
-      const currentYearMonth = today.toISOString().slice(0, 7);
+      // Build context filters for all vouchers
+      let vUrl = `/api/vouchers?fiscalYear=${fYear}`;
+      if (commId) vUrl += `&committee=${commId}`;
+      if (grpId) vUrl += `&group=${grpId}`;
 
-      // Fetch user specific dashboard data
-      const vResponse = await fetch('/api/vouchers', {
+      const vResponse = await fetch(vUrl, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const vouchers = await vResponse.json();
@@ -174,18 +226,13 @@ export default function Dashboard() {
       const vouchersList = (vResponse.ok && Array.isArray(vouchers)) ? vouchers : [];
       const pendingObj = (aResponse.ok && pendingData) ? pendingData : { vouchers: [], ledgers: [], reports: [] };
       const groupsList = (gResponse.ok && Array.isArray(groups)) ? groups : [];
-      let filteredGroups = [];
-      if (user?.role === 'SYSTEM_ADMIN' || user?.role === 'AUDITOR') {
-        filteredGroups = groupsList;
-      } else if (user?.role === 'FINANCE_MANAGER') {
-        const myGroup = groupsList.find(g => g.group_id === user.groupId);
-        if (myGroup) {
-          filteredGroups = groupsList.filter(g => g.organization_id === myGroup.organization_id);
-        } else {
-          filteredGroups = groupsList.filter(g => g.group_id === user.groupId);
-        }
-      } else {
-        filteredGroups = groupsList.filter(g => g.group_id === user.groupId);
+      
+      let filteredGroups = groupsList;
+      if (commId) {
+        filteredGroups = groupsList.filter(g => g.organization_id.toString() === commId);
+      }
+      if (grpId) {
+        filteredGroups = filteredGroups.filter(g => g.group_id.toString() === grpId);
       }
 
       let income = 0;
@@ -194,7 +241,7 @@ export default function Dashboard() {
       let missingAttach = 0;
 
       vouchersList.forEach(v => {
-        if (v.transaction_date && v.transaction_date.slice(0, 7) === currentYearMonth && v.status === 'APPROVED') {
+        if (v.status === 'APPROVED') {
           if (v.transaction_type === 'INCOME') income += v.amount;
           if (v.transaction_type === 'EXPENSE') expense += v.amount;
         }
@@ -210,7 +257,6 @@ export default function Dashboard() {
                             (pendingObj.ledgers?.length || 0) + 
                             (pendingObj.reports?.length || 0);
 
-      // 소속 그룹별 지출 총액 연산
       const groupSums = filteredGroups.map(g => {
         const gExp = vouchersList
           .filter(v => v.group_id === g.group_id && v.transaction_type === 'EXPENSE' && v.status === 'APPROVED')
@@ -218,7 +264,11 @@ export default function Dashboard() {
         return { name: g.name, amount: gExp };
       });
 
-      const lResponse = await fetch(`/api/ledgers?yearMonth=${currentYearMonth}`, {
+      let ledgerUrl = `/api/ledgers?yearMonth=${fYear}-06`;
+      if (grpId) ledgerUrl += `&group=${grpId}`;
+      if (commId) ledgerUrl += `&org=${commId}`;
+
+      const lResponse = await fetch(ledgerUrl, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const ledgerData = await lResponse.json();
@@ -236,20 +286,143 @@ export default function Dashboard() {
       setGroupExpenses(groupSums);
 
       // Admin stats
-      if (user?.role === 'SYSTEM_ADMIN' || user?.role === 'AUDITOR') {
-        const statsRes = await fetch('/api/dashboard/stats', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (statsRes.ok) {
-          const statsData = await statsRes.json();
-          setAdminStats(statsData);
-        }
+      let statsUrl = `/api/dashboard/stats?fiscalYear=${fYear}`;
+      if (commId) statsUrl += `&committee=${commId}`;
+      if (grpId) statsUrl += `&group=${grpId}`;
+
+      const statsRes = await fetch(statsUrl, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setAdminStats(statsData);
       }
     } catch (error) {
       console.error('Fetch dashboard error:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const renderContextSelector = () => {
+    if (!contextScope) return null;
+
+    const currentCommittee = contextScope.committees.find(c => c.id.toString() === selectedCommitteeId);
+    const selectableGroups = currentCommittee ? currentCommittee.groups : [];
+
+    return (
+      <div className="flex flex-wrap items-center gap-2.5 p-3 bg-slate-950/40 rounded-2xl border border-slate-905 mb-4 text-[10px]">
+        {/* Fiscal Year Selector */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-slate-500 font-bold shrink-0">회계연도:</span>
+          <select
+            value={selectedFiscalYear}
+            onChange={(e) => setSelectedFiscalYear(e.target.value)}
+            className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 font-bold focus:outline-none focus:border-church-500"
+          >
+            {contextScope.fiscalYears.map(yr => (
+              <option key={yr} value={yr}>{yr}년도</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Committee Selector */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-slate-500 font-bold shrink-0">위원회:</span>
+          <select
+            value={selectedCommitteeId}
+            onChange={(e) => handleCommitteeChange(e.target.value)}
+            disabled={!contextScope.permissions.canViewChurchWide && !contextScope.committees.some(c => c.selectable && c.id.toString() !== selectedCommitteeId)}
+            className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 font-bold focus:outline-none focus:border-church-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {contextScope.committees.map(comm => (
+              <option key={comm.id} value={comm.id} disabled={!comm.selectable && !contextScope.permissions.canViewChurchWide}>
+                {comm.name} {!comm.selectable && !contextScope.permissions.canViewChurchWide && '(권한 없음)'}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Group Selector */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-slate-500 font-bold shrink-0">그룹/부서:</span>
+          <select
+            value={selectedGroupId}
+            onChange={(e) => setSelectedGroupId(e.target.value)}
+            disabled={!contextScope.permissions.canViewChurchWide && !selectableGroups.some(g => g.selectable && g.id.toString() !== selectedGroupId)}
+            className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 font-bold focus:outline-none focus:border-church-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <option value="">부서 선택</option>
+            {selectableGroups.map(grp => (
+              <option key={grp.id} value={grp.id} disabled={!grp.selectable && !contextScope.permissions.canViewChurchWide}>
+                {grp.name} {!grp.selectable && !contextScope.permissions.canViewChurchWide && '(권한 없음)'}
+              </option>
+            ))}
+          </select>
+        </div>
+        
+        {/* Active Context Marker */}
+        <div className="ml-auto shrink-0 flex items-center gap-1 bg-church-500/10 border border-church-500/20 text-church-400 px-2 py-0.5 rounded-lg text-[9px] font-extrabold">
+          <span>Active:</span>
+          <span>{selectedFiscalYear}y • {currentCommittee?.name || '전체'} • {selectableGroups.find(g => g.id.toString() === selectedGroupId)?.name || '전체'}</span>
+        </div>
+      </div>
+    );
+  };
+
+  const renderDrillDownMap = () => {
+    if (!contextScope) return null;
+    return (
+      <div className="glass p-5 rounded-2xl border border-slate-900 bg-slate-950/20 space-y-4">
+        <div className="flex items-center justify-between pb-2 border-b border-slate-900/60">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">조직별 집계 맵 (Hierarchical Drill-Down)</span>
+          <span className="text-[8px] bg-indigo-500/10 text-indigo-400 px-1.5 py-0.5 rounded font-bold">CLICK TO DRILL DOWN</span>
+        </div>
+
+        <div className="space-y-3">
+          {contextScope.committees.map(comm => {
+            const isSelected = selectedCommitteeId === comm.id.toString();
+            return (
+              <div key={comm.id} className={`p-3 rounded-xl border transition-all ${
+                isSelected ? 'bg-indigo-955/20 border-indigo-500/40' : 'bg-slate-900/30 border-slate-800/80 hover:border-slate-700/60'
+              }`}>
+                <div 
+                  onClick={() => handleCommitteeChange(comm.id.toString())}
+                  className="flex justify-between items-center cursor-pointer"
+                >
+                  <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-indigo-400' : 'bg-slate-500'}`} />
+                    {comm.name}
+                  </h4>
+                  <span className="text-[9px] text-slate-500 hover:text-indigo-400 font-extrabold flex items-center gap-0.5">
+                    필터적용 <ChevronRight size={10} />
+                  </span>
+                </div>
+
+                {isSelected && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3 pt-3 border-t border-indigo-900/30">
+                    {comm.groups.map(grp => {
+                      const isGroupSelected = selectedGroupId === grp.id.toString();
+                      return (
+                        <button
+                          key={grp.id}
+                          onClick={() => setSelectedGroupId(grp.id.toString())}
+                          className={`p-2 rounded-lg text-left text-[10px] font-bold border transition-all ${
+                            isGroupSelected ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400 font-extrabold' : 'bg-slate-950/40 border-slate-900 text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          {grp.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
   };
 
   const formatKrw = (amount) => {
@@ -272,6 +445,7 @@ export default function Dashboard() {
         {/* Workspace Branding & AI Summary first */}
         {renderWorkspaceBranding()}
         {renderAiSummaryCard()}
+        {renderContextSelector()}
 
         {/* Toggle Bar */}
         <div className="flex bg-slate-900/60 p-1 rounded-xl border border-slate-800/80">
@@ -370,6 +544,8 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {renderDrillDownMap()}
+
         {/* 부서별 지출 순위 */}
         <div className="glass p-4 rounded-2xl">
           <h3 className="text-xs font-bold text-slate-300 mb-3">부서별 지출 순위 (당월)</h3>
@@ -444,6 +620,7 @@ export default function Dashboard() {
       {/* Workspace Branding & AI Summary first */}
       {renderWorkspaceBranding()}
       {renderAiSummaryCard()}
+      {renderContextSelector()}
 
       {/* Toggle Bar for Admin/Auditor */}
       {(user?.role === 'SYSTEM_ADMIN' || user?.role === 'AUDITOR') && (

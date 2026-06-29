@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../App';
+import { apiClient } from '../../../core/api';
 import { 
   Settings as SettingsIcon, Plus, Users, User, FolderTree, Landmark, ShieldCheck,
   Loader2, CheckCircle2, AlertTriangle, Clock, RefreshCw, Play, Tag, FileText, Trash2,
-  Edit2, Save, X, ToggleLeft, ToggleRight
+  Edit2, Save, X, ToggleLeft, ToggleRight, Fingerprint
 } from 'lucide-react';
 
 const isAdminUser = (user) => {
@@ -107,9 +108,79 @@ export default function Settings() {
   const [passwordChangeMessage, setPasswordChangeMessage] = useState(null);
   const [passwordChangeError, setPasswordChangeError] = useState(null);
 
+  // Passkey 생체인증 로그인 상태 및 훅
+  const [passkeys, setPasskeys] = useState([]);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
+  const [newDeviceName, setNewDeviceName] = useState('내 생체인증 기기');
+
+  const fetchPasskeys = async () => {
+    try {
+      const data = await apiClient('/api/auth/passkey/credentials');
+      setPasskeys(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'passkey') {
+      fetchPasskeys();
+    }
+  }, [activeTab]);
+
+  const handleRegisterPasskey = async () => {
+    setPasskeyLoading(true);
+    try {
+      const { startRegistration } = await import('@simplewebauthn/browser');
+      
+      // 1. Get options
+      const options = await apiClient('/api/auth/passkey/register/options', {
+        method: 'POST'
+      });
+
+      // 2. Perform browser registration
+      const regResponse = await startRegistration(options);
+
+      // 3. Verify
+      const verifyResult = await apiClient('/api/auth/passkey/register/verify', {
+        method: 'POST',
+        body: JSON.stringify({ regResponse, deviceName: newDeviceName })
+      });
+
+      if (verifyResult.success) {
+        alert('지문/Face ID 기기 등록 완료!');
+        fetchPasskeys();
+      } else {
+        throw new Error(verifyResult.message || '인증 기기 등록 실패');
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.message || '기기 등록 중 오류가 발생했습니다.');
+    } finally {
+      setPasskeyLoading(false);
+    }
+  };
+
+  const handleDeletePasskey = async (id) => {
+    if (!window.confirm('이 기기를 삭제해도 이메일/비밀번호로 로그인할 수 있습니다.\n정말 이 기기를 삭제하시겠습니까?')) {
+      return;
+    }
+    try {
+      const result = await apiClient(`/api/auth/passkey/credentials/${id}`, {
+        method: 'DELETE'
+      });
+      if (result.success) {
+        alert('생체인증 기기가 삭제되었습니다.');
+        fetchPasskeys();
+      }
+    } catch (err) {
+      alert(err.message || '기기 삭제 실패');
+    }
+  };
+
   const canAccessTab = (tabKey) => {
     if (isAdminUser(user)) return true;
-    if (tabKey === 'categories' || tabKey === 'display' || tabKey === 'marketplace') return true;
+    if (tabKey === 'categories' || tabKey === 'display' || tabKey === 'marketplace' || tabKey === 'passkey') return true;
     if (['users', 'orgs', 'positions', 'ocr-queue', 'locks', 'database'].includes(tabKey)) {
       const role = user?.role || '';
       return role === 'SYSTEM_ADMIN' || role === 'AUDITOR';
@@ -149,19 +220,10 @@ export default function Settings() {
 
     try {
       setPasswordChangeLoading(true);
-      const response = await fetch('/api/auth/change-password', {
+      const data = await apiClient('/api/auth/change-password', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({ currentPassword, newPassword })
       });
-      
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || '비밀번호 변경 중 오류가 발생했습니다.');
-      }
 
       setPasswordChangeMessage('비밀번호가 변경되었습니다. 다음 로그인부터 새 비밀번호를 사용해 주세요.');
       setCurrentPassword('');
@@ -194,11 +256,8 @@ export default function Settings() {
   // 다교회 SaaS 어드민 조직/그룹 관리 훅
   const fetchAdminOrgs = async () => {
     try {
-      const response = await fetch('/api/admin/departments', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (response.ok && Array.isArray(data)) {
+      const data = await apiClient('/api/admin/departments');
+      if (Array.isArray(data)) {
         setAdminOrgs(data);
         if (data.length > 0 && !selectedAdminOrgId) {
           setSelectedAdminOrgId(data[0].department_id.toString());
@@ -212,11 +271,8 @@ export default function Settings() {
   const fetchAdminGroups = async (deptId) => {
     if (!deptId) return;
     try {
-      const response = await fetch(`/api/admin/departments/${deptId}/groups`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (response.ok && Array.isArray(data)) {
+      const data = await apiClient(`/api/admin/departments/${deptId}/groups`);
+      if (Array.isArray(data)) {
         setAdminGroups(data);
       }
     } catch (err) {
@@ -278,11 +334,8 @@ export default function Settings() {
   const fetchOcrQueue = async () => {
     setOcrQueueLoading(true);
     try {
-      const response = await fetch('/api/vouchers/ocr-queue/list', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (response.ok) setOcrQueue(data);
+      const data = await apiClient('/api/vouchers/ocr-queue/list');
+      setOcrQueue(data);
     } catch (err) {
       console.error('Fetch OCR queue error:', err);
     } finally {
@@ -292,14 +345,9 @@ export default function Settings() {
 
   const handleReprocessOcr = async (attachmentId) => {
     try {
-      const response = await fetch(`/api/vouchers/ocr-queue/${attachmentId}/reprocess`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const data = await apiClient(`/api/vouchers/ocr-queue/${attachmentId}/reprocess`, {
+        method: 'POST'
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
       alert(data.message);
       fetchOcrQueue();
     } catch (err) {
@@ -309,11 +357,8 @@ export default function Settings() {
 
   const fetchLocks = async () => {
     try {
-      const response = await fetch('/api/period-locks', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (response.ok) setLocks(data);
+      const data = await apiClient('/api/period-locks');
+      setLocks(data);
     } catch (err) {
       console.error(err);
     }
@@ -331,16 +376,10 @@ export default function Settings() {
     }
 
     try {
-      const response = await fetch('/api/period-locks/lock', {
+      const data = await apiClient('/api/period-locks/lock', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({ periodType, periodValue: val })
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
       
       alert(data.message);
       fetchLocks();
@@ -353,16 +392,10 @@ export default function Settings() {
     if (!window.confirm(`정말 ${val} 기간의 마감을 해제하시겠습니까?`)) return;
 
     try {
-      const response = await fetch('/api/period-locks/unlock', {
+      const data = await apiClient('/api/period-locks/unlock', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({ periodType: type, periodValue: val })
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
 
       alert(data.message);
       fetchLocks();
@@ -373,14 +406,9 @@ export default function Settings() {
 
   const handleDownloadBackup = async () => {
     try {
-      const response = await fetch('/api/system/backup', {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const blob = await apiClient('/api/system/backup', {
+        responseType: 'blob'
       });
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || '백업 생성 실패');
-      }
-      const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -408,13 +436,10 @@ export default function Settings() {
     formData.append('backupFile', backupFile);
 
     try {
-      const response = await fetch('/api/system/restore', {
+      const data = await apiClient('/api/system/restore', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
         body: formData
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
 
       alert(data.message);
       localStorage.clear();
@@ -426,14 +451,9 @@ export default function Settings() {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('/api/categories', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (response.ok && Array.isArray(data)) {
+      const data = await apiClient('/api/categories');
+      if (Array.isArray(data)) {
         setCategories(data);
-      } else {
-        console.error('Failed to fetch categories:', data.message || 'Unknown error');
       }
     } catch (err) {
       console.error(err);
@@ -442,17 +462,12 @@ export default function Settings() {
 
   const fetchOrganizations = async () => {
     try {
-      const response = await fetch('/api/organizations', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (response.ok && Array.isArray(data)) {
+      const data = await apiClient('/api/organizations');
+      if (Array.isArray(data)) {
         setOrganizations(data);
         if (data.length > 0 && !selectedOrgId) {
           setSelectedOrgId(data[0].organization_id);
         }
-      } else {
-        console.error('Failed to fetch organizations:', data.message || 'Unknown error');
       }
     } catch (err) {
       console.error(err);
@@ -461,17 +476,12 @@ export default function Settings() {
 
   const fetchGroups = async () => {
     try {
-      const response = await fetch('/api/groups', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (response.ok && Array.isArray(data)) {
+      const data = await apiClient('/api/groups');
+      if (Array.isArray(data)) {
         setGroups(data);
         if (data.length > 0 && !newUserGroup) {
           setNewUserGroup(data[0].group_id);
         }
-      } else {
-        console.error('Failed to fetch groups:', data.message || 'Unknown error');
       }
     } catch (err) {
       console.error(err);
@@ -480,14 +490,9 @@ export default function Settings() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/users', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (response.ok && Array.isArray(data)) {
+      const data = await apiClient('/api/users');
+      if (Array.isArray(data)) {
         setUsers(data);
-      } else {
-        console.error('Failed to fetch users:', data.message || 'Unknown error');
       }
     } catch (err) {
       console.error(err);
@@ -499,12 +504,8 @@ export default function Settings() {
     if (!newCatParent || !newCatChild) return;
 
     try {
-      const response = await fetch('/api/categories', {
+      await apiClient('/api/categories', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({
           type: newCatType,
           parent_category: newCatParent,
@@ -512,8 +513,6 @@ export default function Settings() {
           description: newCatDesc
         })
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
 
       setNewCatParent('');
       setNewCatChild('');
@@ -530,19 +529,13 @@ export default function Settings() {
     if (!newOrgName) return;
 
     try {
-      const response = await fetch('/api/organizations', {
+      await apiClient('/api/organizations', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({
           name: newOrgName,
           description: newOrgDesc
         })
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
 
       setNewOrgName('');
       setNewOrgDesc('');
@@ -558,20 +551,14 @@ export default function Settings() {
     if (!selectedOrgId || !newGroupName) return;
 
     try {
-      const response = await fetch('/api/groups', {
+      await apiClient('/api/groups', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({
           organization_id: parseInt(selectedOrgId, 10),
           name: newGroupName,
           description: newGroupDesc
         })
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
 
       setNewGroupName('');
       setNewGroupDesc('');
@@ -586,16 +573,10 @@ export default function Settings() {
     e.preventDefault();
     if (!newOrgName) return;
     try {
-      const response = await fetch('/api/admin/departments', {
+      await apiClient('/api/admin/departments', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({ name: newOrgName, description: newOrgDesc })
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
       setNewOrgName('');
       setNewOrgDesc('');
       fetchAdminOrgs();
@@ -609,20 +590,14 @@ export default function Settings() {
     e.preventDefault();
     if (!editingOrgName) return;
     try {
-      const response = await fetch(`/api/admin/departments/${editingOrgId}`, {
+      await apiClient(`/api/admin/departments/${editingOrgId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({
           name: editingOrgName,
           description: editingOrgDesc,
           is_active: editingOrgActive
         })
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
       setEditingOrgId(null);
       fetchAdminOrgs();
       alert('부서 정보 수정 완료');
@@ -634,12 +609,9 @@ export default function Settings() {
   const handleDeleteAdminOrg = async (deptId) => {
     if (!window.confirm('정말 이 부서를 비활성화하시겠습니까?')) return;
     try {
-      const response = await fetch(`/api/admin/departments/${deptId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+      await apiClient(`/api/admin/departments/${deptId}`, {
+        method: 'DELETE'
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
       fetchAdminOrgs();
       alert('부서 비활성화 완료');
     } catch (err) {
@@ -651,12 +623,8 @@ export default function Settings() {
     e.preventDefault();
     if (!selectedAdminOrgId || !newGroupName) return;
     try {
-      const response = await fetch('/api/admin/groups', {
+      await apiClient('/api/admin/groups', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({
           department_id: parseInt(selectedAdminOrgId, 10),
           name: newGroupName,
@@ -664,8 +632,6 @@ export default function Settings() {
           sort_order: parseInt(newGroupSort || 0, 10)
         })
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
       setNewGroupName('');
       setNewGroupDesc('');
       setNewGroupSort(0);
@@ -680,12 +646,8 @@ export default function Settings() {
     e.preventDefault();
     if (!editingGroupName) return;
     try {
-      const response = await fetch(`/api/admin/groups/${editingGroupId}`, {
+      await apiClient(`/api/admin/groups/${editingGroupId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({
           name: editingGroupName,
           description: editingGroupDesc,
@@ -693,8 +655,6 @@ export default function Settings() {
           is_active: editingGroupActive
         })
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
       setEditingGroupId(null);
       fetchAdminGroups(selectedAdminOrgId);
       alert('그룹 정보 수정 완료');
@@ -706,12 +666,9 @@ export default function Settings() {
   const handleDeleteAdminGroup = async (groupId) => {
     if (!window.confirm('정말 이 그룹을 비활성화하시겠습니까?')) return;
     try {
-      const response = await fetch(`/api/admin/groups/${groupId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+      await apiClient(`/api/admin/groups/${groupId}`, {
+        method: 'DELETE'
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
       fetchAdminGroups(selectedAdminOrgId);
       alert('그룹 비활성화 완료');
     } catch (err) {
@@ -725,12 +682,8 @@ export default function Settings() {
     if (!newUserUsername || !newUserPassword || !newUserName) return;
 
     try {
-      const response = await fetch('/api/users', {
+      await apiClient('/api/users', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({
           username: newUserUsername,
           password: newUserPassword,
@@ -740,8 +693,6 @@ export default function Settings() {
           group_id: parseInt(newUserGroup, 10)
         })
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
 
       setNewUserUsername('');
       setNewUserPassword('');
@@ -756,15 +707,9 @@ export default function Settings() {
   const handleApproveUser = async (userId) => {
     if (!window.confirm('해당 사용자의 가입 신청을 승인하시겠습니까?')) return;
     try {
-      const response = await fetch(`/api/users/${userId}/approve`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+      await apiClient(`/api/users/${userId}/approve`, {
+        method: 'POST'
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
       
       alert('사용자 가입 승인이 완료되었습니다.');
       fetchUsers();
@@ -778,12 +723,9 @@ export default function Settings() {
       return;
     }
     try {
-      const response = await fetch(`/api/users/${userId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+      const data = await apiClient(`/api/users/${userId}`, {
+        method: 'DELETE'
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
       
       alert(data.message);
       fetchUsers();
@@ -797,12 +739,9 @@ export default function Settings() {
       return;
     }
     try {
-      const response = await fetch(`/api/organizations/${orgId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+      const data = await apiClient(`/api/organizations/${orgId}`, {
+        method: 'DELETE'
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
 
       alert(data.message);
       fetchOrganizations();
@@ -817,12 +756,9 @@ export default function Settings() {
       return;
     }
     try {
-      const response = await fetch(`/api/groups/${groupId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+      const data = await apiClient(`/api/groups/${groupId}`, {
+        method: 'DELETE'
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
 
       alert(data.message);
       fetchGroups();
@@ -834,9 +770,8 @@ export default function Settings() {
   const fetchGroupPositions = async (groupId) => {
     if (!groupId) return;
     try {
-      const response = await fetch(`/api/public/groups/${groupId}/positions`);
-      const data = await response.json();
-      if (response.ok && Array.isArray(data)) {
+      const data = await apiClient(`/api/public/groups/${groupId}/positions`);
+      if (Array.isArray(data)) {
         setGroupPositions(data);
       } else {
         setGroupPositions([]);
@@ -851,16 +786,10 @@ export default function Settings() {
     e.preventDefault();
     if (!selectedPosGroupId || !newPosName) return;
     try {
-      const response = await fetch(`/api/groups/${selectedPosGroupId}/positions`, {
+      await apiClient(`/api/groups/${selectedPosGroupId}/positions`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({ name: newPosName, role: newPosRole })
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
       
       setNewPosName('');
       fetchGroupPositions(selectedPosGroupId);
@@ -873,12 +802,9 @@ export default function Settings() {
   const handleDeletePosition = async (posId) => {
     if (!window.confirm('정말 이 직책을 삭제하시겠습니까?')) return;
     try {
-      const response = await fetch(`/api/positions/${posId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+      await apiClient(`/api/positions/${posId}`, {
+        method: 'DELETE'
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
 
       fetchGroupPositions(selectedPosGroupId);
       alert('직책이 삭제되었습니다.');
@@ -919,7 +845,8 @@ export default function Settings() {
           { key: 'positions', label: '직책설정' },
           { key: 'ocr-queue', label: 'AI 분석 현황' },
           { key: 'locks', label: '결산마감' },
-          { key: 'database', label: '데이터' }
+          { key: 'database', label: '데이터' },
+          { key: 'passkey', label: '생체인증' }
         ].map(tab => {
           const hasAccess = canAccessTab(tab.key);
           return (
@@ -1963,6 +1890,90 @@ export default function Settings() {
               선택한 파일로 데이터 복원 실행
             </button>
           </form>
+        </div>
+      )}
+
+      {/* 7. Passkey / 생체인증 로그인 설정 */}
+      {activeTab === 'passkey' && (
+        <div className="space-y-4">
+          <div className="glass p-5 rounded-2xl border border-slate-800 bg-slate-900/40 space-y-4">
+            <h3 className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+              <Fingerprint size={14} className="text-indigo-400" />
+              <span>Passkey / 생체인증 로그인 설정</span>
+            </h3>
+            <p className="text-[10px] text-slate-400 leading-relaxed">
+              아이디와 비밀번호 대신 지문, Face ID, Windows Hello 등을 이용해 안전하게 로그인할 수 있습니다. 
+              기기를 등록한 뒤 바로 로그인 화면에서 사용해 보세요.
+            </p>
+
+            <div className="space-y-2 pt-2 border-t border-slate-800">
+              <label className="text-[11px] font-semibold text-slate-400">기기 이름 (예: 내 노트북, 스마트폰)</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newDeviceName}
+                  onChange={(e) => setNewDeviceName(e.target.value)}
+                  placeholder="기기 별칭 입력"
+                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white focus:outline-none focus:border-indigo-500"
+                />
+                <button
+                  type="button"
+                  onClick={handleRegisterPasskey}
+                  disabled={passkeyLoading || !window.PublicKeyCredential}
+                  className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 text-white font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all shrink-0"
+                >
+                  {passkeyLoading ? '등록 중...' : '기기 등록'}
+                </button>
+              </div>
+              {!window.PublicKeyCredential && (
+                <p className="text-[10px] text-rose-400">
+                  ⚠️ 이 브라우저는 생체인증(Passkey)을 지원하지 않습니다.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="glass p-5 rounded-2xl border border-slate-800 bg-slate-900/40 space-y-3">
+            <h4 className="text-xs font-bold text-slate-200">등록된 기기 목록</h4>
+            {passkeys.length === 0 ? (
+              <div className="text-center py-6 text-slate-500 text-[10px]">
+                등록된 생체인증 기기가 없습니다.
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-950">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-900 text-slate-400 font-semibold border-b border-slate-800">
+                      <th className="p-3 text-[10px]">기기 이름</th>
+                      <th className="p-3 text-[10px]">등록일</th>
+                      <th className="p-3 text-[10px]">마지막 사용</th>
+                      <th className="p-3 text-[10px] text-right">관리</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {passkeys.map(pk => (
+                      <tr key={pk.id} className="border-b border-slate-900/60 hover:bg-slate-900/20 text-slate-300">
+                        <td className="p-3 font-medium text-[10px]">{pk.device_name}</td>
+                        <td className="p-3 text-[9px] text-slate-500">{new Date(pk.created_at).toLocaleDateString()}</td>
+                        <td className="p-3 text-[9px] text-slate-500">
+                          {pk.last_used_at ? new Date(pk.last_used_at).toLocaleDateString() : '사용 이력 없음'}
+                        </td>
+                        <td className="p-3 text-right">
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePasskey(pk.id)}
+                            className="text-rose-400 hover:text-rose-300 font-bold text-[10px]"
+                          >
+                            삭제
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
