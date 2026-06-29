@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../App';
-import { TrendingUp, TrendingDown, Clock, AlertTriangle, XOctagon, Plus, ChevronRight, Users, RefreshCw, FileText, Activity, Cpu } from 'lucide-react';
+import { TrendingUp, TrendingDown, Clock, AlertTriangle, XOctagon, Plus, ChevronRight, Users, RefreshCw, FileText, Activity, Cpu, BarChart2, Settings } from 'lucide-react';
 
 export default function Dashboard() {
   const { user, token } = useAuth();
@@ -63,6 +63,24 @@ export default function Dashboard() {
         >
           <FileText size={11} className="text-slate-400" />
           <span>전표목록</span>
+        </button>
+
+        {/* 장부/결산 */}
+        <button
+          onClick={() => navigate('/reports')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-100 font-extrabold text-[9px] sm:text-[10px] transition active:scale-95 shadow-sm"
+        >
+          <BarChart2 size={11} className="text-slate-400" />
+          <span>장부/결산</span>
+        </button>
+
+        {/* 설정 */}
+        <button
+          onClick={() => navigate('/settings')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-100 font-extrabold text-[9px] sm:text-[10px] transition active:scale-95 shadow-sm"
+        >
+          <Settings size={11} className="text-slate-400" />
+          <span>설정</span>
         </button>
       </div>
     </div>

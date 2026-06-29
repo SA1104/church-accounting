@@ -210,12 +210,24 @@ function MobileLayout() {
             <button 
               onClick={() => setCommandPaletteOpen(true)} 
               className="text-slate-400 hover:text-white p-1.5 focus:outline-none flex items-center gap-1 bg-slate-900/60 border border-slate-800/80 px-2 py-0.5 rounded-lg text-[9px] font-bold"
-              title="Command Palette"
+              title="검색"
             >
               <Search size={11} />
-              <span className="hidden sm:inline">검색</span>
-              <kbd className="text-slate-600 font-mono scale-90 border-l border-slate-800 pl-1 ml-0.5">Ctrl+K</kbd>
+              <span>검색</span>
             </button>
+
+            {/* Font Size Selector */}
+            <select
+              value={fontScale}
+              onChange={(e) => setFontScale(e.target.value)}
+              className="bg-slate-900/60 border border-slate-800/80 text-slate-400 hover:text-white text-[9px] font-bold px-2 py-0.5 rounded-lg focus:outline-none cursor-pointer"
+              title="글씨 크기 조절"
+            >
+              <option value="small">글씨 작게</option>
+              <option value="normal">글씨 보통</option>
+              <option value="large">글씨 크게</option>
+              <option value="xlarge">글씨 아주 크게</option>
+            </select>
 
             {/* AI Assistant Toggle */}
             <button 
