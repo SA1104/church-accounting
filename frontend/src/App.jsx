@@ -11,6 +11,7 @@ import WorkspaceSidebar from './shared/WorkspaceSidebar';
 import CommandPalette from './shared/CommandPalette';
 import AICopilotDock from './shared/AICopilotDock';
 import NotificationCenter from './shared/NotificationCenter';
+import DecisionHistory from './shared/DecisionHistory';
 
 // Church page imports
 import Dashboard from './apps/church/pages/Dashboard';
@@ -250,6 +251,7 @@ function MobileLayout() {
             <Route path="/reports/settlement" element={<SettlementView />} />
             {(user?.role === 'AUDITOR' || user?.role === 'SYSTEM_ADMIN') && <Route path="/audit" element={<AuditView />} />}
             <Route path="/settings" element={<Settings />} />
+            <Route path="/decisions" element={<DecisionHistory />} />
 
             {/* Premium Placeholders (TEAM E) */}
             <Route path="/app/stock" element={<PremiumPlaceholder appId="stock" />} />

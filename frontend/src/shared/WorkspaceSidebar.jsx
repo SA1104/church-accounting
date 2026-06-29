@@ -12,7 +12,8 @@ import {
   ChevronRight,
   TrendingUp,
   MapPin,
-  Globe
+  Globe,
+  ShieldCheck
 } from 'lucide-react';
 
 export default function WorkspaceSidebar({ user, token, logout, churchProfile, isOpen, toggleSidebar }) {
@@ -109,6 +110,19 @@ export default function WorkspaceSidebar({ user, token, logout, churchProfile, i
             <Home size={15} />
             <span>대시보드</span>
           </Link>
+
+          <Link
+            to="/decisions"
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
+              isActive('/decisions')
+                ? 'bg-indigo-600/15 border-indigo-500/20 text-white font-extrabold'
+                : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-900/50'
+            }`}
+            onClick={toggleSidebar}
+          >
+            <ShieldCheck size={15} className="text-indigo-400" />
+            <span>Decision History</span>
+          </Link>
           <div className="text-[9px] font-bold text-slate-600 uppercase tracking-widest px-3 pt-4 pb-1">
             Capability Tools
           </div>
@@ -132,6 +146,19 @@ export default function WorkspaceSidebar({ user, token, logout, churchProfile, i
         >
           <Home size={15} />
           <span>Dashboard</span>
+        </Link>
+
+        <Link
+          to="/decisions"
+          className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
+            isActive('/decisions')
+              ? 'bg-indigo-600/15 border-indigo-500/20 text-white font-extrabold'
+              : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-900/50'
+          }`}
+          onClick={toggleSidebar}
+        >
+          <ShieldCheck size={15} className="text-indigo-400" />
+          <span>Decision History</span>
         </Link>
 
         <Link

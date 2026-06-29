@@ -21,6 +21,11 @@ export default function AICopilotDock({ isOpen, onClose }) {
         actions: [
           '미첨부 전표 증빙 메일 자동 발송',
           '분기별 예산 실적 대비 분석표 출력'
+        ],
+        decisions: [
+          '중등부 예산 초과 검토',
+          '전표 승인 대기',
+          '월 결산 확인'
         ]
       };
     }
@@ -36,6 +41,10 @@ export default function AICopilotDock({ isOpen, onClose }) {
         actions: [
           '예산 통계 시각화 PDF 생성',
           '결산 마감 보고서 자동 상신'
+        ],
+        decisions: [
+          '예산 한도액 증액 의사결정',
+          '결산 마감 안건 상의'
         ]
       };
     }
@@ -51,6 +60,10 @@ export default function AICopilotDock({ isOpen, onClose }) {
         actions: [
           '분할결재 의심 항목 정밀 분석',
           '감사 종합 의견서 초안 작성'
+        ],
+        decisions: [
+          '의심 회의비 전표 불인가',
+          '지연 결재 권한 위임'
         ]
       };
     }
@@ -66,6 +79,10 @@ export default function AICopilotDock({ isOpen, onClose }) {
         actions: [
           '기업 분기 실적 요약 리포트 생성',
           '매매 등급 의사결정 시뮬레이션'
+        ],
+        decisions: [
+          '삼성전자 추가 포트폴리오 편입',
+          '현금 비중 조정'
         ]
       };
     }
@@ -81,6 +98,10 @@ export default function AICopilotDock({ isOpen, onClose }) {
         actions: [
           '실거래가 변동 지도 뷰어로 전환',
           '단지별 입지 사분면 분석 자료 생성'
+        ],
+        decisions: [
+          '목동 3단지 매매 거래 검토',
+          '안전진단 통과 시점 모니터링'
         ]
       };
     }
@@ -96,6 +117,11 @@ export default function AICopilotDock({ isOpen, onClose }) {
       actions: [
         '전체 Workspace 활동 타임라인 확인',
         'AI Copilot 브리핑 실행'
+      ],
+      decisions: [
+        '신길교회 예산 보정 의사결정',
+        '삼성전자 배당 매수 시뮬레이션',
+        '목동 아파트 매입 의사결정'
       ]
     };
   };
@@ -132,6 +158,19 @@ export default function AICopilotDock({ isOpen, onClose }) {
             <p className="text-[10px] text-slate-400 leading-relaxed">
               {info.desc}
             </p>
+          </div>
+
+          {/* Related Decisions */}
+          <div className="space-y-2">
+            <h4 className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">현재 화면 관련 의사결정</h4>
+            <div className="space-y-1.5">
+              {info.decisions.map((dec, idx) => (
+                <div key={idx} className="flex items-center gap-2 p-2 bg-indigo-950/20 rounded-xl border border-indigo-900/10 text-[9.5px] text-indigo-300 font-semibold">
+                  <ShieldCheck size={11} className="text-indigo-400 shrink-0" />
+                  <span>{dec}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Warnings / Analysis */}

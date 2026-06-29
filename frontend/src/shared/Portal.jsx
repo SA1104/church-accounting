@@ -74,7 +74,14 @@ export default function Portal() {
       workspace: matched.defaultWorkspace,
       capability: matched.id,
       route: matched.route,
-      confidence: 0.88
+      confidence: 0.88,
+      decisionDraft: {
+        decisionType: matched.id === 'church' ? 'BudgetReview' : matched.id === 'stock' ? 'AssetAllocation' : matched.id === 'estate' ? 'PropertyPurchase' : 'GeneralDecision',
+        title: matched.id === 'church' ? '이번 달 교회 예산 검토' : matched.id === 'stock' ? '삼성전자 배당 평가 분석' : matched.id === 'estate' ? '목동 입지 가치 분석' : '통합 의사결정 과제',
+        workspaceName: matched.defaultWorkspace,
+        capabilityId: matched.id,
+        status: 'Generated'
+      }
     };
   };
 
@@ -276,7 +283,7 @@ export default function Portal() {
             <div className="space-y-3 font-mono text-[10px] pl-2">
               <div className="flex items-center gap-2">
                 {pipelineStep >= 1 ? <CheckCircle2 size={12} className="text-emerald-400" /> : <div className="w-3 h-3 rounded-full border border-slate-700"></div>}
-                <span className={pipelineStep >= 1 ? "text-emerald-400" : "text-slate-500"}>1. Intent Classifier</span>
+                <span className={pipelineStep >= 1 ? "text-emerald-400" : "text-slate-500"}>1. Intent Detection</span>
               </div>
               <div className="flex items-center gap-2">
                 {pipelineStep >= 2 ? <CheckCircle2 size={12} className="text-emerald-400" /> : <div className="w-3 h-3 rounded-full border border-slate-700"></div>}
@@ -288,15 +295,15 @@ export default function Portal() {
               </div>
               <div className="flex items-center gap-2">
                 {pipelineStep >= 4 ? <CheckCircle2 size={12} className="text-emerald-400" /> : <div className="w-3 h-3 rounded-full border border-slate-700"></div>}
-                <span className={pipelineStep >= 4 ? "text-emerald-400" : "text-slate-500"}>4. Tool Resolver</span>
+                <span className={pipelineStep >= 4 ? "text-emerald-400" : "text-slate-500"}>4. Decision Generator</span>
               </div>
               <div className="flex items-center gap-2">
                 {pipelineStep >= 5 ? <CheckCircle2 size={12} className="text-emerald-400" /> : <div className="w-3 h-3 rounded-full border border-slate-700"></div>}
-                <span className={pipelineStep >= 5 ? "text-emerald-400" : "text-slate-500"}>5. Screen Resolver</span>
+                <span className={pipelineStep >= 5 ? "text-emerald-400" : "text-slate-500"}>5. Tool Resolver</span>
               </div>
               <div className="flex items-center gap-2">
                 {pipelineStep >= 6 ? <CheckCircle2 size={12} className="text-emerald-400 animate-pulse" /> : <div className="w-3 h-3 rounded-full border border-slate-700"></div>}
-                <span className={pipelineStep >= 6 ? "text-emerald-400 font-bold" : "text-slate-500"}>6. Response Ready</span>
+                <span className={pipelineStep >= 6 ? "text-emerald-400 font-bold" : "text-slate-500"}>6. Response</span>
               </div>
             </div>
 

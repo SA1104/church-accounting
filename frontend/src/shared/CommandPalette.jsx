@@ -8,16 +8,32 @@ export default function CommandPalette({ isOpen, onClose }) {
   const inputRef = useRef(null);
 
   const items = [
-    { name: '전표 등록 (회계)', category: 'Church Think', route: '/vouchers/new', icon: <PlusCircle size={14} className="text-indigo-400" /> },
-    { name: '전표 목록 조회', category: 'Church Think', route: '/vouchers', icon: <FileText size={14} className="text-indigo-400" /> },
-    { name: '장부 및 결산 현황', category: 'Church Think', route: '/reports', icon: <BarChart2 size={14} className="text-indigo-400" /> },
-    { name: '감사위원회 관리', category: 'Church Think', route: '/audit', icon: <ShieldCheck size={14} className="text-indigo-400" /> },
-    { name: 'Stock Think (AI 주식 분석)', category: 'Capabilities', route: '/app/stock', icon: <Zap size={14} className="text-emerald-400" /> },
-    { name: 'Estate Think (AI 부동산 분석)', category: 'Capabilities', route: '/app/estate', icon: <Zap size={14} className="text-violet-400" /> },
-    { name: 'Mission Think (AI 스마트 선교)', category: 'Capabilities', route: '/app/mission', icon: <Zap size={14} className="text-cyan-400" /> },
-    { name: '환경설정', category: 'Platform', route: '/settings', icon: <Settings size={14} className="text-slate-400" /> },
-    { name: 'AI 코파일럿에게 질문하기', category: 'AI Assistant', route: '/', icon: <Cpu size={14} className="text-purple-400" /> }
+    // 1. Decisions (우선순위 1)
+    { name: '교육부서 여름 성경학교 행사 예산 승인 [Decision]', category: 'Decisions', route: '/decisions', icon: <ShieldCheck size={14} className="text-indigo-400" /> },
+    { name: '삼성전자 분기 배당 가치 기반 추가 매수 추천 [Decision]', category: 'Decisions', route: '/decisions', icon: <ShieldCheck size={14} className="text-emerald-400" /> },
+    { name: '목동 재건축 3단지 실거래가 분석 기반 소형 아파트 매입 [Decision]', category: 'Decisions', route: '/decisions', icon: <ShieldCheck size={14} className="text-violet-400" /> },
+
+    // 2. Reports (우선순위 2)
+    { name: '6월 재정 결산 분석 보고서 [Report]', category: 'Reports', route: '/reports', icon: <FileText size={14} className="text-indigo-400" /> },
+    { name: '교회 통합 회계 장부 조회 [Report]', category: 'Reports', route: '/reports', icon: <BarChart2 size={14} className="text-indigo-400" /> },
+    { name: '삼성전자 분기 실적 및 배당 분석 [Report]', category: 'Reports', route: '/app/stock', icon: <FileText size={14} className="text-emerald-400" /> },
+    
+    // 3. Tools (우선순위 3)
+    { name: '전표 등록 도구 (회계)', category: 'Tools', route: '/vouchers/new', icon: <PlusCircle size={14} className="text-indigo-400" /> },
+    { name: '전표 목록 관리', category: 'Tools', route: '/vouchers', icon: <FileText size={14} className="text-indigo-400" /> },
+    { name: '정기 감사위원회 모니터링', category: 'Tools', route: '/audit', icon: <ShieldCheck size={14} className="text-indigo-400" /> },
+
+    // 4. Plugins (우선순위 4)
+    { name: 'Church Think (교회 의사결정 App)', category: 'Plugins', route: '/app/church', icon: <Zap size={14} className="text-indigo-400" /> },
+    { name: 'Stock Think (투자 의사결정 App)', category: 'Plugins', route: '/app/stock', icon: <Zap size={14} className="text-emerald-400" /> },
+    { name: 'Estate Think (부동산 의사결정 App)', category: 'Plugins', route: '/app/estate', icon: <Zap size={14} className="text-violet-400" /> },
+    { name: 'Mission Think (선교 의사결정 App)', category: 'Plugins', route: '/app/mission', icon: <Zap size={14} className="text-cyan-400" /> },
+
+    // 5. Settings (우선순위 5)
+    { name: '환경설정 및 권한 관리', category: 'Settings', route: '/settings', icon: <Settings size={14} className="text-slate-400" /> }
   ];
+
+  const categoryOrder = ['Decisions', 'Reports', 'Tools', 'Plugins', 'Settings'];
 
   useEffect(() => {
     if (isOpen) {
@@ -40,6 +56,10 @@ export default function CommandPalette({ isOpen, onClose }) {
     navigate(route);
   };
 
+  const activeCategories = categoryOrder.filter(cat => 
+    filteredItems.some(i => i.category === cat)
+  );
+
   return (
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-start justify-center pt-24 z-50 p-6" onClick={onClose}>
       <div 
@@ -54,7 +74,7 @@ export default function CommandPalette({ isOpen, onClose }) {
             type="text" 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="무엇을 하시겠습니까? (메뉴명, 기능 검색...)"
+            placeholder="검색어를 입력하세요... (예: 삼성전자, 예산, 전표 등)"
             className="w-full bg-transparent pl-10 pr-12 text-xs text-white placeholder-slate-500 focus:outline-none"
           />
           <div className="absolute right-2 flex items-center gap-1 text-[9px] bg-slate-900 border border-slate-800 text-slate-500 font-bold px-1.5 py-0.5 rounded">
@@ -68,10 +88,10 @@ export default function CommandPalette({ isOpen, onClose }) {
             <p className="text-[10px] text-slate-500 text-center py-6">검색 결과가 없습니다.</p>
           ) : (
             <div>
-              {/* Grouped by category */}
-              {Array.from(new Set(filteredItems.map(i => i.category))).map(category => (
-                <div key={category} className="space-y-1.5">
-                  <h4 className="text-[8px] font-black tracking-widest text-slate-600 uppercase px-2 pt-2.5">
+              {/* Grouped by strict category order */}
+              {activeCategories.map(category => (
+                <div key={category} className="space-y-1.5 mb-2.5">
+                  <h4 className="text-[8px] font-black tracking-widest text-slate-500 uppercase px-2 pt-1 border-b border-slate-900/35 pb-1">
                     {category}
                   </h4>
                   {filteredItems.filter(i => i.category === category).map((item, idx) => (
@@ -95,7 +115,7 @@ export default function CommandPalette({ isOpen, onClose }) {
 
         {/* Footer info */}
         <div className="flex items-center justify-between text-[8px] text-slate-600 font-bold tracking-widest pt-2 border-t border-slate-900">
-          <span>BOOZA THINK COMMAND PALETTE</span>
+          <span>BOOZA THINK DECISION SYSTEM</span>
           <span className="flex items-center gap-1">
             <Command size={10} /> + K
           </span>

@@ -45,27 +45,58 @@ export default function Dashboard() {
   );
 
   const renderAiSummaryCard = () => (
-    <div className="glass p-4 rounded-2xl border border-indigo-500/20 bg-indigo-950/10 backdrop-blur-md relative overflow-hidden mb-4">
+    <div className="glass p-4.5 rounded-2xl border border-indigo-500/25 bg-indigo-950/15 backdrop-blur-md relative overflow-hidden mb-4">
       <div className="absolute -right-10 -top-10 w-24 h-24 bg-indigo-500/5 rounded-full blur-2xl" />
-      <div className="flex items-center gap-2 text-indigo-400 mb-2">
-        <Cpu size={14} className="animate-pulse" />
-        <span className="text-[10px] font-black uppercase tracking-widest text-slate-200">AI Copilot 재정 분석 요약</span>
+      
+      {/* Title */}
+      <div className="flex items-center justify-between mb-3 border-b border-indigo-950/40 pb-2">
+        <div className="flex items-center gap-2 text-indigo-400">
+          <Cpu size={14} className="animate-pulse" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-200">Decision Home</span>
+        </div>
+        <span className="text-[8px] bg-indigo-500/20 text-indigo-300 font-extrabold px-2 py-0.5 rounded border border-indigo-500/30">
+          의사결정 보드
+        </span>
       </div>
-      <p className="text-[10.5px] text-slate-300 leading-relaxed font-semibold">
-        신길교회 6월 재정 상황 분석 결과: 일반회계 수입이 전월 대비 4.2% 증가하였으나, 중등부 지출이 예산 대비 12% 초과되었습니다. 결재 대기 중인 전표가 3건 있습니다.
+
+      {/* Decision Summary KPIs */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3.5 text-center font-mono">
+        <div className="p-2 bg-slate-950/40 border border-slate-900/60 rounded-xl">
+          <span className="text-[8px] text-slate-500 block mb-0.5">오늘 생성됨</span>
+          <span className="text-xs font-bold text-white">1건</span>
+        </div>
+        <div className="p-2 bg-slate-950/40 border border-slate-900/60 rounded-xl">
+          <span className="text-[8px] text-slate-500 block mb-0.5">승인 대기</span>
+          <span className="text-xs font-bold text-amber-400">2건</span>
+        </div>
+        <div className="p-2 bg-slate-950/40 border border-slate-900/60 rounded-xl">
+          <span className="text-[8px] text-slate-500 block mb-0.5">위험도(High)</span>
+          <span className="text-xs font-bold text-rose-400">0건</span>
+        </div>
+        <div className="p-2 bg-slate-950/40 border border-slate-900/60 rounded-xl">
+          <span className="text-[8px] text-slate-500 block mb-0.5">최근 학습됨</span>
+          <span className="text-xs font-bold text-emerald-400">3건</span>
+        </div>
+      </div>
+
+      {/* AI Summary Statement */}
+      <p className="text-[10.5px] text-slate-300 leading-relaxed font-semibold mb-3">
+        신길교회 6월 재정 상황 분석 결과: 일반회계 수입이 전월 대비 4.2% 증가하였으나 중등부 지출이 예산 대비 12% 초과 집행되었습니다. 총 1건의 보정 의사결정이 필요합니다.
       </p>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3 pt-3 border-t border-slate-900 text-[9px] font-semibold">
-        <div className="flex items-center gap-1 text-amber-400">
+
+      {/* Suggested Actions */}
+      <div className="space-y-1.5 pt-2.5 border-t border-slate-900 text-[9px] font-bold">
+        <div className="flex items-center gap-1.5 text-amber-400">
           <span>⚠️</span>
-          <span>교육부서 예산 대비 초과 지출 경보</span>
+          <span>중등부 행사 예산 증액 및 초과금 승인 의사결정 권장</span>
         </div>
-        <div className="flex items-center gap-1 text-sky-400">
+        <div className="flex items-center gap-1.5 text-sky-400">
           <span>📝</span>
-          <span>결재 요청 전표 3건 승인 대기 중</span>
+          <span>결재 대기 중인 교육부 전표 3건 일괄 검토 의사결정</span>
         </div>
-        <div className="flex items-center gap-1 text-emerald-400">
+        <div className="flex items-center gap-1.5 text-emerald-400">
           <span>📊</span>
-          <span>이번 달 지출 상위 부서 확인 필요</span>
+          <span>당월 결산 보고서 피드백을 통한 의사결정 모델 학습 개시</span>
         </div>
       </div>
     </div>
