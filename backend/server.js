@@ -439,20 +439,6 @@ app.put('/api/users/:id', authenticateToken, requireRole(['SYSTEM_ADMIN']), asyn
   }
 });
 
-app.get('/api/diagnose-db', async (req, res) => {
-  try {
-    const tableInfo = await query.all(`
-      SELECT column_name, data_type, is_nullable 
-      FROM information_schema.columns 
-      WHERE table_name = 'church_departments'
-    `);
-    const count = await query.get('SELECT COUNT(*) as count FROM church_departments');
-    res.json({ tableInfo, count });
-  } catch (err) {
-    res.status(500).json({ message: err.message, stack: err.stack });
-  }
-});
-
 // Platform Onboarding & Branding APIs (TEAM G & TEAM C)
 app.get('/api/church/profile', authenticateToken, async (req, res) => {
   try {
