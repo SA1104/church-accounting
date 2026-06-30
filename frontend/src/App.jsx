@@ -26,6 +26,13 @@ import Settings from './apps/church/pages/Settings';
 // Stock page imports
 import StockDashboard from './apps/stock/pages/StockDashboard';
 
+// Platform 3.1 Context Providers
+import { WorkspaceProvider, useWorkspace } from './core/WorkspaceProvider';
+import { ChurchContextProvider, useChurchContext } from './apps/church/ChurchContextProvider';
+import { StockContextProvider, useStockContext } from './apps/stock/StockContextProvider';
+import { EstateContextProvider, useEstateContext } from './apps/estate/EstateContextProvider';
+import { MissionContextProvider, useMissionContext } from './apps/mission/MissionContextProvider';
+
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
@@ -39,38 +46,14 @@ function MobileLayout() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Platform 3.1: Capability context consumption
+  const { churchProfile } = useChurchContext();
+
   // Platform layout UI states
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [aiDockOpen, setAiDockOpen] = useState(false);
   const [notificationCenterOpen, setNotificationCenterOpen] = useState(false);
-
-  // Dynamic Workspace Branding state
-  const [churchProfile, setChurchProfile] = useState({
-    church_name: '신길교회',
-    denomination: '기독교대한성결교회',
-    primary_color: '#38669b',
-    secondary_color: '#2b517d',
-    logo_url: '/church_logo.png'
-  });
-
-  useEffect(() => {
-    if (!token) return;
-    const fetchProfile = async () => {
-      try {
-        const res = await fetch('/api/church/profile', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setChurchProfile(data);
-        }
-      } catch (err) {
-        console.error('Error fetching church profile:', err);
-      }
-    };
-    fetchProfile();
-  }, [token]);
 
   // Global key listener for Ctrl + K (Command Palette)
   useEffect(() => {
@@ -348,19 +331,29 @@ export default function App() {
   return (
     <AuthContext.Provider value={{ token, user, login, logout, fontScale, setFontScale }}>
       <Router>
-        <Routes>
-          <Route path="/" element={<PrivateRoute><Portal /></PrivateRoute>} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route 
-            path="/*" 
-            element={
-              <PrivateRoute>
-                <MobileLayout />
-              </PrivateRoute>
-            } 
-          />
-        </Routes>
+        <WorkspaceProvider>
+          <ChurchContextProvider>
+            <StockContextProvider>
+              <EstateContextProvider>
+                <MissionContextProvider>
+                  <Routes>
+                    <Route path="/" element={<PrivateRoute><Portal /></PrivateRoute>} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/signup" element={<Signup />} />
+                    <Route 
+                      path="/*" 
+                      element={
+                        <PrivateRoute>
+                          <MobileLayout />
+                        </PrivateRoute>
+                      } 
+                    />
+                  </Routes>
+                </MissionContextProvider>
+              </EstateContextProvider>
+            </StockContextProvider>
+          </ChurchContextProvider>
+        </WorkspaceProvider>
       </Router>
     </AuthContext.Provider>
   );

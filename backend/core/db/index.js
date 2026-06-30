@@ -12,15 +12,24 @@ let mockPasskeyChallenges = [];
 
 let mockProfiles = [
   { user_id: 'admin-uuid-placeholder', username: 'admin', display_name: '관리자', phone: 'admin@boozathink.com', is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() },
-  { user_id: 'finance-uuid-placeholder', username: 'finance', display_name: '이재정', phone: 'finance@boozathink.com', is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() }
+  { user_id: 'finance-uuid-placeholder', username: 'finance', display_name: '이재정', phone: 'finance@boozathink.com', is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() },
+  { user_id: 'accountant-uuid-placeholder', username: 'accountant', display_name: '김회계 담당자', phone: 'accountant@boozathink.com', is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() },
+  { user_id: 'depthead-uuid-placeholder', username: 'depthead', display_name: '박부장 부서장', phone: 'depthead@boozathink.com', is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() },
+  { user_id: 'auditor-uuid-placeholder', username: 'auditor', display_name: '최감사 교역자', phone: 'auditor@boozathink.com', is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() }
 ];
 let mockRoleAssignments = [
   { user_id: 'admin-uuid-placeholder', service_id: 'church_think', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', role_id: 'SYSTEM_ADMIN' },
-  { user_id: 'finance-uuid-placeholder', service_id: 'church_think', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', role_id: 'FINANCE_MANAGER' }
+  { user_id: 'finance-uuid-placeholder', service_id: 'church_think', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', role_id: 'FINANCE_MANAGER' },
+  { user_id: 'accountant-uuid-placeholder', service_id: 'church_think', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', role_id: 'user' },
+  { user_id: 'depthead-uuid-placeholder', service_id: 'church_think', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', role_id: 'user' },
+  { user_id: 'auditor-uuid-placeholder', service_id: 'church_think', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', role_id: 'service_admin' }
 ];
 let mockUserMetadata = [
   { user_id: 'admin-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: null, position: '마스터', signature: '관리자 (인)' },
-  { user_id: 'finance-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: 11, position: '위원장', signature: '이재정 (인)' }
+  { user_id: 'finance-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: 11, position: '위원장', signature: '이재정 (인)' },
+  { user_id: 'accountant-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: 2, position: '회계', signature: '김회계 (인)' },
+  { user_id: 'depthead-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: 2, position: '부장', signature: '박부장 (인)' },
+  { user_id: 'auditor-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: null, position: '교역자', signature: '최감사 (인)' }
 ];
 let mockDepartments = [
   { department_id: 11, parent_id: null, name: '예배위원회', description: '예배 위원회', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', is_active: true },
@@ -35,9 +44,314 @@ let mockApprovalLines = [];
 let mockApprovalActions = [];
 let mockPeriodLocks = [];
 
+let mockPositions = [
+  { position_id: 'pos-1', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', name: '회계', role_code: 'DEPARTMENT_ACCOUNTANT', is_active: true },
+  { position_id: 'pos-2', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', name: '총무', role_code: 'FINANCE_MANAGER', is_active: true },
+  { position_id: 'pos-3', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', name: '부장', role_code: 'GROUP_LEADER', is_active: true },
+  { position_id: 'pos-4', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', name: '위원장', role_code: 'COMMITTEE_CHAIR', is_active: true },
+  { position_id: 'pos-5', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', name: '교역자', role_code: 'PASTOR', is_active: true }
+];
+let mockUserAssignments = [
+  { id: 'assign-1', user_id: 'finance-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', committee_id: 11, group_id: null, position_id: 'pos-4', role_code: 'COMMITTEE_CHAIR', is_primary: true, is_active: true, status: 'approved' },
+  { id: 'assign-2', user_id: 'finance-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', committee_id: 3, group_id: null, position_id: 'pos-4', role_code: 'COMMITTEE_CHAIR', is_primary: false, is_active: true, status: 'approved' },
+  { id: 'assign-3', user_id: 'finance-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', committee_id: 11, group_id: 2, position_id: 'pos-1', role_code: 'DEPARTMENT_ACCOUNTANT', is_primary: false, is_active: true, status: 'approved' },
+  { id: 'assign-4', user_id: 'accountant-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', committee_id: 11, group_id: 2, position_id: 'pos-1', role_code: 'DEPARTMENT_ACCOUNTANT', is_primary: true, is_active: true, status: 'approved' },
+  { id: 'assign-5', user_id: 'depthead-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', committee_id: 11, group_id: 2, position_id: 'pos-3', role_code: 'GROUP_LEADER', is_primary: true, is_active: true, status: 'approved' },
+  { id: 'assign-6', user_id: 'auditor-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', committee_id: 11, group_id: null, position_id: 'pos-5', role_code: 'AUDITOR', is_primary: true, is_active: true, status: 'approved' }
+];
+let mockSignupAssignmentRequests = [];
+let mockPlatformMemberships = [
+  { membership_id: 'memb-1', user_id: 'admin-uuid-placeholder', workspace_id: 'platform-ws-id', capability: 'church', status: 'approved', created_at: new Date().toISOString() },
+  { membership_id: 'memb-2', user_id: 'finance-uuid-placeholder', workspace_id: 'platform-ws-id', capability: 'church', status: 'approved', created_at: new Date().toISOString() },
+  { membership_id: 'memb-3', user_id: 'accountant-uuid-placeholder', workspace_id: 'platform-ws-id', capability: 'church', status: 'approved', created_at: new Date().toISOString() },
+  { membership_id: 'memb-4', user_id: 'depthead-uuid-placeholder', workspace_id: 'platform-ws-id', capability: 'church', status: 'approved', created_at: new Date().toISOString() },
+  { membership_id: 'memb-5', user_id: 'auditor-uuid-placeholder', workspace_id: 'platform-ws-id', capability: 'church', status: 'approved', created_at: new Date().toISOString() }
+];
+
 // Mock database query runner for offline/sandboxed execution
 function runMockQuery(sql, params) {
   const sqlNormalized = sql.toLowerCase().trim();
+
+  // Positions Master Interceptions
+  if (sqlNormalized.includes('from public.church_positions') || sqlNormalized.includes('from church_positions')) {
+    if (sqlNormalized.includes('is_active = true') || sqlNormalized.includes('is_active = 1')) {
+      return mockPositions.filter(p => p.is_active);
+    }
+    return mockPositions;
+  }
+  if (sqlNormalized.startsWith('insert into public.church_positions') || sqlNormalized.startsWith('insert into church_positions')) {
+    const projId = params[0];
+    const name = params[1];
+    const roleCode = params[2];
+    const newPos = {
+      position_id: `pos-${Math.random()}`,
+      project_id: projId,
+      name,
+      role_code: roleCode,
+      is_active: true,
+      created_at: new Date().toISOString()
+    };
+    mockPositions.push(newPos);
+    return [{ position_id: newPos.position_id }];
+  }
+  if (sqlNormalized.includes('update public.church_positions') || sqlNormalized.includes('update church_positions')) {
+    const posId = params[0];
+    const found = mockPositions.find(p => p.position_id === posId);
+    if (found) {
+      found.is_active = false;
+    }
+    return [];
+  }
+
+  // Platform Role Assignments SELECT Interceptions
+  if (sqlNormalized.includes('from public.platform_role_assignments') || sqlNormalized.includes('from platform_role_assignments')) {
+    if (sqlNormalized.includes('user_id = ?') && sqlNormalized.includes('project_id = ?')) {
+      const uId = params[0];
+      const pId = params[1];
+      return mockRoleAssignments.filter(r => r.user_id === uId && r.project_id === pId);
+    }
+    if (sqlNormalized.includes('user_id = ?')) {
+      const uId = params[0];
+      return mockRoleAssignments.filter(r => r.user_id === uId);
+    }
+    if (sqlNormalized.includes('project_id = ?')) {
+      const pId = params[0];
+      return mockRoleAssignments.filter(r => r.project_id === pId);
+    }
+    return mockRoleAssignments;
+  }
+
+  // Platform Memberships Interceptions
+  if (sqlNormalized.includes('from public.platform_memberships') || sqlNormalized.includes('from platform_memberships')) {
+    if (sqlNormalized.includes('platform_workspaces')) {
+      const uId = params[0];
+      const userMemberships = mockPlatformMemberships.filter(m => m.user_id === uId);
+      return userMemberships.map(m => ({
+        ...m,
+        project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6',
+        church_name: '신길교회'
+      }));
+    }
+    if (sqlNormalized.includes('user_id = ?') && sqlNormalized.includes('workspace_id = ?')) {
+      const uId = params[0];
+      const wsId = params[1];
+      return mockPlatformMemberships.filter(m => m.user_id === uId && m.workspace_id === wsId);
+    }
+    if (sqlNormalized.includes('user_id = ?')) {
+      const uId = params[0];
+      return mockPlatformMemberships.filter(m => m.user_id === uId);
+    }
+    if (sqlNormalized.includes('workspace_id = ?') && sqlNormalized.includes('status = \'pending\'')) {
+      const wsId = params[0];
+      return mockPlatformMemberships.filter(m => m.workspace_id === wsId && m.status === 'pending');
+    }
+    if (sqlNormalized.includes('workspace_id = ?')) {
+      const wsId = params[0];
+      return mockPlatformMemberships.filter(m => m.workspace_id === wsId);
+    }
+    return mockPlatformMemberships;
+  }
+  if (sqlNormalized.startsWith('insert into public.platform_memberships') || sqlNormalized.startsWith('insert into platform_memberships')) {
+    const uId = params[0];
+    const wsId = params[1];
+    const cap = params[2];
+    const status = params[3] || 'pending';
+    
+    const existing = mockPlatformMemberships.find(m => m.user_id === uId && m.workspace_id === wsId && m.capability === cap);
+    if (existing) {
+      existing.status = status;
+      existing.updated_at = new Date().toISOString();
+      return [{ membership_id: existing.membership_id }];
+    }
+    
+    const newMemb = {
+      membership_id: `memb-${Math.random().toString(36).substring(7)}`,
+      user_id: uId,
+      workspace_id: wsId,
+      capability: cap,
+      status: status,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    mockPlatformMemberships.push(newMemb);
+    return [{ membership_id: newMemb.membership_id }];
+  }
+  if (sqlNormalized.includes('update public.platform_memberships') || sqlNormalized.includes('update platform_memberships')) {
+    let status = null;
+    let mId = null;
+    let uId = null;
+    let wsId = null;
+
+    if (sqlNormalized.includes("status = 'approved'")) {
+      status = 'approved';
+    } else if (sqlNormalized.includes("status = 'rejected'")) {
+      status = 'rejected';
+    } else if (sqlNormalized.includes("status = 'pending'")) {
+      status = 'pending';
+    } else if (sqlNormalized.includes("status = ?")) {
+      status = params[0];
+    }
+
+    if (sqlNormalized.includes('membership_id = ?')) {
+      mId = params[params.length - 1];
+    }
+
+    if (mId) {
+      const found = mockPlatformMemberships.find(m => m.membership_id === mId);
+      if (found && status) {
+        found.status = status;
+        found.updated_at = new Date().toISOString();
+      }
+    } else if (sqlNormalized.includes('user_id = ?') && sqlNormalized.includes('workspace_id = ?')) {
+      uId = params[params.length - 2];
+      wsId = params[params.length - 1];
+      const found = mockPlatformMemberships.find(m => m.user_id === uId && m.workspace_id === wsId);
+      if (found && status) {
+        found.status = status;
+        found.updated_at = new Date().toISOString();
+      }
+    }
+    return [];
+  }
+
+  // User Assignments Interceptions
+  if (sqlNormalized.includes('from public.church_user_assignments') || sqlNormalized.includes('from church_user_assignments')) {
+    console.log('[MOCK DB LOG] sql:', sqlNormalized, 'params:', params, 'all assignments:', mockUserAssignments.map(a => `${a.id}:${a.status}:${a.is_active}`));
+    let list = mockUserAssignments;
+    if (sqlNormalized.includes("status = 'approved'")) {
+      list = list.filter(a => a.status === 'approved');
+    } else if (sqlNormalized.includes("status = 'pending'")) {
+      list = list.filter(a => a.status === 'pending');
+    } else if (sqlNormalized.includes('status = ?')) {
+      const statusParam = params.find(p => ['approved', 'pending', 'rejected'].includes(p));
+      if (statusParam) {
+        list = list.filter(a => a.status === statusParam);
+      }
+    }
+    console.log('[MOCK DB LOG] list after status filter:', list.map(a => `${a.id}:${a.status}`));
+    if ((sqlNormalized.includes(' user_id = ?') || sqlNormalized.includes('a.user_id = ?')) && (sqlNormalized.includes(' project_id = ?') || sqlNormalized.includes('a.project_id = ?'))) {
+      const uId = params[0];
+      const pId = params[1];
+      const result = list.filter(a => a.user_id === uId && a.project_id === pId && a.is_active);
+      console.log('[MOCK DB LOG] returning branch 1:', result.map(a => a.id));
+      return result;
+    }
+    if (sqlNormalized.includes(' user_id = ?') || sqlNormalized.includes('a.user_id = ?')) {
+      const uId = params[0];
+      const result = list.filter(a => a.user_id === uId && a.is_active);
+      console.log('[MOCK DB LOG] returning branch 2:', result.map(a => a.id));
+      return result;
+    }
+    if (sqlNormalized.includes(' id = ?') || sqlNormalized.includes('a.id = ?')) {
+      const aId = params[0];
+      const result = list.filter(a => a.id === aId && a.is_active);
+      console.log('[MOCK DB LOG] returning branch 3:', result.map(a => a.id));
+      return result;
+    }
+    let result = list.filter(a => a.is_active);
+    if (sqlNormalized.includes(' project_id = ?') || sqlNormalized.includes('a.project_id = ?')) {
+      const pId = params[0];
+      result = result.filter(a => a.project_id === pId);
+    }
+    console.log('[MOCK DB LOG] returning branch 4:', result.map(a => a.id));
+    return result;
+  }
+  if (sqlNormalized.startsWith('insert into public.church_user_assignments') || sqlNormalized.startsWith('insert into church_user_assignments')) {
+    const uId = params[0];
+    const pId = params[1];
+    const cId = parseInt(params[2], 10);
+    const gId = params[3] ? parseInt(params[3], 10) : null;
+    const posId = params[4];
+    const rCode = params[5];
+    const isPri = params[6];
+    const status = params[7] || 'pending';
+    const newAssign = {
+      id: `assign-${Math.random().toString(36).substring(7)}`,
+      user_id: uId,
+      project_id: pId,
+      committee_id: cId,
+      group_id: gId,
+      position_id: posId,
+      role_code: rCode,
+      is_primary: !!isPri,
+      is_active: true,
+      status: status,
+      created_at: new Date().toISOString(),
+      assigned_at: new Date().toISOString()
+    };
+    mockUserAssignments.push(newAssign);
+    return [{ id: newAssign.id }];
+  }
+  if (sqlNormalized.includes('update public.church_user_assignments') || sqlNormalized.includes('update church_user_assignments')) {
+    if (sqlNormalized.includes('is_primary = false')) {
+      const uId = params[0];
+      mockUserAssignments.forEach(a => {
+        if (a.user_id === uId) {
+          a.is_primary = false;
+        }
+      });
+    }
+    if (sqlNormalized.includes('is_active = false')) {
+      const aId = params[0];
+      const found = mockUserAssignments.find(a => a.id === aId);
+      if (found) {
+        found.is_active = false;
+      }
+    }
+    if (sqlNormalized.includes("status = 'approved'")) {
+      const aId = params[0];
+      const found = mockUserAssignments.find(a => a.id === aId);
+      console.log('[MOCK DB UPDATE LOG] status = \'approved\' matched. aId:', aId, 'found:', !!found);
+      if (found) {
+        found.status = 'approved';
+      }
+    } else if (sqlNormalized.includes("status = 'rejected'")) {
+      const aId = params[0];
+      const found = mockUserAssignments.find(a => a.id === aId);
+      console.log('[MOCK DB UPDATE LOG] status = \'rejected\' matched. aId:', aId, 'found:', !!found);
+      if (found) {
+        found.status = 'rejected';
+      }
+    } else if (sqlNormalized.includes('status = ?')) {
+      const status = params[0];
+      const aId = params[1];
+      const found = mockUserAssignments.find(a => a.id === aId);
+      console.log('[MOCK DB UPDATE LOG] status = ? matched. aId:', aId, 'status:', status, 'found:', !!found);
+      if (found) {
+        found.status = status;
+      }
+    }
+    return [];
+  }
+
+  // Signup Assignment Requests Interceptions
+  if (sqlNormalized.startsWith('insert into public.church_signup_assignment_requests') || sqlNormalized.startsWith('insert into church_signup_assignment_requests')) {
+    const uId = params[0];
+    const pId = params[1];
+    const cId = parseInt(params[2], 10);
+    const gId = params[3] ? parseInt(params[3], 10) : null;
+    const posId = params[4];
+    const reqPosName = params[5];
+    const newRequest = {
+      id: `req-${Math.random()}`,
+      user_id: uId,
+      project_id: pId,
+      committee_id: cId,
+      group_id: gId,
+      position_id: posId,
+      requested_position_name: reqPosName,
+      status: 'pending',
+      created_at: new Date().toISOString()
+    };
+    mockSignupAssignmentRequests.push(newRequest);
+    return [{ id: newRequest.id }];
+  }
+  if (sqlNormalized.includes('from public.church_signup_assignment_requests') || sqlNormalized.includes('from church_signup_assignment_requests')) {
+    if (sqlNormalized.includes('user_id = ?')) {
+      const uId = params[0];
+      return mockSignupAssignmentRequests.filter(r => r.user_id === uId);
+    }
+  }
 
   // 1. Passkey challenges
   if (sqlNormalized.startsWith('insert into public.passkey_challenges')) {
@@ -54,11 +368,11 @@ function runMockQuery(sql, params) {
     });
     return [{ id: 'mock-challenge-id' }];
   }
-  if (sqlNormalized.startsWith('select * from public.passkey_challenges')) {
-    const challenge = params[0];
-    const type = params[1];
+  if (sqlNormalized.startsWith('select * from public.passkey_challenges') || sqlNormalized.includes('from public.passkey_challenges')) {
+    const userId = params[0];
+    const type = sqlNormalized.includes("'registration'") ? 'registration' : 'authentication';
     const now = new Date();
-    const found = mockPasskeyChallenges.find(c => c.challenge === challenge && c.type === type && c.expires_at > now);
+    const found = mockPasskeyChallenges.find(c => c.user_id === userId && c.type === type && c.expires_at > now);
     return found ? [found] : [];
   }
   if (sqlNormalized.startsWith('delete from public.passkey_challenges')) {
@@ -126,14 +440,18 @@ function runMockQuery(sql, params) {
     const userId = params[0];
     const username = params[1];
     const displayName = params[2];
+    const email = params[3] || username;
+    const phone = params[4] || '';
+    const createdAt = params[5] || new Date().toISOString();
     mockProfiles.push({
       user_id: userId,
       username: username,
       display_name: displayName,
-      phone: username,
-      is_active: 0,
-      signup_status: 'pending_approval',
-      created_at: new Date().toISOString()
+      phone: phone,
+      email: email,
+      is_active: 1, // Platform accounts are active by default
+      signup_status: 'approved',
+      created_at: createdAt
     });
     return [{ user_id: userId }];
   }
@@ -151,9 +469,9 @@ function runMockQuery(sql, params) {
     }
     return [];
   }
-  if (sqlNormalized.includes('platform_profiles') && (sqlNormalized.includes('username = ?') || sqlNormalized.includes('user_id = ?'))) {
+  if (sqlNormalized.includes('platform_profiles') && (sqlNormalized.includes('username = ?') || sqlNormalized.includes('user_id = ?') || sqlNormalized.includes('email = ?'))) {
     const searchVal = params[0];
-    const found = mockProfiles.find(p => p.username === searchVal || p.phone === searchVal || p.user_id === searchVal);
+    const found = mockProfiles.find(p => p.username === searchVal || p.phone === searchVal || p.user_id === searchVal || p.email === searchVal);
     return found ? [found] : [];
   }
   if (sqlNormalized.includes('platform_profiles') && sqlNormalized.includes('created_at asc')) {
@@ -470,6 +788,22 @@ function runMockQuery(sql, params) {
     }
     return [];
   }
+  if (sqlNormalized.includes('stock_workspaces')) {
+    return [{ workspace_id: 'stock-ws-id', name: '내 투자계정', investment_style: 'Growth', risk_preference: 'MEDIUM' }];
+  }
+  if (sqlNormalized.includes('estate_workspaces')) {
+    return [{ workspace_id: 'estate-ws-id', name: '서울권 분석', region: '서울' }];
+  }
+  if (sqlNormalized.includes('mission_workspaces')) {
+    return [{ workspace_id: 'mission-ws-id', name: '선교 협력', country: '인도' }];
+  }
+  if (sqlNormalized.includes('platform_workspaces')) {
+    return [{ workspace_id: 'platform-ws-id', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', name: '신길교회', capability: 'church' }];
+  }
+  if (sqlNormalized.includes('stock_research_history')) {
+    return [];
+  }
+
   if (sqlNormalized.includes('church_profiles')) {
     return [{ church_id: 'church-id-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6' }];
   }
@@ -693,6 +1027,144 @@ async function initPlatformDb() {
   } catch (err) {
     console.error('Failed to connect to Supabase database:', err);
     throw err;
+  }
+}
+
+async function runAssignmentsMigration() {
+  console.log('[DB] Running assignments schema migration...');
+  const sqls = [
+    `CREATE TABLE IF NOT EXISTS public.church_positions (
+      position_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      project_id UUID NOT NULL,
+      name TEXT NOT NULL,
+      role_code TEXT NOT NULL,
+      is_active BOOLEAN DEFAULT TRUE,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT unique_project_position_name UNIQUE (project_id, name)
+    )`,
+    `CREATE TABLE IF NOT EXISTS public.church_user_assignments (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL,
+      project_id UUID NOT NULL,
+      committee_id INTEGER NOT NULL,
+      group_id INTEGER NULL,
+      position_id UUID NOT NULL,
+      role_code TEXT NOT NULL,
+      is_primary BOOLEAN DEFAULT FALSE,
+      is_active BOOLEAN DEFAULT TRUE,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      created_by UUID NULL,
+      updated_by UUID NULL,
+      assigned_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      revoked_at TIMESTAMP WITH TIME ZONE NULL,
+      FOREIGN KEY (position_id) REFERENCES public.church_positions(position_id) ON DELETE CASCADE
+    )`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS unique_primary_assignment_per_user_project
+     ON public.church_user_assignments(user_id, project_id)
+     WHERE is_primary = TRUE AND is_active = TRUE`,
+    `CREATE TABLE IF NOT EXISTS public.church_signup_assignment_requests (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL,
+      project_id UUID NOT NULL,
+      committee_id INTEGER NOT NULL,
+      group_id INTEGER NULL,
+      position_id UUID NULL,
+      requested_position_name TEXT NULL,
+      status TEXT DEFAULT 'pending',
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      approved_at TIMESTAMP WITH TIME ZONE NULL,
+      approved_by UUID NULL
+    )`
+  ];
+
+  for (const sql of sqls) {
+    try {
+      await query.exec(sql);
+    } catch (err) {
+      console.warn('[DB] Migration step warning/error:', err.message);
+    }
+  }
+  console.log('[DB] Assignments schema migration completed.');
+}
+
+async function seedDefaultPositions() {
+  console.log('[Seed] Seeding default positions...');
+  try {
+    const project = await query.get("SELECT project_id FROM public.platform_projects WHERE service_id = 'church_think' LIMIT 1");
+    if (!project) {
+      console.warn('[Seed] No project found for church_think, skipping position seeding.');
+      return;
+    }
+    const projectId = project.project_id;
+    const defaults = [
+      { name: '회계', role_code: 'DEPARTMENT_ACCOUNTANT' },
+      { name: '총무', role_code: 'FINANCE_MANAGER' },
+      { name: '부장', role_code: 'GROUP_LEADER' },
+      { name: '위원장', role_code: 'COMMITTEE_CHAIR' },
+      { name: '교역자', role_code: 'PASTOR' }
+    ];
+
+    for (const pos of defaults) {
+      await query.run(`
+        INSERT INTO public.church_positions (project_id, name, role_code)
+        VALUES (?, ?, ?)
+        ON CONFLICT (project_id, name) DO NOTHING
+      `, [projectId, pos.name, pos.role_code]);
+    }
+    console.log('[Seed] Seeding default positions completed.');
+  } catch (err) {
+    console.error('[Seed] Failed to seed default positions:', err);
+  }
+}
+
+async function migrateExistingUsersToAssignments() {
+  console.log('[Migration] Migrating existing users to assignments...');
+  try {
+    const project = await query.get("SELECT project_id FROM public.platform_projects WHERE service_id = 'church_think' LIMIT 1");
+    if (!project) return;
+    const projectId = project.project_id;
+
+    const positions = await query.all("SELECT position_id, name, role_code FROM public.church_positions WHERE project_id = ? AND is_active = TRUE", [projectId]);
+    const usersMeta = await query.all("SELECT user_id, department_id, position FROM public.church_user_metadata WHERE project_id = ?", [projectId]);
+
+    for (const meta of usersMeta) {
+      const existing = await query.all("SELECT id FROM public.church_user_assignments WHERE user_id = ? AND project_id = ? AND is_active = TRUE", [meta.user_id, projectId]);
+      if (existing && existing.length > 0) continue;
+
+      const profile = await query.get("SELECT username FROM public.platform_profiles WHERE user_id = ?", [meta.user_id]);
+      if (profile && (profile.username === 'admin' || profile.username === 'auditor')) {
+        continue;
+      }
+
+      let groupId = meta.department_id;
+      let committeeId = 11;
+      if (groupId) {
+        const group = await query.get("SELECT parent_id FROM public.church_departments WHERE department_id = ?", [groupId]);
+        if (group && group.parent_id) {
+          committeeId = group.parent_id;
+        } else {
+          committeeId = groupId;
+          groupId = null;
+        }
+      }
+
+      let posName = meta.position || '회계';
+      let matchedPos = positions.find(p => p.name === posName);
+      if (!matchedPos) {
+        matchedPos = positions.find(p => p.name === '회계');
+      }
+
+      if (matchedPos) {
+        await query.run(`
+          INSERT INTO public.church_user_assignments (user_id, project_id, committee_id, group_id, position_id, role_code, is_primary)
+          VALUES (?, ?, ?, ?, ?, ?, TRUE)
+        `, [meta.user_id, projectId, committeeId, groupId, matchedPos.position_id, matchedPos.role_code]);
+        console.log(`[Migration] Created assignment for user ${meta.user_id}: Committee ${committeeId}, Group ${groupId}, Position ${matchedPos.name}`);
+      }
+    }
+    console.log('[Migration] Existing users migration completed.');
+  } catch (err) {
+    console.error('[Migration] Failed to migrate existing users:', err);
   }
 }
 

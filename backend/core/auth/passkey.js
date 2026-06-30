@@ -90,13 +90,27 @@ async function verifyRegister(req, res) {
     }
 
     // Verify response
-    const verification = await verifyRegistrationResponse({
-      response: regResponse,
-      expectedChallenge: challengeRecord.challenge,
-      expectedOrigin: origin,
-      expectedRPID: rpID,
-      requireUserVerification: false
-    });
+    let verification;
+    if (isMockMode) {
+      verification = {
+        verified: true,
+        registrationInfo: {
+          credentialPublicKey: Buffer.from('mock-public-key'),
+          credentialID: regResponse.id || 'mock-credential-id',
+          counter: 0,
+          credentialBackedUp: false,
+          credentialDeviceType: 'singleDevice'
+        }
+      };
+    } else {
+      verification = await verifyRegistrationResponse({
+        response: regResponse,
+        expectedChallenge: challengeRecord.challenge,
+        expectedOrigin: origin,
+        expectedRPID: rpID,
+        requireUserVerification: false
+      });
+    }
 
     if (verification.verified && verification.registrationInfo) {
       const { credentialPublicKey, credentialID, counter, credentialBackedUp, credentialDeviceType } = verification.registrationInfo;
@@ -332,11 +346,174 @@ async function deleteCredential(req, res) {
   }
 }
 
+// 7. Registration Options for Onboarding/Signup Flow (No JWT required)
+async function getRegisterOptionsForSignupFlow(req, res) {
+  try {
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ success: false, message: '사용자 ID가 누락되었습니다.' });
+    }
+
+    // Look up the profile to ensure they signed up and are pending
+    const profile = await query.get(
+      "SELECT user_id, username, created_at, signup_status FROM public.platform_profiles WHERE user_id = ? LIMIT 1",
+      [userId]
+    );
+
+    if (!profile) {
+      return res.status(404).json({ success: false, message: '존재하지 않는 사용자입니다.' });
+    }
+
+    // Security check: must be a pending user who created their account recently (within 15 minutes)
+    const createdAtTime = new Date(profile.created_at).getTime();
+    const timeDiffMinutes = (Date.now() - createdAtTime) / (1000 * 60);
+
+    if (timeDiffMinutes > 15) {
+      return res.status(403).json({ success: false, message: '기기 등록 허용 시간이 초과되었습니다. 가입 승인 완료 후 설정에서 등록해 주세요.' });
+    }
+
+    // Security check: must not already have credentials registered
+    const existingCred = await query.get(
+      'SELECT id FROM public.passkey_credentials WHERE user_id = ? LIMIT 1',
+      [userId]
+    );
+    if (existingCred) {
+      return res.status(400).json({ success: false, message: '이미 생체인증 기기가 등록되어 있습니다.' });
+    }
+
+    const options = await generateRegistrationOptions({
+      rpName,
+      rpID,
+      userID: getUserIDBuffer(userId),
+      userName: profile.username,
+      userDisplayName: profile.display_name || profile.username,
+      attestationType: 'none',
+      authenticatorSelection: {
+        residentKey: 'preferred',
+        userVerification: 'preferred',
+        authenticatorAttachment: 'platform'
+      }
+    });
+
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    await query.run(
+      'INSERT INTO public.passkey_challenges (user_id, challenge, type, expires_at) VALUES (?, ?, ?, ?)',
+      [userId, options.challenge, 'registration', expiresAt]
+    );
+
+    return res.json(options);
+  } catch (err) {
+    console.error('[WebAuthn Onboarding Register Options Error]', err);
+    return res.status(500).json({ success: false, message: '가입 단계 생체인증 등록 옵션 생성 실패' });
+  }
+}
+
+// 8. Registration Verification for Onboarding/Signup Flow (No JWT required)
+async function verifyRegisterForSignupFlow(req, res) {
+  try {
+    const { userId, regResponse, deviceName } = req.body;
+    if (!userId || !regResponse) {
+      return res.status(400).json({ success: false, message: '필수 매개변수가 누락되었습니다.' });
+    }
+
+    const profile = await query.get(
+      "SELECT user_id, username, created_at FROM public.platform_profiles WHERE user_id = ? LIMIT 1",
+      [userId]
+    );
+    if (!profile) {
+      return res.status(404).json({ success: false, message: '존재하지 않는 사용자입니다.' });
+    }
+
+    const createdAtTime = new Date(profile.created_at).getTime();
+    const timeDiffMinutes = (Date.now() - createdAtTime) / (1000 * 60);
+
+    if (timeDiffMinutes > 15) {
+      return res.status(403).json({ success: false, message: '기기 등록 허용 시간이 초과되었습니다.' });
+    }
+
+    // Retrieve active challenge from DB
+    const challengeRecord = await query.get(
+      "SELECT * FROM public.passkey_challenges WHERE user_id = ? AND type = 'registration' AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1",
+      [userId]
+    );
+
+    if (!challengeRecord) {
+      return res.status(400).json({
+        success: false,
+        message: '인증 시간이 만료되었습니다. 다시 시도해 주세요.'
+      });
+    }
+
+    // Verify response
+    let verification;
+    if (isMockMode) {
+      verification = {
+        verified: true,
+        registrationInfo: {
+          credentialPublicKey: Buffer.from('mock-public-key'),
+          credentialID: regResponse.id || 'mock-credential-id',
+          counter: 0,
+          credentialBackedUp: false,
+          credentialDeviceType: 'singleDevice'
+        }
+      };
+    } else {
+      verification = await verifyRegistrationResponse({
+        response: regResponse,
+        expectedChallenge: challengeRecord.challenge,
+        expectedOrigin: origin,
+        expectedRPID: rpID,
+        requireUserVerification: false
+      });
+    }
+
+    if (verification.verified && verification.registrationInfo) {
+      const { credentialPublicKey, credentialID, counter, credentialBackedUp, credentialDeviceType } = verification.registrationInfo;
+
+      await query.run('DELETE FROM public.passkey_challenges WHERE challenge = ?', [challengeRecord.challenge]);
+
+      const existing = await query.get(
+        'SELECT * FROM public.passkey_credentials WHERE credential_id = ?',
+        [credentialID]
+      );
+      if (existing) {
+        return res.status(400).json({ success: false, message: '이미 등록된 기기입니다.' });
+      }
+
+      await query.run(
+        `INSERT INTO public.passkey_credentials (
+          user_id, credential_id, public_key, counter, transports, device_name, backed_up, credential_device_type
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          userId,
+          credentialID,
+          Buffer.from(credentialPublicKey).toString('base64'),
+          counter,
+          regResponse.response.transports || [],
+          deviceName || '가입시 등록 기기',
+          credentialBackedUp,
+          credentialDeviceType
+        ]
+      );
+
+      return res.json({ success: true });
+    } else {
+      return res.status(400).json({ success: false, message: 'Passkey 등록 검증에 실패했습니다.' });
+    }
+  } catch (err) {
+    console.error('[WebAuthn Onboarding Register Verify Error]', err);
+    return res.status(500).json({ success: false, message: '가입 단계 생체인증 기기 검증 중 오류가 발생했습니다.' });
+  }
+}
+
 module.exports = {
   getRegisterOptions,
   verifyRegister,
   getLoginOptions,
   verifyLogin,
   listCredentials,
-  deleteCredential
+  deleteCredential,
+  getRegisterOptionsForSignupFlow,
+  verifyRegisterForSignupFlow
 };
+

@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../App';
-import { TrendingUp, TrendingDown, Clock, AlertTriangle, XOctagon, Plus, ChevronRight, Users, RefreshCw, FileText, Activity, Cpu, BarChart2, Settings } from 'lucide-react';
+import { useChurchContext } from '../ChurchContextProvider';
+import { apiClient } from '../../../core/api';
+import { TrendingUp, TrendingDown, Clock, AlertTriangle, XOctagon, Plus, ChevronRight, Users, RefreshCw, FileText, Activity, Cpu, BarChart2, Settings, ShieldAlert, Award, ChevronDown } from 'lucide-react';
 
 export default function Dashboard() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
 
-  // Workspace Profile State
-  const [churchProfile, setChurchProfile] = useState({
+  // Workspace Context (Platform 3.1) - primary source of church profile
+  const { churchProfile: contextProfile } = useChurchContext();
+
+  // Workspace Profile State - initialized from context, refreshed by API
+  const [churchProfile, setChurchProfile] = useState(contextProfile || {
     church_name: '신길교회',
     denomination: '기독교대한성결교회',
     logo_url: '/church_logo.png'
@@ -157,6 +162,16 @@ export default function Dashboard() {
   const [groupExpenses, setGroupExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Membership & Assignment Empty State Check
+  const [membershipStatus, setMembershipStatus] = useState(null); // 'none', 'pending', 'approved', 'rejected'
+  const [hasApprovedAssignment, setHasApprovedAssignment] = useState(false);
+  const [membershipLoading, setMembershipLoading] = useState(true);
+  const [churches, setChurches] = useState([]);
+  const [selectedChurchId, setSelectedChurchId] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isChurchDropdownOpen, setIsChurchDropdownOpen] = useState(false);
+  const [applySuccess, setApplySuccess] = useState('');
+
   // Admin stats state
   const [adminStats, setAdminStats] = useState(null);
   const [activeTab, setActiveTab] = useState(
@@ -167,6 +182,32 @@ export default function Dashboard() {
   const [selectedFiscalYear, setSelectedFiscalYear] = useState('2026');
   const [selectedCommitteeId, setSelectedCommitteeId] = useState('');
   const [selectedGroupId, setSelectedGroupId] = useState('');
+
+  // Fetch membership & assignment status on load
+  useEffect(() => {
+    if (!token) return;
+    const checkMembershipAndAssignments = async () => {
+      try {
+        const mStatus = await apiClient('/api/church/membership/status');
+        setMembershipStatus(mStatus?.status || 'none');
+
+        const assigns = await apiClient('/api/church/assignments/me');
+        const approvedAssign = Array.isArray(assigns) && assigns.some(a => a.status === 'approved');
+        setHasApprovedAssignment(approvedAssign);
+
+        if (mStatus?.status === 'none' || mStatus?.status === 'rejected') {
+          // Fetch churches list for dropdown
+          const data = await apiClient('/api/churches');
+          if (Array.isArray(data)) setChurches(data);
+        }
+      } catch (err) {
+        console.error('Error checking membership/assignments:', err);
+      } finally {
+        setMembershipLoading(false);
+      }
+    };
+    checkMembershipAndAssignments();
+  }, [token]);
 
   // Fetch allowed context scope on load
   useEffect(() => {
@@ -213,10 +254,13 @@ export default function Dashboard() {
 
   // Trigger reloading dashboard statistics when parameters change
   useEffect(() => {
-    if (token && selectedFiscalYear) {
+    const isAdmin = user?.role === 'SYSTEM_ADMIN' || user?.roles?.church_think === 'super_admin' || user?.roles?.accounting === 'SYSTEM_ADMIN';
+    const isApproved = isAdmin || (membershipStatus === 'approved' && hasApprovedAssignment);
+
+    if (token && selectedFiscalYear && isApproved) {
       fetchDashboardData(selectedFiscalYear, selectedCommitteeId, selectedGroupId);
     }
-  }, [token, selectedFiscalYear, selectedCommitteeId, selectedGroupId]);
+  }, [token, selectedFiscalYear, selectedCommitteeId, selectedGroupId, membershipStatus, hasApprovedAssignment]);
 
   const fetchDashboardData = async (fYear, commId, grpId) => {
     setLoading(true);
@@ -632,6 +676,176 @@ export default function Dashboard() {
     );
   }
 
+  if (membershipLoading) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-950 text-slate-400">
+        <RefreshCw className="animate-spin text-church-500 mb-2" size={24} />
+        <span className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500">조직 및 가입 상태 확인 중...</span>
+      </div>
+    );
+  }
+
+  const isAdmin = user?.role === 'SYSTEM_ADMIN' || user?.roles?.church_think === 'super_admin' || user?.roles?.accounting === 'SYSTEM_ADMIN';
+  const showEmptyState = !isAdmin && (
+    membershipStatus === 'none' ||
+    membershipStatus === 'rejected' ||
+    membershipStatus === 'pending' ||
+    (membershipStatus === 'approved' && !hasApprovedAssignment)
+  );
+
+  if (showEmptyState) {
+    const filteredChurches = searchQuery
+      ? churches.filter(c => 
+          c.church_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (c.region && c.region.toLowerCase().includes(searchQuery.toLowerCase()))
+        )
+      : churches;
+
+    const handleSelectChurch = (c) => {
+      setSelectedChurchId(c.church_id);
+      setSearchQuery(`${c.church_name} · ${c.denomination || ''} · ${c.region || ''}`);
+      setIsChurchDropdownOpen(false);
+    };
+
+    const handleApplyMembership = async () => {
+      if (!selectedChurchId) return;
+      try {
+        const res = await apiClient('/api/church/membership/apply', {
+          method: 'POST',
+          body: { churchProfileId: selectedChurchId }
+        });
+
+        if (res.success) {
+          setApplySuccess(res.message);
+          setMembershipStatus('pending');
+        }
+      } catch (err) {
+        console.error('Error applying membership:', err);
+      }
+    };
+
+    return (
+      <div className="h-screen w-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-slate-200">
+        <div className="w-full max-w-md glass p-8 rounded-3xl border border-slate-800 shadow-2xl space-y-6">
+          <div className="flex flex-col items-center text-center space-y-2">
+            <div className="h-12 w-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+              <Activity size={24} className="animate-pulse" />
+            </div>
+            <h2 className="text-md font-bold text-white tracking-tight">Church Think 가입 및 조직 상태</h2>
+            <p className="text-[10px] text-slate-500">서비스 이용을 위해서는 아래 단계를 진행해야 합니다.</p>
+          </div>
+
+          {(membershipStatus === 'none' || membershipStatus === 'rejected') && (
+            <div className="space-y-5">
+              <div className="p-4 rounded-2xl border border-amber-500/20 bg-amber-500/5 text-amber-400 text-xs leading-relaxed">
+                ⚠️ 현재 소속된 교회가 없습니다. Church Think를 사용하려면 교회에 가입하거나 기존 교회의 승인을 받아야 합니다.
+              </div>
+
+              <div className="space-y-1.5 relative">
+                <label className="text-[10px] font-bold text-slate-400">가입할 교회 검색</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setIsChurchDropdownOpen(true);
+                      if (!e.target.value) setSelectedChurchId('');
+                    }}
+                    onFocus={() => setIsChurchDropdownOpen(true)}
+                    placeholder="교회 이름 또는 지역을 입력하세요"
+                    className="w-full bg-slate-900/60 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  />
+                  {isChurchDropdownOpen && searchQuery.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1.5 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl max-h-[160px] overflow-y-auto no-scrollbar">
+                      {filteredChurches.length > 0 ? (
+                        filteredChurches.map(c => (
+                          <button
+                            key={c.church_id}
+                            type="button"
+                            onClick={() => handleSelectChurch(c)}
+                            className="w-full text-left px-3.5 py-2.5 hover:bg-slate-800 text-xs text-slate-300 hover:text-white transition-colors flex flex-col gap-0.5 border-b border-slate-800/40 last:border-0"
+                          >
+                            <span className="font-semibold">{c.church_name}</span>
+                            <span className="text-[9px] text-slate-500">{c.denomination} · {c.region}</span>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="p-3.5 text-center text-[10px] text-slate-500">
+                          검색된 교회가 없습니다.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={handleApplyMembership}
+                  disabled={!selectedChurchId}
+                  className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:opacity-40 text-white font-bold text-xs shadow-md transition-all active:scale-[0.98]"
+                >
+                  가입 신청
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/')}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-400 font-bold text-xs shadow-md transition-all active:scale-[0.98]"
+                >
+                  나중에 하기
+                </button>
+              </div>
+            </div>
+          )}
+
+          {membershipStatus === 'pending' && (
+            <div className="space-y-4 text-center py-4">
+              <div className="h-10 w-10 mx-auto rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+                <Clock size={20} className="animate-spin" />
+              </div>
+              <div className="p-4 rounded-2xl border border-amber-500/20 bg-amber-500/5 text-amber-400 text-xs leading-relaxed">
+                가입 신청이 관리자 승인 대기 중입니다.
+              </div>
+              <p className="text-[10px] text-slate-500">
+                교회 관리자가 승인하면 즉시 교회의 회계 및 전표 작업을 시작하실 수 있습니다. 잠시만 기다려 주세요.
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate('/')}
+                className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-400 font-bold text-xs shadow-md transition-all active:scale-[0.98]"
+              >
+                메인 포털로 가기
+              </button>
+            </div>
+          )}
+
+          {membershipStatus === 'approved' && !hasApprovedAssignment && (
+            <div className="space-y-4 text-center py-4">
+              <div className="h-10 w-10 mx-auto rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                <Users size={20} />
+              </div>
+              <div className="p-4 rounded-2xl border border-indigo-500/20 bg-indigo-500/5 text-indigo-400 text-xs leading-relaxed">
+                아직 승인된 조직 배정이 없습니다.
+              </div>
+              <p className="text-[10px] text-slate-500">
+                교회 가입은 완료되었으나, 활동할 소속 부서나 위원회 배정이 승인되지 않았습니다. 신규 조직 배정을 신청해 주세요.
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate('/settings')}
+                className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md transition-all active:scale-[0.98]"
+              >
+                새 조직 배정 신청
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // Standard Personal Dashboard View
   return (
     <div className="p-4 space-y-4">
@@ -797,9 +1011,9 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 4. 찬양팀/그룹별 지출 현황 바 차트 */}
+      {/* 4. 소속그룹별 지출 현황 바 차트 */}
       <div className="glass p-4 rounded-2xl">
-        <h3 className="text-xs font-bold text-slate-300 mb-3.5">찬양팀 및 소속그룹별 지출 현황</h3>
+        <h3 className="text-xs font-bold text-slate-300 mb-3.5">소속 그룹별 지출 현황</h3>
         <div className="space-y-3">
           {groupExpenses.map((g, idx) => {
             const maxVal = Math.max(...groupExpenses.map(d => d.amount)) || 1;

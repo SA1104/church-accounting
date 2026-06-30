@@ -18,6 +18,11 @@ export async function apiClient(url, options = {}) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
+  const activeAssignmentId = localStorage.getItem('activeAssignmentId');
+  if (activeAssignmentId) {
+    headers['X-Context-Assignment-Id'] = activeAssignmentId;
+  }
+
   const fetchOptions = {
     ...options,
     headers

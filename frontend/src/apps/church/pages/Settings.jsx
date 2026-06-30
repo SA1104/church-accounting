@@ -33,8 +33,20 @@ const isAdminUser = (user) => {
 
 export default function Settings() {
   const { token, user, fontScale, setFontScale, logout } = useAuth();
-  
-  const [activeTab, setActiveTab] = useState('categories');
+  const [activeTab, setActiveTab] = useState('profile');
+
+  // Profile Tab States
+  const [profileData, setProfileData] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileMembership, setProfileMembership] = useState(null);
+  const [profileAssignments, setProfileAssignments] = useState([]);
+  const [profileCommittees, setProfileCommittees] = useState([]);
+  const [profilePositions, setProfilePositions] = useState([]);
+  const [profileSelectedCommId, setProfileSelectedCommId] = useState('');
+  const [profileSelectedPosId, setProfileSelectedPosId] = useState('');
+  const [profileApplySuccess, setProfileApplySuccess] = useState('');
+  const [profileApplyError, setProfileApplyError] = useState('');
+  const [profileApplyLoading, setProfileApplyLoading] = useState(false);
 
   // 리스트 상태
   const [categories, setCategories] = useState([]);
@@ -83,6 +95,14 @@ export default function Settings() {
   const [newPosName, setNewPosName] = useState('');
   const [newPosRole, setNewPosRole] = useState('DEPARTMENT_ACCOUNTANT');
 
+  // 다중 소속 관리 상태
+  const [allAssignments, setAllAssignments] = useState([]);
+  const [expandedUserId, setExpandedUserId] = useState(null);
+  const [newAssignCommitteeId, setNewAssignCommitteeId] = useState('');
+  const [newAssignGroupId, setNewAssignGroupId] = useState('');
+  const [newAssignPositionId, setNewAssignPositionId] = useState('');
+  const [newAssignGroupOptions, setNewAssignGroupOptions] = useState([]);
+
   // 다교회 SaaS 위원회/그룹 관리 상태 및 에디터 폼
   const [adminOrgs, setAdminOrgs] = useState([]);
   const [selectedAdminOrgId, setSelectedAdminOrgId] = useState('');
@@ -121,6 +141,38 @@ export default function Settings() {
       console.error(err);
     }
   };
+
+  const fetchProfileInfo = async () => {
+    setProfileLoading(true);
+    setProfileApplySuccess('');
+    setProfileApplyError('');
+    try {
+      const profile = await apiClient('/api/church/profile');
+      setProfileData(profile);
+
+      const membership = await apiClient('/api/church/membership/status');
+      setProfileMembership(membership);
+
+      const assigns = await apiClient('/api/church/assignments/me');
+      setProfileAssignments(assigns || []);
+
+      const comms = await apiClient('/api/church/admin/committees');
+      setProfileCommittees(comms || []);
+
+      const positions = await apiClient('/api/church/positions');
+      setProfilePositions(positions || []);
+    } catch (err) {
+      console.error('Error fetching profile settings data:', err);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'profile') {
+      fetchProfileInfo();
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     if (activeTab === 'passkey') {
@@ -180,7 +232,7 @@ export default function Settings() {
 
   const canAccessTab = (tabKey) => {
     if (isAdminUser(user)) return true;
-    if (tabKey === 'categories' || tabKey === 'display' || tabKey === 'marketplace' || tabKey === 'passkey') return true;
+    if (tabKey === 'profile' || tabKey === 'categories' || tabKey === 'display' || tabKey === 'marketplace' || tabKey === 'passkey') return true;
     if (['users', 'orgs', 'positions', 'ocr-queue', 'locks', 'database'].includes(tabKey)) {
       const role = user?.role || '';
       return role === 'SYSTEM_ADMIN' || role === 'AUDITOR';
@@ -256,7 +308,7 @@ export default function Settings() {
   // 다교회 SaaS 어드민 조직/그룹 관리 훅
   const fetchAdminOrgs = async () => {
     try {
-      const data = await apiClient('/api/admin/departments');
+      const data = await apiClient('/api/church/admin/committees');
       console.log('[FETCH DEPARTMENTS RESPONSE]', data);
       if (Array.isArray(data)) {
         setAdminOrgs(data);
@@ -272,7 +324,7 @@ export default function Settings() {
   const fetchAdminGroups = async (deptId) => {
     if (!deptId) return;
     try {
-      const data = await apiClient(`/api/admin/departments/${deptId}/groups`);
+      const data = await apiClient(`/api/church/admin/committees/${deptId}/groups`);
       console.log('[FETCH GROUPS RESPONSE]', data);
       if (Array.isArray(data)) {
         setAdminGroups(data);
@@ -496,6 +548,10 @@ export default function Settings() {
       if (Array.isArray(data)) {
         setUsers(data);
       }
+      const assignments = await apiClient('/api/church/assignments/me');
+      if (Array.isArray(assignments)) {
+        setAllAssignments(assignments);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -577,7 +633,7 @@ export default function Settings() {
     const payload = { name: newOrgName, description: newOrgDesc };
     console.log('[CREATE DEPARTMENT PAYLOAD]', payload);
     try {
-      const result = await apiClient('/api/admin/departments', {
+      const result = await apiClient('/api/church/admin/committees', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
@@ -618,7 +674,7 @@ export default function Settings() {
     e.preventDefault();
     if (!editingOrgName) return;
     try {
-      await apiClient(`/api/admin/departments/${editingOrgId}`, {
+      await apiClient(`/api/church/admin/committees/${editingOrgId}`, {
         method: 'PUT',
         body: JSON.stringify({
           name: editingOrgName,
@@ -637,7 +693,7 @@ export default function Settings() {
   const handleDeleteAdminOrg = async (deptId) => {
     if (!window.confirm('정말 이 부서를 비활성화하시겠습니까?')) return;
     try {
-      await apiClient(`/api/admin/departments/${deptId}`, {
+      await apiClient(`/api/church/admin/committees/${deptId}`, {
         method: 'DELETE'
       });
       fetchAdminOrgs();
@@ -658,7 +714,7 @@ export default function Settings() {
     };
     console.log('[CREATE DEPARTMENT PAYLOAD]', payload);
     try {
-      const result = await apiClient('/api/admin/groups', {
+      const result = await apiClient('/api/church/admin/groups', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
@@ -700,7 +756,7 @@ export default function Settings() {
     e.preventDefault();
     if (!editingGroupName) return;
     try {
-      await apiClient(`/api/admin/groups/${editingGroupId}`, {
+      await apiClient(`/api/church/admin/groups/${editingGroupId}`, {
         method: 'PUT',
         body: JSON.stringify({
           name: editingGroupName,
@@ -720,7 +776,7 @@ export default function Settings() {
   const handleDeleteAdminGroup = async (groupId) => {
     if (!window.confirm('정말 이 그룹을 비활성화하시겠습니까?')) return;
     try {
-      await apiClient(`/api/admin/groups/${groupId}`, {
+      await apiClient(`/api/church/admin/groups/${groupId}`, {
         method: 'DELETE'
       });
       fetchAdminGroups(selectedAdminOrgId);
@@ -788,6 +844,62 @@ export default function Settings() {
     }
   };
 
+  const handleDeleteAssignment = async (userId, assignmentId) => {
+    if (!window.confirm('정말 이 소속/직책 배정을 제거하시겠습니까?')) return;
+    try {
+      await apiClient(`/api/church/assignments/users/${userId}/${assignmentId}`, {
+        method: 'DELETE'
+      });
+      fetchUsers();
+      alert('소속이 제거되었습니다.');
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleCreateAssignment = async (e, userId) => {
+    e.preventDefault();
+    if (!newAssignCommitteeId || !newAssignPositionId) {
+      alert('위원회와 직책은 필수 선택 사항입니다.');
+      return;
+    }
+    try {
+      await apiClient(`/api/church/assignments/users/${userId}`, {
+        method: 'POST',
+        body: JSON.stringify({
+          committee_id: parseInt(newAssignCommitteeId, 10),
+          group_id: newAssignGroupId ? parseInt(newAssignGroupId, 10) : null,
+          position_id: newAssignPositionId
+        })
+      });
+      
+      setNewAssignCommitteeId('');
+      setNewAssignGroupId('');
+      setNewAssignPositionId('');
+      setNewAssignGroupOptions([]);
+      fetchUsers();
+      alert('소속이 배정되었습니다.');
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleAssignCommitteeChange = async (value) => {
+    setNewAssignCommitteeId(value);
+    setNewAssignGroupId('');
+    setNewAssignGroupOptions([]);
+    if (value) {
+      try {
+        const data = await apiClient(`/api/church/admin/committees/${value}/groups`);
+        if (Array.isArray(data)) {
+          setNewAssignGroupOptions(data);
+        }
+      } catch (err) {
+        console.error('Fetch groups error:', err);
+      }
+    }
+  };
+
   const handleDeleteOrg = async (orgId, name) => {
     if (!window.confirm(`⚠️ 경고: 정말 위원회 '${name}'(을)를 삭제하시겠습니까? 산하의 모든 소속 그룹도 함께 삭제됩니다.`)) {
       return;
@@ -821,10 +933,9 @@ export default function Settings() {
     }
   };
 
-  const fetchGroupPositions = async (groupId) => {
-    if (!groupId) return;
+  const fetchAdminPositions = async () => {
     try {
-      const data = await apiClient(`/api/public/groups/${groupId}/positions`);
+      const data = await apiClient('/api/church/positions?include_inactive=true');
       if (Array.isArray(data)) {
         setGroupPositions(data);
       } else {
@@ -838,15 +949,15 @@ export default function Settings() {
 
   const handleAddPosition = async (e) => {
     e.preventDefault();
-    if (!selectedPosGroupId || !newPosName) return;
+    if (!newPosName) return;
     try {
-      await apiClient(`/api/groups/${selectedPosGroupId}/positions`, {
+      await apiClient('/api/church/positions', {
         method: 'POST',
-        body: JSON.stringify({ name: newPosName, role: newPosRole })
+        body: JSON.stringify({ name: newPosName, role_code: newPosRole })
       });
       
       setNewPosName('');
-      fetchGroupPositions(selectedPosGroupId);
+      fetchAdminPositions();
       alert('직책 등록 성공');
     } catch (err) {
       alert(err.message);
@@ -854,30 +965,24 @@ export default function Settings() {
   };
 
   const handleDeletePosition = async (posId) => {
-    if (!window.confirm('정말 이 직책을 삭제하시겠습니까?')) return;
+    if (!window.confirm('정말 이 직책을 비활성화하시겠습니까?')) return;
     try {
-      await apiClient(`/api/positions/${posId}`, {
+      await apiClient(`/api/church/positions/${posId}`, {
         method: 'DELETE'
       });
 
-      fetchGroupPositions(selectedPosGroupId);
-      alert('직책이 삭제되었습니다.');
+      fetchAdminPositions();
+      alert('직책이 비활성화되었습니다.');
     } catch (err) {
       alert(err.message);
     }
   };
 
   useEffect(() => {
-    if (groups.length > 0 && !selectedPosGroupId) {
-      setSelectedPosGroupId(groups[0].group_id.toString());
+    if (activeTab === 'positions') {
+      fetchAdminPositions();
     }
-  }, [groups]);
-
-  useEffect(() => {
-    if (selectedPosGroupId) {
-      fetchGroupPositions(selectedPosGroupId);
-    }
-  }, [selectedPosGroupId]);
+  }, [activeTab]);
 
   const isAdminOrAuditor = isAdminUser(user) || user.role === 'SYSTEM_ADMIN' || user.role === 'AUDITOR';
 
@@ -891,6 +996,7 @@ export default function Settings() {
       {/* 가로 스크롤 대응 반응형 탭 컨테이너 */}
       <div className="flex gap-1 overflow-x-auto p-1 bg-slate-900/60 rounded-xl border border-slate-800/80 no-scrollbar select-none">
         {[
+          { key: 'profile', label: '내 프로필' },
           { key: 'categories', label: '계정과목' },
           { key: 'display', label: '화면설정' },
           { key: 'marketplace', label: '마켓플레이스' },
@@ -901,16 +1007,13 @@ export default function Settings() {
           { key: 'locks', label: '결산마감' },
           { key: 'database', label: '데이터' },
           { key: 'passkey', label: '생체인증' }
-        ].map(tab => {
-          const hasAccess = canAccessTab(tab.key);
+        ].filter(tab => canAccessTab(tab.key)).map(tab => {
           return (
             <button
               key={tab.key}
               type="button"
               onClick={() => handleTabClick(tab.key)}
               className={`px-3 py-1.5 rounded-lg text-[9px] font-bold transition-all shrink-0 ${
-                !hasAccess ? 'opacity-30 cursor-not-allowed' : ''
-              } ${
                 activeTab === tab.key ? 'bg-church-600/30 text-church-400 border border-church-500/30' : 'text-slate-500 hover:text-slate-300'
               }`}
             >
@@ -919,6 +1022,175 @@ export default function Settings() {
           );
         })}
       </div>
+
+      {/* 내 프로필 탭 */}
+      {activeTab === 'profile' && (
+        <div className="space-y-4">
+          <div className="glass p-5 rounded-2xl space-y-4 shadow-md border border-slate-800">
+            <h3 className="text-xs font-bold text-white mb-2">플랫폼 사용자 정보</h3>
+            
+            {profileLoading ? (
+              <div className="text-[10px] text-slate-500 py-4 text-center">프로필 로딩 중...</div>
+            ) : (
+              <div className="space-y-3 text-[11px]">
+                <div className="grid grid-cols-2 gap-2 text-slate-400 font-semibold">
+                  <div>이름:</div>
+                  <div className="text-white text-right">{profileData?.display_name || user?.name}</div>
+                  <div>아이디:</div>
+                  <div className="text-white text-right">{profileData?.username || user?.username}</div>
+                  <div>이메일:</div>
+                  <div className="text-white text-right">{profileData?.email || user?.email}</div>
+                  <div>휴대폰:</div>
+                  <div className="text-white text-right">{profileData?.phone || '미등록'}</div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="glass p-5 rounded-2xl space-y-4 shadow-md border border-slate-800">
+            <h3 className="text-xs font-bold text-white mb-2">교회 소속 및 가입 상태</h3>
+            {profileLoading ? (
+              <div className="text-[10px] text-slate-500 py-4 text-center">상태 조회 중...</div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-[11px]">
+                  <span className="text-slate-400">가입 교회명</span>
+                  <span className="text-white font-bold">{profileMembership?.churchName || '없음'}</span>
+                </div>
+                <div className="flex justify-between items-center text-[11px]">
+                  <span className="text-slate-400 font-semibold">가입 승인 상태</span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                    profileMembership?.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                    profileMembership?.status === 'pending' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                    profileMembership?.status === 'rejected' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
+                    'bg-slate-800 text-slate-400'
+                  }`}>
+                    {profileMembership?.status === 'approved' ? '승인됨' :
+                     profileMembership?.status === 'pending' ? '승인 대기중' :
+                     profileMembership?.status === 'rejected' ? '반려됨' : '소속 없음'}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="glass p-5 rounded-2xl space-y-4 shadow-md border border-slate-800">
+            <h3 className="text-xs font-bold text-white mb-2">위원회 / 그룹 소속 배정 목록</h3>
+            {profileLoading ? (
+              <div className="text-[10px] text-slate-500 py-4 text-center">배정 목록 로딩 중...</div>
+            ) : (
+              <div className="space-y-2">
+                {profileAssignments.length === 0 ? (
+                  <p className="text-[10px] text-slate-500 text-center py-3">배정된 조직 정보가 없습니다.</p>
+                ) : (
+                  profileAssignments.map(a => (
+                    <div key={a.id} className="p-3 bg-slate-900/40 border border-slate-800/80 rounded-xl flex justify-between items-center text-[11px]">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-semibold text-white">{a.committee_name} {a.group_name ? `> ${a.group_name}` : ''}</span>
+                        <span className="text-[9px] text-slate-500">{a.position_name} · {a.role_code}</span>
+                      </div>
+                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${
+                        a.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                        a.status === 'pending' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                        'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                      }`}>
+                        {a.status === 'approved' ? '승인됨' : a.status === 'pending' ? '대기중' : '반려됨'}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* 새 조직 신청 폼 */}
+          {profileMembership?.status === 'approved' && (
+            <div className="glass p-5 rounded-2xl space-y-4 shadow-md border border-slate-800">
+              <h3 className="text-xs font-bold text-white mb-1.5">새 조직 배정 신청</h3>
+              
+              {profileApplyError && (
+                <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-[10px] font-bold">
+                  {profileApplyError}
+                </div>
+              )}
+              {profileApplySuccess && (
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold">
+                  {profileApplySuccess}
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400">신청할 위원회/기관</label>
+                  <select
+                    value={profileSelectedCommId}
+                    onChange={(e) => setProfileSelectedCommId(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                  >
+                    <option value="">선택하세요</option>
+                    {profileCommittees.map(c => (
+                      <option key={c.department_id} value={c.department_id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400">희망 직책</label>
+                  <select
+                    value={profileSelectedPosId}
+                    onChange={(e) => setProfileSelectedPosId(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                  >
+                    <option value="">선택하세요</option>
+                    {profilePositions.map(p => (
+                      <option key={p.position_id} value={p.position_id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!profileSelectedCommId || !profileSelectedPosId) {
+                      setProfileApplyError('위원회와 직책을 모두 선택해 주세요.');
+                      return;
+                    }
+                    setProfileApplyLoading(true);
+                    setProfileApplyError('');
+                    setProfileApplySuccess('');
+                    try {
+                      const res = await apiClient('/api/church/assignments/apply', {
+                        method: 'POST',
+                        body: {
+                          committee_id: profileSelectedCommId,
+                          position_id: profileSelectedPosId
+                        }
+                      });
+                      if (res.success) {
+                        setProfileApplySuccess(res.message);
+                        setProfileSelectedCommId('');
+                        setProfileSelectedPosId('');
+                        const assigns = await apiClient('/api/church/assignments/me');
+                        setProfileAssignments(assigns || []);
+                      } else {
+                        setProfileApplyError(res.message || '신청 실패');
+                      }
+                    } catch (err) {
+                      setProfileApplyError(err.message || '신청 중 오류가 발생했습니다.');
+                    } finally {
+                      setProfileApplyLoading(false);
+                    }
+                  }}
+                  disabled={profileApplyLoading}
+                  className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all active:scale-[0.98]"
+                >
+                  {profileApplyLoading ? '제출 중...' : '신청서 제출'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 화면설정 (글자 크기 조절) */}
       {activeTab === 'display' && (
@@ -1297,29 +1569,143 @@ export default function Settings() {
             <h3 className="text-xs font-bold text-slate-400 flex items-center gap-1">
               <Users size={13} className="text-church-400" /> 현재 사용자 목록
             </h3>
-            <div className="max-h-[250px] overflow-y-auto no-scrollbar space-y-2">
-              {users.filter(u => u.is_active === 1).map((u) => (
-                <div key={u.user_id} className="glass p-3 rounded-2xl flex items-center justify-between border border-slate-800/40">
-                  <div>
-                    <h4 className="text-xs font-bold text-white">{u.name} <span className="text-slate-400 text-[10px]">({u.position})</span></h4>
-                    <p className="text-[9px] text-slate-500 mt-1">소속: [{u.organization_name || (u.custom_department_name ? `요청: ${u.custom_department_name}` : '기타')}] {u.group_name || (u.custom_group_name ? `요청: ${u.custom_group_name}` : '-')}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-bold text-church-400 bg-church-500/10 px-2 py-0.5 rounded border border-church-500/20">
-                      {u.role}
-                    </span>
-                    {u.user_id !== user.userId && (
-                      <button
-                        onClick={() => handleDeleteUser(u.user_id, u.name)}
-                        className="text-rose-400 hover:text-rose-300 p-1 hover:bg-rose-500/10 rounded transition-colors active:scale-90"
-                        title="사용자 삭제"
-                      >
-                        <Trash2 size={12} />
-                      </button>
+            <div className="max-h-[350px] overflow-y-auto no-scrollbar space-y-2">
+              {users.filter(u => u.is_active === 1).map((u) => {
+                const userAssigns = allAssignments.filter(a => a.user_id === u.user_id);
+                const isExpanded = expandedUserId === u.user_id;
+
+                return (
+                  <div key={u.user_id} className="glass p-3 rounded-2xl border border-slate-800/40 space-y-3">
+                    <div 
+                      className="flex items-center justify-between cursor-pointer"
+                      onClick={() => {
+                        setExpandedUserId(isExpanded ? null : u.user_id);
+                        setNewAssignCommitteeId('');
+                        setNewAssignGroupId('');
+                        setNewAssignPositionId('');
+                        setNewAssignGroupOptions([]);
+                      }}
+                    >
+                      <div>
+                        <h4 className="text-xs font-bold text-white">
+                          {u.name} <span className="text-slate-500 text-[10px] ml-1">({u.username})</span>
+                        </h4>
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {userAssigns.map(a => (
+                            <span 
+                              key={a.assignment_id} 
+                              className={`text-[8px] font-semibold px-2 py-0.5 rounded-full border ${
+                                a.is_primary 
+                                  ? 'bg-church-500/10 border-church-500/30 text-church-400' 
+                                  : 'bg-slate-800/50 border-slate-700/40 text-slate-400'
+                              }`}
+                            >
+                              {a.committee_name}{a.group_name ? ` > ${a.group_name}` : ''} ({a.position_name})
+                            </span>
+                          ))}
+                          {userAssigns.length === 0 && (
+                            <span className="text-[8px] text-slate-500">배정된 소속 없음</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                        <span className="text-[9px] font-bold text-church-400 bg-church-500/10 px-2 py-0.5 rounded border border-church-500/20">
+                          {u.role}
+                        </span>
+                        {u.user_id !== user.userId && (
+                          <button
+                            onClick={() => handleDeleteUser(u.user_id, u.name)}
+                            className="text-rose-400 hover:text-rose-300 p-1 hover:bg-rose-500/10 rounded transition-colors active:scale-90"
+                            title="사용자 삭제"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="border-t border-slate-800/60 pt-3 space-y-3">
+                        {/* 소속 배정 목록 */}
+                        <div className="space-y-1.5">
+                          <span className="text-[9px] font-bold text-slate-400 block">배정된 소속 목록 ({userAssigns.length})</span>
+                          <div className="space-y-1">
+                            {userAssigns.map(a => (
+                              <div key={a.assignment_id} className="bg-slate-900/60 border border-slate-800/50 rounded-xl px-3 py-2 flex items-center justify-between text-[11px]">
+                                <div className="text-slate-300">
+                                  <span className="font-semibold text-white">{a.committee_name}</span>
+                                  {a.group_name && <span className="text-slate-500 mx-1">/</span>}
+                                  {a.group_name && <span className="text-slate-400">{a.group_name}</span>}
+                                  <span className="mx-1.5 text-slate-500">·</span>
+                                  <span className="text-church-400 font-bold">{a.position_name}</span>
+                                  {a.is_primary && (
+                                    <span className="ml-2 text-[8px] bg-church-500/20 text-church-300 px-1 py-0.2 rounded font-bold">대표</span>
+                                  )}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteAssignment(u.user_id, a.assignment_id)}
+                                  className="text-[9px] text-rose-400 hover:text-rose-300 font-semibold"
+                                >
+                                  제거
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* 신규 소속 추가 폼 */}
+                        <form onSubmit={(e) => handleCreateAssignment(e, u.user_id)} className="bg-slate-900/40 p-2.5 rounded-xl border border-slate-800/40 space-y-2">
+                          <span className="text-[9px] font-bold text-church-400 block">➕ 신규 소속 및 직책 배정</span>
+                          <div className="grid grid-cols-2 gap-2">
+                            <select
+                              value={newAssignCommitteeId}
+                              onChange={(e) => handleAssignCommitteeChange(e.target.value)}
+                              className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-[10px] text-white focus:outline-none"
+                            >
+                              <option value="">위원회 선택</option>
+                              {organizations.map(o => (
+                                <option key={o.department_id} value={o.department_id}>{o.name}</option>
+                              ))}
+                            </select>
+
+                            <select
+                              value={newAssignGroupId}
+                              onChange={(e) => setNewAssignGroupId(e.target.value)}
+                              className="bg-slate-955 border border-slate-800 rounded-lg px-2 py-1 text-[10px] text-white focus:outline-none"
+                              disabled={!newAssignCommitteeId}
+                            >
+                              <option value="">그룹 선택 (전체)</option>
+                              {newAssignGroupOptions.map(g => (
+                                <option key={g.group_id} value={g.group_id}>{g.name}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <select
+                              value={newAssignPositionId}
+                              onChange={(e) => setNewAssignPositionId(e.target.value)}
+                              className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-[10px] text-white focus:outline-none"
+                            >
+                              <option value="">직책 선택</option>
+                              {groupPositions.filter(p => p.is_active).map(p => (
+                                <option key={p.position_id} value={p.position_id}>{p.name}</option>
+                              ))}
+                            </select>
+                            <button
+                              type="submit"
+                              className="bg-church-600 hover:bg-church-500 text-white font-bold px-3 py-1 rounded-lg text-[9px] transition-all"
+                            >
+                              추가
+                            </button>
+                          </div>
+                        </form>
+                      </div>
                     )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -1630,18 +2016,6 @@ export default function Settings() {
             <h3 className="text-xs font-bold text-white flex items-center gap-1">
               <Plus size={14} className="text-church-400" /> 신규 직책 추가
             </h3>
-            <div className="space-y-1">
-              <span className="text-[9px] text-slate-500 font-semibold block">소속 그룹 선택 *</span>
-              <select
-                value={selectedPosGroupId}
-                onChange={(e) => setSelectedPosGroupId(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
-              >
-                {groups.map(g => (
-                  <option key={g.group_id} value={g.group_id}>[{g.organization_name}] {g.name}</option>
-                ))}
-              </select>
-            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <span className="text-[9px] text-slate-500 font-semibold">직책명 *</span>
@@ -1661,10 +2035,10 @@ export default function Settings() {
                   className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
                 >
                   <option value="DEPARTMENT_ACCOUNTANT">부서 회계 (DEPARTMENT_ACCOUNTANT)</option>
-                  <option value="DEPARTMENT_HEAD">부서장 (DEPARTMENT_HEAD)</option>
-                  <option value="FINANCE_MANAGER">재정부장 (FINANCE_MANAGER)</option>
-                  <option value="AUDITOR">감사 (AUDITOR)</option>
-                  <option value="GENERAL_USER">일반 사용자 (GENERAL_USER)</option>
+                  <option value="FINANCE_MANAGER">총무 권한 (FINANCE_MANAGER)</option>
+                  <option value="GROUP_LEADER">부장 권한 (GROUP_LEADER)</option>
+                  <option value="COMMITTEE_CHAIR">위원장 권한 (COMMITTEE_CHAIR)</option>
+                  <option value="PASTOR">교역자 권한 (PASTOR)</option>
                 </select>
               </div>
             </div>
@@ -1679,21 +2053,30 @@ export default function Settings() {
             </h3>
             <div className="max-h-[250px] overflow-y-auto no-scrollbar space-y-2">
               {groupPositions.length === 0 ? (
-                <p className="text-[9px] text-slate-500 text-center py-6">선택한 그룹에 등록된 직책이 없습니다.</p>
+                <p className="text-[9px] text-slate-500 text-center py-6">등록된 직책이 없습니다.</p>
               ) : (
                 groupPositions.map((pos) => (
                   <div key={pos.position_id} className="glass p-3 rounded-2xl flex items-center justify-between text-xs border border-slate-800/40">
                     <div>
-                      <h4 className="font-bold text-white">{pos.name}</h4>
-                      <p className="text-[9px] text-slate-500 mt-1">권한: {pos.role}</p>
+                      <div className="flex items-center gap-1.5">
+                        <h4 className="font-bold text-white">{pos.name}</h4>
+                        {!pos.is_active && (
+                          <span className="bg-rose-500/10 border border-rose-500/20 text-rose-400 px-1.5 py-0.5 rounded text-[8px] font-bold">
+                            비활성
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[9px] text-slate-500 mt-1">권한: {pos.role_code || pos.role}</p>
                     </div>
-                    <button
-                      onClick={() => handleDeletePosition(pos.position_id)}
-                      className="text-rose-400 hover:text-rose-300 p-1 hover:bg-rose-500/10 rounded transition-colors active:scale-90"
-                      title="직책 삭제"
-                    >
-                      <Trash2 size={12} />
-                    </button>
+                    {pos.is_active && (
+                      <button
+                        onClick={() => handleDeletePosition(pos.position_id)}
+                        className="text-rose-400 hover:text-rose-300 p-1 hover:bg-rose-500/10 rounded transition-colors active:scale-90"
+                        title="직책 비활성화"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    )}
                   </div>
                 ))
               )}

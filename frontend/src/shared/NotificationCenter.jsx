@@ -7,21 +7,70 @@ export default function NotificationCenter({ isOpen, onClose }) {
   const navigate = useNavigate();
 
   const notifications = [
-    { id: 1, title: 'AI 분석 완료', desc: '신길교회 6월 재정 분석 레포트 생성이 완료되었습니다.', time: '10분 전', type: 'AI', icon: <Cpu size={14} className="text-purple-400" /> },
-    { id: 2, title: '전표 승인 대기', desc: '김재직 집사가 상신한 전표 1건의 최종 결재가 대기 중입니다.', time: '30분 전', type: 'Approval', icon: <FileText size={14} className="text-amber-400" /> },
-    { id: 3, title: '예산 초과 경고', desc: '중등부 여름 행사 지출 금액이 예산을 12% 초과하였습니다.', time: '2시간 전', type: 'Risk Alert', icon: <AlertTriangle size={14} className="text-rose-400" /> },
-    { id: 4, title: '보고서 자동 검토', desc: '분기 감사 보고서 초안에 대한 피드백 작성이 완료되었습니다.', time: '5시간 전', type: 'Report', icon: <ShieldCheck size={14} className="text-emerald-400" /> }
+    { 
+      id: 1, 
+      title: 'AI 분석 완료', 
+      desc: '신길교회 6월 재정 분석 레포트 생성이 완료되었습니다.', 
+      time: '10분 전', 
+      type: 'AI', 
+      capability: 'church', 
+      workspace_id: 'church-ws-id', 
+      context_type: 'decision', 
+      target_url: '/decisions', 
+      icon: <Cpu size={14} className="text-purple-400" /> 
+    },
+    { 
+      id: 2, 
+      title: '전표 승인 대기', 
+      desc: '김재직 집사가 상신한 전표 1건의 최종 결재가 대기 중입니다.', 
+      time: '30분 전', 
+      type: 'Approval', 
+      capability: 'church', 
+      workspace_id: 'church-ws-id', 
+      context_type: 'assignment', 
+      context_id: 'assign-3', 
+      target_url: '/vouchers/1?fiscalYear=2026&committeeId=11&groupId=1', 
+      icon: <FileText size={14} className="text-amber-400" /> 
+    },
+    { 
+      id: 3, 
+      title: '예산 초과 경고', 
+      desc: '중등부 여름 행사 지출 금액이 예산을 12% 초과하였습니다.', 
+      time: '2시간 전', 
+      type: 'Risk Alert', 
+      capability: 'church', 
+      workspace_id: 'church-ws-id', 
+      context_type: 'voucher', 
+      target_url: '/vouchers', 
+      icon: <AlertTriangle size={14} className="text-rose-400" /> 
+    },
+    { 
+      id: 4, 
+      title: '보고서 자동 검토', 
+      desc: '분기 감사 보고서 초안에 대한 피드백 작성이 완료되었습니다.', 
+      time: '5시간 전', 
+      type: 'Report', 
+      capability: 'stock', 
+      workspace_id: 'stock-ws-id', 
+      context_type: 'research', 
+      target_url: '/app/stock', 
+      icon: <ShieldCheck size={14} className="text-emerald-400" /> 
+    }
   ];
 
   const handleNotiClick = (n) => {
-    if (n.type === 'Approval') {
-      // Direct routing with complete context parameter routing
-      navigate('/vouchers/1?fiscalYear=2026&committeeId=11&groupId=1');
-      onClose();
-    } else if (n.type === 'AI' || n.type === 'Report') {
-      navigate('/decisions');
-      onClose();
+    // 1. Platform 3.1: Capability Context recovery
+    if (n.capability === 'church' && n.context_type === 'assignment' && n.context_id) {
+      // Auto-change active assignment and dispatch event to restore context
+      localStorage.setItem('activeAssignmentId', n.context_id);
+      window.dispatchEvent(new CustomEvent('church-assignment-changed', { detail: n.context_id }));
     }
+
+    // 2. Navigate to target URL
+    if (n.target_url) {
+      navigate(n.target_url);
+    }
+    onClose();
   };
 
   const activities = [

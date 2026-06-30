@@ -16,26 +16,24 @@ function isUserAdmin(req) {
   );
 }
 
-// Resolve user organization context scope bounds
+// Resolve user organization context scope bounds based on Multi-Assignment activeContext
 async function resolveUserScope(req) {
   const userId = req.user.userId || req.user.id;
   const projectId = req.user.projectId;
-  const role = req.user.roles?.accounting || 'USER';
   const isAdmin = isUserAdmin(req);
-  const isAuditor = role === 'AUDITOR';
+  const activeRole = req.user.accounting?.role || req.user.roles?.accounting || 'USER';
+  const isAuditor = activeRole === 'AUDITOR';
 
-  // 1. Resolve church profile UUID from active project
   let churchId = null;
   if (projectId) {
     const profile = await query.get('SELECT church_id FROM public.church_profiles WHERE project_id = ? LIMIT 1', [projectId]);
     if (profile) churchId = profile.church_id;
   }
 
-  // 2. Admin & Auditor have full global access
   if (isAdmin || isAuditor) {
     return {
       churchId,
-      allowedCommitteeIds: [], // Empty means unrestricted
+      allowedCommitteeIds: [], 
       allowedGroupIds: [],
       canViewChurchWide: true,
       canViewAllCommittees: true,
@@ -44,68 +42,33 @@ async function resolveUserScope(req) {
     };
   }
 
-  // 3. Query all context-specific roles from church_user_contexts
-  const contexts = await query.all(
-    'SELECT department_id, role_id FROM public.church_user_contexts WHERE user_id = ?',
-    [userId]
-  );
+  const activeContext = req.user.accounting?.activeContext;
+  if (!activeContext) {
+    return {
+      churchId,
+      allowedCommitteeIds: [],
+      allowedGroupIds: [],
+      canViewChurchWide: false,
+      canViewAllCommittees: false,
+      canManageOrganizations: false,
+      role: 'USER'
+    };
+  }
 
-  const allowedCommitteeIds = [];
+  const allowedCommitteeIds = [activeContext.committeeId];
   const allowedGroupIds = [];
-  let isCommitteeChair = role === 'FINANCE_MANAGER';
+  const role = activeContext.roleCode;
 
-  // Check if they are mapped to specific contexts in church_user_contexts
-  for (const ctx of contexts) {
-    if (ctx.role_id === 'FINANCE_MANAGER') {
-      allowedCommitteeIds.push(ctx.department_id);
-      isCommitteeChair = true;
-    } else {
-      allowedGroupIds.push(ctx.department_id);
-    }
-  }
-
-  // Fallback to primary metadata if no custom contexts exist
-  const meta = await query.get(
-    'SELECT department_id, position FROM public.church_user_metadata WHERE user_id = ?',
-    [userId]
-  );
-
-  if (meta && meta.department_id) {
-    const primaryDeptId = meta.department_id;
-    const dept = await query.get(
-      'SELECT parent_id FROM public.church_departments WHERE department_id = ?',
-      [primaryDeptId]
-    );
-
-    if (dept) {
-      const primaryCommitteeId = dept.parent_id;
-
-      if (isCommitteeChair) {
-        if (primaryCommitteeId && !allowedCommitteeIds.includes(primaryCommitteeId)) {
-          allowedCommitteeIds.push(primaryCommitteeId);
-        }
-      } else {
-        if (!allowedGroupIds.includes(primaryDeptId)) {
-          allowedGroupIds.push(primaryDeptId);
-        }
-        if (primaryCommitteeId && !allowedCommitteeIds.includes(primaryCommitteeId)) {
-          allowedCommitteeIds.push(primaryCommitteeId);
-        }
-      }
-    }
-  }
-
-  // If a Committee Chair is authorized, retrieve all child groups belonging to their allowed committees
-  if (isCommitteeChair && allowedCommitteeIds.length > 0) {
+  if (role === 'COMMITTEE_CHAIR') {
     const childGroups = await query.all(
-      `SELECT department_id FROM public.church_departments WHERE parent_id IN (${allowedCommitteeIds.map(() => '?').join(',')})`,
-      allowedCommitteeIds
+      "SELECT department_id FROM public.church_departments WHERE parent_id = ? AND project_id = ?",
+      [activeContext.committeeId, projectId]
     );
     childGroups.forEach(g => {
-      if (!allowedGroupIds.includes(g.department_id)) {
-        allowedGroupIds.push(g.department_id);
-      }
+      allowedGroupIds.push(g.department_id);
     });
+  } else if (activeContext.groupId) {
+    allowedGroupIds.push(activeContext.groupId);
   }
 
   return {
@@ -115,7 +78,7 @@ async function resolveUserScope(req) {
     canViewChurchWide: false,
     canViewAllCommittees: false,
     canManageOrganizations: false,
-    role: isCommitteeChair ? 'FINANCE_MANAGER' : (role === 'DEPARTMENT_HEAD' ? 'DEPARTMENT_HEAD' : 'USER')
+    role: role
   };
 }
 

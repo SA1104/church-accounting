@@ -40,9 +40,17 @@ const {
   getLoginOptions,
   verifyLogin,
   listCredentials,
-  deleteCredential
+  deleteCredential,
+  getRegisterOptionsForSignupFlow,
+  verifyRegisterForSignupFlow
 } = require('./core/auth/passkey');
 const { loadModules } = require('./core/registry');
+
+// Platform 3.1: Capability Routers (isolated from Platform Core)
+const churchServiceRouter = require('./service/church');
+const stockServiceRouter = require('./service/stock');
+const estateServiceRouter = require('./service/estate');
+const missionServiceRouter = require('./service/mission');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -51,32 +59,38 @@ app.use(cors());
 app.use(express.json());
 // Duplicate health route removed; robust implementation retained later in file
 
-// Legacy URL compatibility rewriter middleware (Forwarding to service/church)
+// Platform 3.1: Legacy URL compatibility rewriter
+// Forwards old /api/* paths to the new capability-namespaced /api/church/* routes
 app.use((req, res, next) => {
+  // Church Think legacy path rewrites (capability isolation)
   if (req.url.startsWith('/api/organizations')) {
-    req.url = req.url.replace('/api/organizations', '/api/services/church/organizations');
-    console.log(`[Platform Router] Rewrote: /api/organizations -> /api/services/church/organizations`);
+    req.url = req.url.replace('/api/organizations', '/api/church/organizations');
   } else if (req.url.startsWith('/api/groups')) {
-    req.url = req.url.replace('/api/groups', '/api/services/church/groups');
-    console.log(`[Platform Router] Rewrote: /api/groups -> /api/services/church/groups`);
+    req.url = req.url.replace('/api/groups', '/api/church/admin/groups');
   } else if (req.url.startsWith('/api/church/context-scope')) {
-    req.url = req.url.replace('/api/church/context-scope', '/api/services/church/context-scope');
-    console.log(`[Platform Router] Rewrote: /api/church/context-scope -> /api/services/church/context-scope`);
+    req.url = req.url.replace('/api/church/context-scope', '/api/church/context-scope');
   } else if (req.url.startsWith('/api/vouchers')) {
-    req.url = req.url.replace('/api/vouchers', '/api/services/church/vouchers');
-    console.log(`[Platform Router] Rewrote: /api/vouchers -> /api/services/church/vouchers`);
+    req.url = req.url.replace('/api/vouchers', '/api/church/vouchers');
   } else if (req.url.startsWith('/api/ledgers')) {
-    req.url = req.url.replace('/api/ledgers', '/api/services/church/ledgers');
-    console.log(`[Platform Router] Rewrote: /api/ledgers -> /api/services/church/ledgers`);
+    req.url = req.url.replace('/api/ledgers', '/api/church/ledgers');
   } else if (req.url.startsWith('/api/approvals')) {
-    req.url = req.url.replace('/api/approvals', '/api/services/church/approvals');
-    console.log(`[Platform Router] Rewrote: /api/approvals -> /api/services/church/approvals`);
+    req.url = req.url.replace('/api/approvals', '/api/church/approvals');
   } else if (req.url.startsWith('/api/period-locks')) {
-    req.url = req.url.replace('/api/period-locks', '/api/services/church/period-locks');
-    console.log(`[Platform Router] Rewrote: /api/period-locks -> /api/services/church/period-locks`);
+    req.url = req.url.replace('/api/period-locks', '/api/church/period-locks');
   } else if (req.url.startsWith('/api/categories')) {
-    req.url = req.url.replace('/api/categories', '/api/services/church/categories');
-    console.log(`[Platform Router] Rewrote: /api/categories -> /api/services/church/categories`);
+    req.url = req.url.replace('/api/categories', '/api/church/categories');
+  } else if (req.url.startsWith('/api/admin/departments')) {
+    req.url = req.url.replace('/api/admin/departments', '/api/church/admin/committees');
+  } else if (req.url.startsWith('/api/admin/groups')) {
+    req.url = req.url.replace('/api/admin/groups', '/api/church/admin/groups');
+  } else if (req.url.startsWith('/api/positions')) {
+    req.url = req.url.replace('/api/positions', '/api/church/positions');
+  } else if (req.url.startsWith('/api/user-assignments')) {
+    req.url = req.url.replace('/api/user-assignments', '/api/church/assignments/me');
+  } else if (/^\/api\/users\/[^/]+\/assignments/.test(req.url)) {
+    req.url = req.url.replace(/^\/api\/users\/([^/]+)\/assignments/, '/api/church/assignments/users/$1');
+  } else if (req.url.startsWith('/api/research')) {
+    req.url = req.url.replace('/api/research', '/api/stock/research');
   }
   next();
 });
@@ -92,12 +106,20 @@ app.post('/api/auth/change-password', authenticateToken, changePassword);
 // Passkey/WebAuthn API
 app.post('/api/auth/passkey/register/options', authenticateToken, getRegisterOptions);
 app.post('/api/auth/passkey/register/verify', authenticateToken, verifyRegister);
+app.post('/api/auth/passkey/register/signup-flow/options', getRegisterOptionsForSignupFlow);
+app.post('/api/auth/passkey/register/signup-flow/verify', verifyRegisterForSignupFlow);
 app.post('/api/auth/passkey/login/options', getLoginOptions);
 app.post('/api/auth/passkey/login/verify', verifyLogin);
 app.get('/api/auth/passkey/credentials', authenticateToken, listCredentials);
 app.delete('/api/auth/passkey/credentials/:id', authenticateToken, deleteCredential);
 
 // 1-1. 다교회 온보딩 공통 조회 API (미인증)
+// REMOVED: inline /api/churches route — served by legacy rewriter + church router
+// PLACEHOLDER kept for line number alignment only
+app.get('/__platform_health_check__', (req, res) => res.json({ status: 'ok', platform: '3.1' }));
+
+// OLD: app.get('/api/churches', ...) — now served under /api/church router
+// For backward compat only, the church service router handles GET /
 app.get('/api/churches', async (req, res) => {
   try {
     const showAll = req.query.all === 'true';
@@ -167,217 +189,30 @@ async function getActiveProjectId(req) {
   return anyProject ? anyProject.project_id : null;
 }
 
-// 1-2. 관리자용 조직 관리 API (인증 필수)
+// =========================================================================
+// Platform 3.1: Church Think Capability Router
+// ALL church-specific APIs are handled by the Church Service Router.
+// Mounted at /api/church/* — Platform knows nothing about Church internals.
+// =========================================================================
 const requireAdminRole = requireRole(['SYSTEM_ADMIN', 'AUDITOR'], 'accounting');
+const requireSystemAdminRole = requireRole(['SYSTEM_ADMIN'], 'accounting');
 
-app.get('/api/admin/departments', authenticateToken, requireAdminRole, async (req, res) => {
-  try {
-    const projectId = await getActiveProjectId(req);
-    const list = await query.all(
-      "SELECT department_id, name, description, is_active FROM public.church_departments WHERE parent_id IS NULL AND project_id = ? ORDER BY name ASC",
-      [projectId]
-    );
-    res.json(list);
-  } catch (error) {
-    console.error('Error fetching admin departments:', error);
-    res.status(500).json({ message: 'Database error' });
-  }
-});
+// Mount Capability Routers (Platform 3.1)
+app.use('/api/church', churchServiceRouter);
+app.use('/api/stock', authenticateToken, stockServiceRouter);
+app.use('/api/estate', authenticateToken, estateServiceRouter);
+app.use('/api/mission', authenticateToken, missionServiceRouter);
 
-app.post('/api/admin/departments', authenticateToken, requireAdminRole, async (req, res) => {
-  console.log('[CREATE DEPARTMENT REQUEST]', {
-    user: {
-      id: req.user?.id,
-      email: req.user?.email,
-      role: req.user?.role,
-      isAdmin: req.user?.isAdmin,
-      projectId: req.user?.projectId,
-      activeProjectId: req.user?.activeProjectId,
-      accounting: req.user?.accounting
-    },
-    body: req.body
-  });
+// Legacy module service routes (also served by church router, kept for compatibility)
+// /api/services/church/* still loads from modules/accounting
 
-  const { name, description } = req.body;
-  if (!name) return res.status(400).json({ message: '부서명이 누락되었습니다.' });
+// NOTE: /api/admin/departments, /api/admin/groups, /api/positions,
+// /api/user-assignments, /api/users/:id/assignments have been moved to
+// the Capability Routers.
 
-  try {
-    const projectId = await getActiveProjectId(req);
-    const existing = await query.get(
-      'SELECT department_id FROM public.church_departments WHERE parent_id IS NULL AND name = ? AND project_id = ?',
-      [name, projectId]
-    );
-    if (existing) {
-      return res.status(400).json({
-        success: false,
-        message: '이미 등록된 위원회/기관명입니다.'
-      });
-    }
-
-    const result = await query.run(
-      "INSERT INTO public.church_departments (project_id, parent_id, name, description, is_active) VALUES (?, NULL, ?, ?, TRUE) RETURNING department_id",
-      [projectId, name, description || '']
-    );
-    res.status(201).json({ success: true, department: { id: result.id, name }, message: '부서가 생성되었습니다.' });
-  } catch (err) {
-    console.error('[CREATE DEPARTMENT ERROR]', {
-      message: err.message,
-      code: err.code,
-      detail: err.detail,
-      hint: err.hint,
-      constraint: err.constraint,
-      stack: err.stack,
-      body: req.body,
-      user: req.user
-    });
-
-    return res.status(500).json({
-      success: false,
-      message: '위원회 등록 중 데이터베이스 오류가 발생했습니다.',
-      details: err.message,
-      code: err.code,
-      detail: err.detail,
-      hint: err.hint,
-      constraint: err.constraint
-    });
-  }
-});
-
-app.put('/api/admin/departments/:id', authenticateToken, requireAdminRole, async (req, res) => {
-  const { id } = req.params;
-  const { name, description, is_active } = req.body;
-  try {
-    const projectId = await getActiveProjectId(req);
-    await query.run(
-      "UPDATE public.church_departments SET name = COALESCE(?, name), description = COALESCE(?, description), is_active = COALESCE(?, is_active) WHERE department_id = ? AND project_id = ?",
-      [name, description, is_active, parseInt(id, 10), projectId]
-    );
-    res.json({ message: '부서 정보가 수정되었습니다.' });
-  } catch (error) {
-    console.error('Error updating department:', error);
-    res.status(500).json({ message: 'Database error' });
-  }
-});
-
-app.delete('/api/admin/departments/:id', authenticateToken, requireAdminRole, async (req, res) => {
-  const { id } = req.params;
-  try {
-    const projectId = await getActiveProjectId(req);
-    await query.run(
-      "UPDATE public.church_departments SET is_active = FALSE WHERE department_id = ? AND project_id = ?",
-      [parseInt(id, 10), projectId]
-    );
-    res.json({ message: '부서가 비활성화되었습니다.' });
-  } catch (error) {
-    console.error('Error deleting department:', error);
-    res.status(500).json({ message: 'Database error' });
-  }
-});
-
-app.get('/api/admin/departments/:id/groups', authenticateToken, requireAdminRole, async (req, res) => {
-  const { id } = req.params;
-  try {
-    const projectId = await getActiveProjectId(req);
-    const list = await query.all(
-      "SELECT department_id as group_id, parent_id as department_id, name, description, is_active FROM public.church_departments WHERE parent_id = ? AND project_id = ? ORDER BY name ASC",
-      [parseInt(id, 10), projectId]
-    );
-    res.json(list);
-  } catch (error) {
-    console.error('Error fetching admin groups:', error);
-    res.status(500).json({ message: 'Database error' });
-  }
-});
-
-app.post('/api/admin/groups', authenticateToken, requireAdminRole, async (req, res) => {
-  console.log('[CREATE DEPARTMENT REQUEST]', {
-    user: {
-      id: req.user?.id,
-      email: req.user?.email,
-      role: req.user?.role,
-      isAdmin: req.user?.isAdmin,
-      projectId: req.user?.projectId,
-      activeProjectId: req.user?.activeProjectId,
-      accounting: req.user?.accounting
-    },
-    body: req.body
-  });
-
-  const { department_id, name, description, sort_order } = req.body;
-  if (!department_id || !name) return res.status(400).json({ message: '부서 ID와 그룹명이 누락되었습니다.' });
-
-  try {
-    const projectId = await getActiveProjectId(req);
-    const existing = await query.get(
-      'SELECT department_id FROM public.church_departments WHERE parent_id = ? AND name = ? AND project_id = ?',
-      [parseInt(department_id, 10), name, projectId]
-    );
-    if (existing) {
-      return res.status(400).json({
-        success: false,
-        message: '이미 등록된 그룹명입니다.'
-      });
-    }
-
-    const result = await query.run(
-      "INSERT INTO public.church_departments (project_id, parent_id, name, description, is_active) VALUES (?, ?, ?, ?, TRUE) RETURNING department_id",
-      [projectId, parseInt(department_id, 10), name, description || '']
-    );
-    res.status(201).json({ success: true, department: { id: result.id, name }, message: '소속 그룹이 생성되었습니다.' });
-  } catch (err) {
-    console.error('[CREATE DEPARTMENT ERROR]', {
-      message: err.message,
-      code: err.code,
-      detail: err.detail,
-      hint: err.hint,
-      constraint: err.constraint,
-      stack: err.stack,
-      body: req.body,
-      user: req.user
-    });
-
-    return res.status(500).json({
-      success: false,
-      message: '위원회 등록 중 데이터베이스 오류가 발생했습니다.',
-      details: err.message,
-      code: err.code,
-      detail: err.detail,
-      hint: err.hint,
-      constraint: err.constraint
-    });
-  }
-});
-
-app.put('/api/admin/groups/:id', authenticateToken, requireAdminRole, async (req, res) => {
-  const { id } = req.params; // integer department_id
-  const { name, description, is_active } = req.body;
-  try {
-    const projectId = await getActiveProjectId(req);
-    await query.run(
-      "UPDATE public.church_departments SET name = COALESCE(?, name), description = COALESCE(?, description), is_active = COALESCE(?, is_active) WHERE department_id = ? AND project_id = ?",
-      [name, description, is_active, parseInt(id, 10), projectId]
-    );
-    res.json({ message: '소속 그룹 정보가 수정되었습니다.' });
-  } catch (error) {
-    console.error('Error updating group:', error);
-    res.status(500).json({ message: 'Database error' });
-  }
-});
-
-app.delete('/api/admin/groups/:id', authenticateToken, requireAdminRole, async (req, res) => {
-  const { id } = req.params; // integer department_id
-  try {
-    const projectId = await getActiveProjectId(req);
-    await query.run(
-      "UPDATE public.church_departments SET is_active = FALSE WHERE department_id = ? AND project_id = ?",
-      [parseInt(id, 10), projectId]
-    );
-    res.json({ message: '소속 그룹이 비활성화되었습니다.' });
-  } catch (error) {
-    console.error('Error deleting group:', error);
-    res.status(500).json({ message: 'Database error' });
-  }
-});
+// =========================================================================
+// Platform Core Engine Mounts (these are Platform-level, not Capability)
+// =========================================================================
 
 // Decision Engine & Media Engine Mounts
 const decisionRouter = require('./core/decision/index.js');
@@ -417,6 +252,45 @@ app.post('/api/users/:id/approve', authenticateToken, requireRole(['SYSTEM_ADMIN
 
     // Set user as active and approved
     await query.run("UPDATE platform_profiles SET is_active = TRUE, signup_status = 'approved' WHERE user_id = ?", [id]);
+
+    // Approve the platform membership for this workspace
+    const workspace = await query.get("SELECT workspace_id FROM public.platform_workspaces WHERE project_id = ? LIMIT 1", [projectId]);
+    if (workspace) {
+      await query.run(`
+        UPDATE public.platform_memberships 
+        SET status = 'approved', approved_at = CURRENT_TIMESTAMP, approved_by = ?
+        WHERE user_id = ? AND workspace_id = ?
+      `, [req.user.userId, id, workspace.workspace_id]);
+    }
+
+    // Convert requested assignments into active approved assignments
+    const requests = await query.all("SELECT * FROM public.church_signup_assignment_requests WHERE user_id = ? AND project_id = ? AND status = 'pending'", [id, projectId]);
+    let first = true;
+    for (const request of requests) {
+      let roleCode = 'DEPARTMENT_ACCOUNTANT';
+      if (request.position_id) {
+        const pos = await query.get("SELECT role_code FROM public.church_positions WHERE position_id = ?", [request.position_id]);
+        if (pos) roleCode = pos.role_code;
+      }
+      
+      await query.run(`
+        INSERT INTO public.church_user_assignments (
+          user_id, project_id, committee_id, group_id, position_id, role_code, is_primary, status, created_by
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'approved', ?)
+      `, [
+        id,
+        projectId,
+        request.committee_id,
+        request.group_id,
+        request.position_id || (await query.get("SELECT position_id FROM public.church_positions WHERE project_id = ? AND name = '회계' LIMIT 1", [projectId]))?.position_id,
+        roleCode,
+        first ? true : false,
+        req.user.userId
+      ]);
+      
+      await query.run("UPDATE public.church_signup_assignment_requests SET status = 'approved', approved_at = CURRENT_TIMESTAMP, approved_by = ? WHERE id = ?", [req.user.userId, request.id]);
+      first = false;
+    }
 
     // Handle custom department/group approval if present
     const meta = await query.get('SELECT project_id, custom_department_name, custom_group_name FROM church_user_metadata WHERE user_id = ?', [id]);
@@ -912,6 +786,10 @@ app.put('/api/notifications/:id/read', authenticateToken, async (req, res) => {
 const { enforceContextSecurity } = require('./service/church/contextScope');
 
 app.get('/api/dashboard/stats', authenticateToken, enforceContextSecurity, async (req, res) => {
+  if (!req.user.accounting?.activeContext && !req.user.isAdmin) {
+    return res.status(403).json({ error: 'FORBIDDEN_CONTEXT', message: '승인된 조직 배정이 없습니다.' });
+  }
+
   const { group, committee, fiscalYear } = req.query;
   const scope = req.contextScope;
   const activeYear = fiscalYear || '2026';

@@ -13,8 +13,11 @@ import {
   TrendingUp,
   MapPin,
   Globe,
-  ShieldCheck
+  ShieldCheck,
+  HelpCircle
 } from 'lucide-react';
+import { getChurchNavConfig } from '../apps/church/churchNavConfig';
+import { getStockNavConfig } from '../apps/stock/stockNavConfig';
 
 export default function WorkspaceSidebar({ user, token, logout, churchProfile, isOpen, toggleSidebar }) {
   const location = useLocation();
@@ -93,156 +96,82 @@ export default function WorkspaceSidebar({ user, token, logout, churchProfile, i
     }
   };
 
+  const IconComponent = ({ name, className, size = 15 }) => {
+    const IconMap = {
+      Home,
+      FileText,
+      PlusCircle,
+      CheckSquare,
+      BarChart2,
+      Settings: SettingsIcon,
+      Cpu,
+      ShieldCheck,
+      TrendingUp,
+      MapPin,
+      Globe
+    };
+    const Icon = IconMap[name] || HelpCircle;
+    return <Icon className={className} size={size} />;
+  };
+
   // Render navigation links based on active Capability
   const renderNavLinks = () => {
-    if (activeApp !== 'church') {
-      return (
-        <div className="space-y-1 pt-2">
-          <Link
-            to={`/app/${activeApp}`}
-            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
-              isActive(`/app/${activeApp}`)
-                ? 'bg-indigo-600/15 border-indigo-500/20 text-white font-extrabold'
-                : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-900/50'
-            }`}
-            onClick={toggleSidebar}
-          >
-            <Home size={15} />
-            <span>대시보드</span>
-          </Link>
-
-          <Link
-            to="/decisions"
-            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
-              isActive('/decisions')
-                ? 'bg-indigo-600/15 border-indigo-500/20 text-white font-extrabold'
-                : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-900/50'
-            }`}
-            onClick={toggleSidebar}
-          >
-            <ShieldCheck size={15} className="text-indigo-400" />
-            <span>Decision History</span>
-          </Link>
-          <div className="text-[9px] font-bold text-slate-600 uppercase tracking-widest px-3 pt-4 pb-1">
-            Capability Tools
-          </div>
-          <div className="p-3 text-[10px] text-slate-500 border border-dashed border-slate-800 rounded-xl bg-slate-950/20">
-            준비 중인 도구입니다.
-          </div>
-        </div>
-      );
+    let navLinks = [];
+    switch (activeApp) {
+      case 'church':
+        navLinks = getChurchNavConfig(user);
+        break;
+      case 'stock':
+        navLinks = getStockNavConfig(user);
+        break;
+      default:
+        navLinks = [
+          { to: `/app/${activeApp}`, label: '대시보드', icon: 'Home', exact: true },
+          { to: '/decisions', label: 'Decision History', icon: 'ShieldCheck', accent: true },
+          { type: 'section', label: 'Capability Tools' },
+          { type: 'placeholder', label: '준비 중인 도구입니다.' }
+        ];
     }
 
     return (
       <div className="space-y-1 pt-2">
-        <Link
-          to="/app/church"
-          className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
-            isActive('/app/church')
-              ? 'bg-indigo-600/15 border-indigo-500/20 text-white font-extrabold'
-              : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-900/50'
-          }`}
-          onClick={toggleSidebar}
-        >
-          <Home size={15} />
-          <span>Dashboard</span>
-        </Link>
+        {navLinks.map((item, idx) => {
+          if (item.type === 'section') {
+            return (
+              <div key={idx} className="text-[9px] font-bold text-slate-600 uppercase tracking-widest px-3 pt-4 pb-1">
+                {item.label}
+              </div>
+            );
+          }
+          if (item.type === 'placeholder') {
+            return (
+              <div key={idx} className="p-3 text-[10px] text-slate-500 border border-dashed border-slate-800 rounded-xl bg-slate-950/20">
+                {item.label}
+              </div>
+            );
+          }
 
-        <Link
-          to="/decisions"
-          className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
-            isActive('/decisions')
-              ? 'bg-indigo-600/15 border-indigo-500/20 text-white font-extrabold'
-              : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-900/50'
-          }`}
-          onClick={toggleSidebar}
-        >
-          <ShieldCheck size={15} className="text-indigo-400" />
-          <span>Decision History</span>
-        </Link>
-
-        <Link
-          to="/app/church" // Just maps to Dashboard/AI Home for Copilot context
-          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border border-transparent text-slate-400 hover:text-white hover:bg-slate-900/50"
-          onClick={() => {
-            toggleSidebar();
-            // Optional: trigger AI dock open here if needed
-          }}
-        >
-          <Cpu size={15} className="text-indigo-400" />
-          <span>AI Copilot</span>
-        </Link>
-
-        <div className="text-[9px] font-bold text-slate-600 uppercase tracking-widest px-3 pt-4 pb-1">
-          Accounting Tools
-        </div>
-
-        <Link
-          to="/vouchers/new"
-          className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
-            isActive('/vouchers/new')
-              ? 'bg-indigo-600/15 border-indigo-500/20 text-white font-extrabold'
-              : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-900/50'
-          }`}
-          onClick={toggleSidebar}
-        >
-          <PlusCircle size={15} />
-          <span>회계/전표등록</span>
-        </Link>
-
-        <Link
-          to="/vouchers"
-          className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
-            isActive('/vouchers') && !location.pathname.includes('new')
-              ? 'bg-indigo-600/15 border-indigo-500/20 text-white font-extrabold'
-              : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-900/50'
-          }`}
-          onClick={toggleSidebar}
-        >
-          <FileText size={15} />
-          <span>전표목록</span>
-        </Link>
-
-        <Link
-          to="/reports"
-          className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
-            isActive('/reports')
-              ? 'bg-indigo-600/15 border-indigo-500/20 text-white font-extrabold'
-              : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-900/50'
-          }`}
-          onClick={toggleSidebar}
-        >
-          <BarChart2 size={15} />
-          <span>장부/결산</span>
-        </Link>
-
-        {(user?.role === 'AUDITOR' || user?.role === 'SYSTEM_ADMIN') && (
-          <Link
-            to="/audit"
-            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
-              isActive('/audit')
-                ? 'bg-indigo-600/15 border-indigo-500/20 text-white font-extrabold'
-                : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-900/50'
-            }`}
-            onClick={toggleSidebar}
-          >
-            <CheckSquare size={15} />
-            <span>감사위원회</span>
-          </Link>
-        )}
-
-        <Link
-          to="/settings"
-          className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
-            isActive('/settings')
-              ? 'bg-indigo-600/15 border-indigo-500/20 text-white font-extrabold'
-              : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-900/50'
-          }`}
-          onClick={toggleSidebar}
-        >
-          <SettingsIcon size={15} />
-          <span>설정</span>
-        </Link>
+          return (
+            <Link
+              key={idx}
+              to={item.to}
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
+                isActive(item.to)
+                  ? 'bg-indigo-600/15 border-indigo-500/20 text-white font-extrabold'
+                  : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-900/50'
+              }`}
+              onClick={() => {
+                if (item.action === 'openAIDock') {
+                  window.dispatchEvent(new CustomEvent('open-ai-copilot'));
+                }
+                toggleSidebar();
+              }}
+            >
+              <IconComponent name={item.icon} className={item.accent ? "text-indigo-400" : ""} size={15} />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
       </div>
     );
   };

@@ -22,6 +22,9 @@ function getAccountingUser(req) {
 
 // 1. 결재 대기 문서 목록 조회
 router.get('/pending', authenticateToken, async (req, res) => {
+  if (!req.user.accounting?.activeContext && !req.user.isAdmin) {
+    return res.status(403).json({ error: 'FORBIDDEN_CONTEXT', message: '승인된 조직 배정이 없습니다.' });
+  }
   const { userId, role, groupId, isSystemAdmin, hasGlobalAccess } = getAccountingUser(req);
 
   try {
@@ -122,6 +125,9 @@ router.get('/pending', authenticateToken, async (req, res) => {
 
 // 2. 결재 처리
 router.post('/action', authenticateToken, async (req, res) => {
+  if (!req.user.accounting?.activeContext && !req.user.isAdmin) {
+    return res.status(403).json({ error: 'FORBIDDEN_CONTEXT', message: '승인된 조직 배정이 없습니다.' });
+  }
   const { userId, role, isSystemAdmin } = getAccountingUser(req);
   const { targetType, targetId, action, comment, signature } = req.body; 
 

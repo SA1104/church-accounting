@@ -27,7 +27,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // 2. 결산 마감 설정
-router.post('/lock', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN', 'AUDITOR']), async (req, res) => {
+router.post('/lock', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN']), async (req, res) => {
   const { periodType, periodValue } = req.body;
   const { userId } = req.user;
 
