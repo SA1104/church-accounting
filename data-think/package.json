@@ -1,0 +1,28 @@
+{
+  "name": "data-think-engine",
+  "version": "1.0.0",
+  "description": "Booza Think - Data Think Engine: 국내외 경제/금융/부동산/주식 데이터 자동 수집 엔진",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "scheduler": "node scheduler/index.js",
+    "test": "node tests/test_api_connections.js",
+    "test:ecos": "echo 'TODO: tests/test_ecos.js가 아직 작성되지 않았습니다.'",
+    "test:krx": "echo 'TODO: tests/test_krx.js가 아직 작성되지 않았습니다.'",
+    "test:dart": "echo 'TODO: tests/test_dart.js가 아직 작성되지 않았습니다.'",
+    "migrate": "echo 'TODO: utils/migrate.js를 구현해야 합니다.'",
+    "seed": "echo 'TODO: utils/seed.js를 구현해야 합니다.'",
+    "collect:now": "echo 'TODO: utils/collect_once.js를 구현해야 합니다.'"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "node-cron": "^3.0.3",
+    "dotenv": "^16.4.5",
+    "xml2js": "^0.6.2",
+    "@supabase/supabase-js": "^2.43.4",
+    "iconv-lite": "^0.6.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}
