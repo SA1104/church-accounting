@@ -2919,48 +2919,68 @@ export default function Settings() {
       {/* 초대 모달 다이얼로그 */}
       {showInviteModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 select-none">
-          <div className="glass max-w-md w-full p-5 rounded-3xl border border-slate-800 shadow-2xl space-y-4 max-h-[90vh] flex flex-col relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-church-500/10 rounded-full filter blur-xl" />
+          <div className="glass max-w-md w-full p-5 rounded-3xl border border-slate-800 shadow-2xl max-h-[92vh] flex flex-col relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-church-500/10 rounded-full filter blur-xl pointer-events-none" />
 
-            <div className="flex justify-between items-center shrink-0">
-              <h3 className="text-xs font-bold text-white">신규 멤버 초대장 작성</h3>
+            {/* 헤더 */}
+            <div className="flex justify-between items-center shrink-0 mb-4">
+              <div>
+                <h3 className="text-xs font-bold text-white">신규 멤버 초대장 작성</h3>
+                <p className="text-[8.5px] text-slate-500 mt-0.5">초대를 받을 분의 정보와 임명 내용을 입력해주세요</p>
+              </div>
               <button
+                type="button"
                 onClick={() => setShowInviteModal(false)}
-                className="text-slate-500 hover:text-white transition-colors"
+                className="text-slate-500 hover:text-white transition-colors shrink-0 ml-3"
               >
                 <X size={16} />
               </button>
             </div>
 
+            {/* 콘텐츠 영역 */}
             {inviteLinkResult ? (
-              <div className="space-y-4 py-2 shrink-0 text-left">
-                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-450 rounded-2xl text-[10.5px] leading-relaxed font-semibold">
-                  ✓ 초대장 생성이 완료되었습니다! 아래 링크를 복사하거나 공유하여 임명 대상자에게 전달해주세요.
+              /* 생성 완료 화면 */
+              <div className="space-y-3 overflow-y-auto flex-1 no-scrollbar text-left">
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-2xl text-[10.5px] leading-relaxed font-semibold">
+                  ✓ 초대장 생성 완료! 아래 링크를 복사하여 임명 대상자에게 전달해주세요.
                 </div>
-                
+
                 <div className="space-y-1">
-                  <span className="text-[9px] text-slate-500 font-bold block">초대 링크</span>
-                  <input
-                    type="text"
-                    readOnly
-                    value={inviteLinkResult.url}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-[10px] text-slate-300 font-mono focus:outline-none"
-                    onClick={(e) => e.target.select()}
-                  />
+                  <span className="text-[9px] text-slate-500 font-bold block">초대 링크 (대상자에게 전달)</span>
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      readOnly
+                      value={inviteLinkResult.url}
+                      className="flex-1 bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-[10px] text-slate-300 font-mono focus:outline-none"
+                      onClick={(e) => e.target.select()}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(inviteLinkResult.url);
+                        alert('초대 링크가 클립보드에 복사되었습니다.');
+                      }}
+                      className="shrink-0 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-300 font-bold px-3 rounded-xl text-[9px] transition-all"
+                    >
+                      복사
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-1">
                   <span className="text-[9px] text-slate-500 font-bold block">안내 메세지 템플릿</span>
                   <textarea
                     readOnly
-                    rows={4}
+                    rows={5}
                     value={inviteLinkResult.message}
                     className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-[10px] text-slate-400 font-sans focus:outline-none resize-none leading-relaxed"
                   />
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 pt-1">
+                <div className="grid grid-cols-3 gap-2">
                   <button
+                    type="button"
                     onClick={() => {
                       navigator.clipboard.writeText(inviteLinkResult.message);
                       alert('안내 메시지가 클립보드에 복사되었습니다.');
@@ -2984,53 +3004,100 @@ export default function Settings() {
                     카카오 공유
                   </a>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowInviteModal(false)}
+                  className="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-xs transition-all mt-1"
+                >
+                  닫기
+                </button>
+              </div>
+            ) : profileCommittees.length === 0 ? (
+              /* 위원회 없을 때 안내 */
+              <div className="py-8 text-center space-y-4 flex flex-col items-center">
+                <div className="w-14 h-14 bg-amber-500/10 rounded-2xl flex items-center justify-center">
+                  <AlertTriangle size={28} className="text-amber-400" />
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-white mb-1">위원회 또는 부서 설정이 필요합니다</p>
+                  <p className="text-[9.5px] text-slate-400 leading-relaxed">
+                    초대장을 발송하려면 먼저 소속될<br />
+                    <span className="text-amber-400 font-bold">위원회(부서)</span>를 하나 이상 등록해야 합니다.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 w-full">
+                  <button
+                    type="button"
+                    onClick={() => { setShowInviteModal(false); setActiveTab('orgs'); }}
+                    className="bg-church-600 hover:bg-church-500 text-white font-bold py-2.5 rounded-xl text-[10px] transition-all"
+                  >
+                    부서/위원회 설정으로
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowInviteModal(false)}
+                    className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-[10px] transition-all"
+                  >
+                    취소
+                  </button>
+                </div>
               </div>
             ) : (
-              <form onSubmit={handleCreateInvitation} className="space-y-3.5 overflow-y-auto pr-1 no-scrollbar text-left">
+              /* 초대장 작성 폼 */
+              <form onSubmit={handleCreateInvitation} className="space-y-3.5 overflow-y-auto flex-1 pr-1 no-scrollbar text-left">
+
+                {/* 발송 대상자 */}
+                <p className="text-[8px] font-black text-church-400 uppercase tracking-widest">발송 대상자 정보</p>
+
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400">이름 *</label>
+                  <label className="text-[10px] font-bold text-slate-400">받는 사람 이름 <span className="text-rose-400">*</span></label>
                   <input
                     type="text"
                     required
                     value={inviteName}
                     onChange={(e) => setInviteName(e.target.value)}
-                    placeholder="실명 입력"
+                    placeholder="예: 홍길동"
                     className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-church-500"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400">이메일 주소 *</label>
+                  <label className="text-[10px] font-bold text-slate-400">받는 사람 이메일 <span className="text-rose-400">*</span></label>
                   <input
                     type="email"
                     required
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
-                    placeholder="candidate@gmail.com"
+                    placeholder="예: hong@gmail.com"
                     className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-church-500 font-mono"
                   />
+                  <p className="text-[8.5px] text-slate-500">이 이메일로 초대 링크가 발송됩니다 (계정 가입 시에도 사용)</p>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400">휴대폰 번호 (선택)</label>
+                  <label className="text-[10px] font-bold text-slate-400">받는 사람 휴대폰 번호</label>
                   <input
                     type="text"
                     value={invitePhone}
                     onChange={(e) => setInvitePhone(e.target.value)}
-                    placeholder="010-0000-0000"
+                    placeholder="예: 010-1234-5678 (선택)"
                     className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-church-500"
                   />
                 </div>
 
+                {/* 임명 내용 */}
+                <p className="text-[8px] font-black text-church-400 uppercase tracking-widest pt-1 border-t border-slate-800/60">임명 내용</p>
+
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400">임명 위원회 *</label>
+                  <label className="text-[10px] font-bold text-slate-400">소속 위원회 <span className="text-rose-400">*</span></label>
                   <select
                     required
                     value={inviteCommId}
-                    onChange={(e) => setInviteCommId(e.target.value)}
+                    onChange={(e) => { setInviteCommId(e.target.value); setInviteGroupId(''); }}
                     className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-church-500"
                   >
-                    <option value="">위원회를 선택하세요</option>
+                    <option value="">— 위원회를 선택하세요 —</option>
                     {profileCommittees.map(c => (
                       <option key={c.department_id} value={c.department_id}>{c.name}</option>
                     ))}
@@ -3038,14 +3105,19 @@ export default function Settings() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400">임명 상세 부서/그룹</label>
+                  <label className="text-[10px] font-bold text-slate-400">
+                    소속 부서/그룹
+                    <span className="text-[8.5px] text-slate-500 font-normal ml-1">(위원회 선택 후 선택 가능)</span>
+                  </label>
                   <select
                     value={inviteGroupId}
                     onChange={(e) => setInviteGroupId(e.target.value)}
                     disabled={!inviteCommId || inviteGroupOptions.length === 0}
                     className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-church-500 disabled:opacity-50"
                   >
-                    <option value="">선택 안 함 (위원회 소속)</option>
+                    <option value="">
+                      {!inviteCommId ? '위원회 먼저 선택' : inviteGroupOptions.length === 0 ? '하위 부서 없음 (위원회 직속)' : '— 부서 선택 안 함 (위원회 직속) —'}
+                    </option>
                     {inviteGroupOptions.map(g => (
                       <option key={g.group_id} value={g.group_id}>{g.name}</option>
                     ))}
@@ -3053,72 +3125,91 @@ export default function Settings() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400">임명 직책 *</label>
+                  <label className="text-[10px] font-bold text-slate-400">임명 직첸 <span className="text-rose-400">*</span></label>
                   <select
                     required
                     value={invitePosId}
                     onChange={(e) => setInvitePosId(e.target.value)}
                     className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-church-500"
                   >
-                    <option value="">직책을 선택하세요</option>
+                    <option value="">— 직첸을 선택하세요 —</option>
                     {profilePositions.map(p => (
                       <option key={p.position_id} value={p.position_id}>{p.name}</option>
                     ))}
                   </select>
+                  {profilePositions.length === 0 && (
+                    <p className="text-[8.5px] text-amber-400">
+                      ⚠ 등록된 직첸이 없습니다.{' '}
+                      <button type="button" onClick={() => { setShowInviteModal(false); setActiveTab('positions'); }} className="underline">직첸 설정으로 이동</button>
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400">할당 권한 *</label>
+                  <label className="text-[10px] font-bold text-slate-400">부여할 시스템 권한 <span className="text-rose-400">*</span></label>
                   <select
                     required
                     value={inviteRole}
                     onChange={(e) => setInviteRole(e.target.value)}
                     className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-church-500"
                   >
-                    <option value="member">일반 회원 (member)</option>
-                    <option value="teacher">교사 (teacher)</option>
-                    <option value="department_head">부서 부장 (department_head)</option>
-                    <option value="committee_head">위원회 위원장 (committee_head)</option>
-                    <option value="auditor">감사 (auditor)</option>
-                    <option value="finance_admin">재정 부장 / 총무 (finance_admin)</option>
-                    <option value="elder">장로/안수집사 (elder)</option>
-                    <option value="pastor">교역자 (pastor)</option>
-                    <option value="system_admin">플랫폼 관리자 (system_admin)</option>
+                    <option value="member">일반 회원 — 기본 열람 권한</option>
+                    <option value="teacher">교사 — 부서 활동 참여</option>
+                    <option value="department_head">부서 부장 — 부서 관리 권한</option>
+                    <option value="committee_head">위원장 — 위원회 전체 관리</option>
+                    <option value="auditor">감사위원 — 재정 열람 전용</option>
+                    <option value="finance_admin">재정 부장/총무 — 재정 입력·결산</option>
+                    <option value="elder">장로/안수집사 — 의결 참여 권한</option>
+                    <option value="pastor">교역자 — 전체 열람 및 보고</option>
                   </select>
+                  <p className="text-[8.5px] text-slate-500">※ 플랫폼 관리자 권한은 초대로 부여할 수 없습니다</p>
                 </div>
 
+                {/* 발송 옵션 */}
+                <p className="text-[8px] font-black text-church-400 uppercase tracking-widest pt-1 border-t border-slate-800/60">발송 옵션</p>
+
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400">전달 메시지 (선택)</label>
+                  <label className="text-[10px] font-bold text-slate-400">초대 메시지 (선택)</label>
                   <textarea
                     rows={2}
                     value={inviteMessage}
                     onChange={(e) => setInviteMessage(e.target.value)}
-                    placeholder="초대받는 분께 보낼 메시지를 입력하세요."
+                    placeholder="대상자에게 전달할 개인 메시지를 입력하세요 (생략 가능)"
                     className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white focus:outline-none focus:border-church-500 resize-none"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400">링크 만료일 설정 *</label>
+                  <label className="text-[10px] font-bold text-slate-400">초대 링크 유효 기간 <span className="text-rose-400">*</span></label>
                   <select
                     required
                     value={inviteExpiresDays}
                     onChange={(e) => setInviteExpiresDays(parseInt(e.target.value, 10))}
                     className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-church-500"
                   >
-                    <option value={1}>1일 후 만료</option>
-                    <option value={3}>3일 후 만료</option>
-                    <option value={7}>7일 후 만료 (기본)</option>
-                    <option value={30}>30일 후 만료</option>
+                    <option value={1}>1일 (긴급 발송)</option>
+                    <option value={3}>3일 이내 수낙</option>
+                    <option value={7}>7일 이내 수낙 (기본 권장)</option>
+                    <option value={30}>30일 이내 수낙 (장기)</option>
                   </select>
                 </div>
 
-                <button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-church-600 to-church-500 hover:brightness-110 text-white font-bold py-2.5 rounded-xl text-xs shadow-md transition-all active:scale-[0.98] mt-2 shrink-0"
-                >
-                  초대 링크 생성
-                </button>
+                {/* 확인/취소 버튼 */}
+                <div className="grid grid-cols-2 gap-2 pt-2 shrink-0 pb-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowInviteModal(false)}
+                    className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-xs transition-all active:scale-[0.98]"
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-gradient-to-r from-church-600 to-church-500 hover:brightness-110 text-white font-bold py-2.5 rounded-xl text-xs shadow-md transition-all active:scale-[0.98]"
+                  >
+                    초대장 생성 및 링크 발급
+                  </button>
+                </div>
               </form>
             )}
           </div>
