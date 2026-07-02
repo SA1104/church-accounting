@@ -32,13 +32,19 @@ export async function apiClient(url, options = {}) {
     const response = await fetch(url, fetchOptions);
 
     if (response.status === 401) {
-      // Clear token and user session data
-      localStorage.removeItem('token');
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('user');
-      alert('로그인 세션이 만료되었습니다. 다시 로그인해 주세요.');
-      window.location.href = '/login';
+      const hadToken =
+        localStorage.getItem('token') ||
+        localStorage.getItem('authToken') ||
+        localStorage.getItem('accessToken');
+
+      if (hadToken) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('user');
+        alert('로그인 세션이 만료되었습니다. 다시 로그인해 주세요.');
+        window.location.href = '/login';
+      }
       const err = new Error('Unauthorized');
       err.status = 401;
       throw err;

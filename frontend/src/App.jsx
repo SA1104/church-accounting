@@ -302,16 +302,6 @@ export default function App() {
   const [fontScale, setFontScale] = useState(() => safeGetItem('font-scale-level', 'normal'));
 
   useEffect(() => {
-    if (token) {
-      safeSetItem('token', token);
-      safeSetItem('user', JSON.stringify(user));
-    } else {
-      safeRemoveItem('token');
-      safeRemoveItem('user');
-    }
-  }, [token, user]);
-
-  useEffect(() => {
     const root = document.documentElement;
     root.classList.remove('font-scale-small', 'font-scale-normal', 'font-scale-large', 'font-scale-xlarge');
     root.classList.add(`font-scale-${fontScale}`);
@@ -319,11 +309,17 @@ export default function App() {
   }, [fontScale]);
 
   const login = (newToken, newUser) => {
+    safeSetItem('token', newToken);
+    safeSetItem('user', JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
   };
 
   const logout = () => {
+    safeRemoveItem('token');
+    safeRemoveItem('authToken');
+    safeRemoveItem('accessToken');
+    safeRemoveItem('user');
     setToken(null);
     setUser(null);
   };
