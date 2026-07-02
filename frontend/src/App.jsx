@@ -22,6 +22,7 @@ import LedgerView from './apps/church/pages/LedgerView';
 import SettlementView from './apps/church/pages/SettlementView';
 import AuditView from './apps/church/pages/AuditView';
 import Settings from './apps/church/pages/Settings';
+import InviteLanding from './apps/church/pages/InviteLanding';
 
 // Stock page imports
 import StockDashboard from './apps/stock/pages/StockDashboard';
@@ -336,6 +337,7 @@ export default function App() {
                     <Route path="/" element={<PrivateRoute><Portal /></PrivateRoute>} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/signup" element={<Signup />} />
+                    <Route path="/invite/:token" element={<InviteLanding />} />
                     <Route 
                       path="/*" 
                       element={

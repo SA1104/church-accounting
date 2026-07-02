@@ -50,6 +50,24 @@ export default function Settings() {
   const [profileApplyError, setProfileApplyError] = useState('');
   const [profileApplyLoading, setProfileApplyLoading] = useState(false);
 
+  // Invitation & History States
+  const [assignmentHistory, setAssignmentHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [invitations, setInvitations] = useState([]);
+  const [invitationsLoading, setInvitationsLoading] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteName, setInviteName] = useState('');
+  const [invitePhone, setInvitePhone] = useState('');
+  const [inviteCommId, setInviteCommId] = useState('');
+  const [inviteGroupId, setInviteGroupId] = useState('');
+  const [invitePosId, setInvitePosId] = useState('');
+  const [inviteRole, setInviteRole] = useState('member');
+  const [inviteMessage, setInviteMessage] = useState('');
+  const [inviteExpiresDays, setInviteExpiresDays] = useState(7);
+  const [inviteGroupOptions, setInviteGroupOptions] = useState([]);
+  const [inviteLinkResult, setInviteLinkResult] = useState(null);
+
   // Church Application States
   const [churches, setChurches] = useState([]);
   const [selectedApplyChurchId, setSelectedApplyChurchId] = useState('');
@@ -183,9 +201,39 @@ export default function Settings() {
     }
   };
 
+  const fetchAssignmentHistory = async () => {
+    try {
+      setHistoryLoading(true);
+      const data = await apiClient('/api/church/invitations/history');
+      setAssignmentHistory(data || []);
+    } catch (err) {
+      console.error('Error fetching assignment history:', err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const fetchInvitations = async () => {
+    try {
+      setInvitationsLoading(true);
+      const data = await apiClient('/api/church/invitations');
+      setInvitations(data || []);
+    } catch (err) {
+      console.error('Error fetching invitations:', err);
+    } finally {
+      setInvitationsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (['profile', 'belonging', 'apply-church', 'apply-assignment', 'apply-status'].includes(activeTab)) {
+    if (['profile', 'belonging', 'apply-church', 'apply-assignment', 'apply-status', 'invitations'].includes(activeTab)) {
       fetchProfileInfo();
+    }
+    if (activeTab === 'belonging') {
+      fetchAssignmentHistory();
+    }
+    if (activeTab === 'invitations') {
+      fetchInvitations();
     }
   }, [activeTab]);
 
@@ -204,6 +252,22 @@ export default function Settings() {
     };
     fetchGroups();
   }, [profileSelectedCommId]);
+
+  useEffect(() => {
+    if (!inviteCommId) {
+      setInviteGroupOptions([]);
+      return;
+    }
+    const fetchInviteGroups = async () => {
+      try {
+        const data = await apiClient(`/api/church/admin/committees/${inviteCommId}/groups`);
+        setInviteGroupOptions(data || []);
+      } catch (err) {
+        console.error('Error fetching invite groups:', err);
+      }
+    };
+    fetchInviteGroups();
+  }, [inviteCommId]);
 
   useEffect(() => {
     if (activeTab === 'passkey') {
@@ -261,9 +325,28 @@ export default function Settings() {
     }
   };
 
+  const getStandardizedRole = () => {
+    if (isAdminUser(user)) return 'system_admin';
+    const primary = profileAssignments?.find(a => a.is_primary && a.is_active && a.status === 'approved');
+    if (!primary) return 'member';
+    const role = primary.role_code;
+    if (role === 'PASTOR') return 'pastor';
+    if (role === 'ELDER') return 'elder';
+    if (role === 'FINANCE_MANAGER') return 'finance_admin';
+    if (role === 'AUDITOR') return 'auditor';
+    if (role === 'COMMITTEE_CHAIR') return 'committee_head';
+    if (role === 'GROUP_LEADER') return 'department_head';
+    if (role === 'TEACHER') return 'teacher';
+    return 'member';
+  };
+
   const canAccessTab = (tabKey) => {
     if (isAdminUser(user)) return true;
     if (['profile', 'belonging', 'apply-church', 'apply-assignment', 'apply-status', 'display', 'passkey'].includes(tabKey)) return true;
+    if (tabKey === 'invitations') {
+      const std = getStandardizedRole();
+      return ['system_admin', 'pastor', 'elder', 'finance_admin', 'committee_head', 'department_head'].includes(std);
+    }
     if (['categories', 'users', 'orgs', 'positions', 'ocr-queue', 'locks', 'database'].includes(tabKey)) {
       const role = user?.role || '';
       return role === 'SYSTEM_ADMIN' || role === 'AUDITOR';
@@ -859,6 +942,60 @@ export default function Settings() {
     }
   };
 
+  const handleCreateInvitation = async (e) => {
+    e.preventDefault();
+    if (!inviteEmail || !inviteName || !inviteCommId || !invitePosId || !inviteRole) {
+      alert('필수 입력 항목을 채워주세요.');
+      return;
+    }
+    try {
+      const data = await apiClient('/api/church/invitations', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: inviteEmail,
+          name: inviteName,
+          phone: invitePhone,
+          committee_id: inviteCommId,
+          group_id: inviteGroupId || null,
+          position_id: invitePosId,
+          role: inviteRole,
+          message: inviteMessage,
+          expires_in_days: inviteExpiresDays
+        })
+      });
+      
+      const commName = profileCommittees.find(c => c.department_id === parseInt(inviteCommId, 10))?.name || '';
+      const grpName = inviteGroupOptions.find(g => g.group_id === parseInt(inviteGroupId, 10))?.name || '';
+      const posName = profilePositions.find(p => p.position_id === invitePosId)?.name || '';
+      const churchName = profileMembership?.churchName || '우리교회';
+
+      const url = `${window.location.origin}/invite/${data.token}`;
+      const msg = `[${churchName}] Church Think에 임명되셨습니다.
+임명 소속: ${commName} ${grpName ? '> ' + grpName : ''}
+임명 직책: ${posName}
+아래 초대 링크를 클릭하여 가입 또는 로그인 후 수락을 진행해 주세요.
+초대 링크: ${url}`;
+
+      setInviteLinkResult({ url, message: msg });
+      fetchInvitations();
+    } catch (err) {
+      alert(err.message || '초대 생성 실패');
+    }
+  };
+
+  const handleRevokeInvitation = async (id) => {
+    if (!window.confirm('정말 이 초대 링크를 취소(폐기)하시겠습니까?')) return;
+    try {
+      await apiClient(`/api/church/invitations/${id}/revoke`, {
+        method: 'POST'
+      });
+      alert('초대가 취소되었습니다.');
+      fetchInvitations();
+    } catch (err) {
+      alert(err.message || '초대 취소 실패');
+    }
+  };
+
   const handleDeleteUser = async (userId, name) => {
     if (!window.confirm(`⚠️ 경고: 정말 사용자 '${name}' 계정을 영구 삭제하시겠습니까? 관련 데이터가 깨질 수 있습니다.`)) {
       return;
@@ -1032,6 +1169,7 @@ export default function Settings() {
           (profileMembership?.status === 'none' || profileMembership?.status === 'rejected') && { key: 'apply-church', label: '교회 신청' },
           profileMembership?.status === 'approved' && { key: 'apply-assignment', label: '위원회/부서 신청' },
           { key: 'apply-status', label: '신청현황' },
+          { key: 'invitations', label: '초대 관리' },
           { key: 'categories', label: '계정과목' },
           { key: 'display', label: '화면설정' },
           { key: 'marketplace', label: '마켓플레이스' },
@@ -1114,6 +1252,61 @@ export default function Settings() {
                     ))
                   )}
                 </div>
+              </div>
+            )}
+          </div>
+
+          {/* 소속/직책 변경 이력 Timeline */}
+          <div className="glass p-5 rounded-2xl space-y-4 shadow-md border border-slate-800">
+            <h3 className="text-xs font-bold text-white mb-2">소속 및 직책 변경 이력</h3>
+            {historyLoading ? (
+              <div className="text-[10px] text-slate-500 py-4 text-center">이력 로딩 중...</div>
+            ) : assignmentHistory.length === 0 ? (
+              <p className="text-[10px] text-slate-500 py-3 text-center bg-slate-900/20 rounded-xl border border-slate-800/40">기록된 이력이 없습니다.</p>
+            ) : (
+              <div className="space-y-4 pl-2 border-l border-slate-800 relative font-sans max-h-[300px] overflow-y-auto pr-1 no-scrollbar">
+                {assignmentHistory.map((h, idx) => {
+                  const dateStr = new Date(h.created_at).toLocaleDateString();
+                  
+                  const actionLabels = {
+                    'invited': '초대 발송',
+                    'accepted': '초대 수락',
+                    'approved': '부서 배정 승인',
+                    'changed': '직책 변경',
+                    'transferred': '부서 전입/전출',
+                    'ended': '임기 종료/해제',
+                    'revoked': '배정 취소/폐기'
+                  };
+
+                  return (
+                    <div key={h.id || idx} className="relative pl-4 space-y-1">
+                      {/* Timeline Dot */}
+                      <div className="absolute -left-[13px] top-1.5 w-2 h-2 rounded-full bg-church-500 border border-slate-950" />
+                      
+                      <div className="flex justify-between items-center text-[10.5px]">
+                        <span className="font-bold text-white uppercase tracking-wider">{actionLabels[h.change_type] || h.change_type}</span>
+                        <span className="text-[9px] text-slate-500">{dateStr}</span>
+                      </div>
+                      
+                      <p className="text-[10px] text-slate-400 leading-relaxed">
+                        {h.change_type === 'invited' && `${h.new_committee_name} ${h.new_group_name ? '> ' + h.new_group_name : ''} (${h.new_position_name}) 으로 초대장이 발송되었습니다.`}
+                        {h.change_type === 'accepted' && `${h.new_committee_name} ${h.new_group_name ? '> ' + h.new_group_name : ''} (${h.new_position_name}) 초대 수락 완료.`}
+                        {h.change_type === 'approved' && (
+                          h.prev_position_name 
+                            ? `직책 변경: ${h.prev_committee_name} (${h.prev_position_name}) ➔ ${h.new_committee_name} (${h.new_position_name})`
+                            : `신규 배정 승인: ${h.new_committee_name} ${h.new_group_name ? '> ' + h.new_group_name : ''} (${h.new_position_name})`
+                        )}
+                        {h.change_type === 'ended' && `임기 종료: ${h.prev_committee_name} ${h.prev_group_name ? '> ' + h.prev_group_name : ''} (${h.prev_position_name})`}
+                        {h.change_type === 'revoked' && `취소/폐기됨.`}
+                        {h.reason && <span className="block text-[9px] text-slate-500 mt-0.5">사유: {h.reason}</span>}
+                      </p>
+                      
+                      <div className="text-[9px] text-slate-500">
+                        조치자: <span className="font-semibold text-slate-400">{h.changer_name}</span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1548,6 +1741,89 @@ export default function Settings() {
             <p className="text-[8px] text-amber-500 font-semibold leading-normal">
               ※ 마켓플레이스 연동 스위치는 현재 준비중(Coming Soon) 모드 상태이므로 비활성화 상태가 유지됩니다. 서비스 공식 오픈 시 구독 등급에 맞춰 잠금 해제 가능합니다.
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* 초대 관리 탭 */}
+      {activeTab === 'invitations' && (
+        <div className="space-y-4">
+          <div className="glass p-5 rounded-2xl space-y-4 shadow-md border border-slate-800">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xs font-bold text-white">교회 멤버 초대 현황</h3>
+              <button
+                onClick={() => {
+                  setInviteEmail('');
+                  setInviteName('');
+                  setInvitePhone('');
+                  setInviteCommId(profileCommittees[0]?.department_id || '');
+                  setInviteGroupId('');
+                  setInvitePosId(profilePositions[0]?.position_id || '');
+                  setInviteRole('member');
+                  setInviteMessage('');
+                  setInviteExpiresDays(7);
+                  setInviteLinkResult(null);
+                  setShowInviteModal(true);
+                }}
+                className="bg-church-600 hover:bg-church-500 text-white font-semibold py-1.5 px-3 rounded-lg text-[9px] flex items-center gap-1 transition-all active:scale-[0.98]"
+              >
+                <Plus size={12} /> 신규 초대장 발송
+              </button>
+            </div>
+
+            {invitationsLoading ? (
+              <div className="text-[10px] text-slate-500 py-4 text-center">초대 목록 로딩 중...</div>
+            ) : invitations.length === 0 ? (
+              <p className="text-[10px] text-slate-500 py-4 text-center bg-slate-900/20 rounded-xl border border-slate-800/40">발송한 초대장이 없습니다.</p>
+            ) : (
+              <div className="space-y-2.5 max-h-[400px] overflow-y-auto pr-1 no-scrollbar">
+                {invitations.map(invite => {
+                  const statusColors = {
+                    'pending': 'bg-amber-500/10 text-amber-450 border border-amber-500/20',
+                    'accepted': 'bg-emerald-500/10 text-emerald-450 border border-emerald-500/20',
+                    'expired': 'bg-slate-800 text-slate-500 border border-slate-800/50',
+                    'revoked': 'bg-rose-500/10 text-rose-450 border border-rose-500/20'
+                  };
+                  
+                  const statusLabels = {
+                    'pending': '대기 중',
+                    'accepted': '수락 완료',
+                    'expired': '만료됨',
+                    'revoked': '취소됨'
+                  };
+
+                  return (
+                    <div key={invite.id} className="p-3 bg-slate-900/50 border border-slate-800/60 rounded-xl space-y-2 text-[10.5px] text-left">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="font-bold text-white block">{invite.invited_name}</span>
+                          <span className="text-[9px] text-slate-500 font-mono">{invite.invited_email}</span>
+                        </div>
+                        <span className={`text-[8px] px-2 py-0.5 rounded font-black uppercase tracking-wider ${statusColors[invite.status] || 'bg-slate-800 text-slate-400'}`}>
+                          {statusLabels[invite.status] || invite.status}
+                        </span>
+                      </div>
+
+                      <div className="text-[9.5px] text-slate-400">
+                        임명: {invite.committee_name} {invite.group_name ? `> ${invite.group_name}` : ''} ({invite.position_name} · {invite.role})
+                      </div>
+
+                      <div className="flex justify-between items-center text-[9px] text-slate-500 border-t border-slate-800/50 pt-2 mt-1">
+                        <span>만료: {new Date(invite.expires_at).toLocaleDateString()}</span>
+                        {invite.status === 'pending' && (
+                          <button
+                            onClick={() => handleRevokeInvitation(invite.id)}
+                            className="text-rose-400 hover:text-rose-300 font-bold"
+                          >
+                            초대 취소
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -2640,6 +2916,214 @@ export default function Settings() {
             로그아웃
           </button>
         </div>
+      {/* 초대 모달 다이얼로그 */}
+      {showInviteModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 select-none">
+          <div className="glass max-w-md w-full p-5 rounded-3xl border border-slate-800 shadow-2xl space-y-4 max-h-[90vh] flex flex-col relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-church-500/10 rounded-full filter blur-xl" />
+
+            <div className="flex justify-between items-center shrink-0">
+              <h3 className="text-xs font-bold text-white">신규 멤버 초대장 작성</h3>
+              <button
+                onClick={() => setShowInviteModal(false)}
+                className="text-slate-500 hover:text-white transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {inviteLinkResult ? (
+              <div className="space-y-4 py-2 shrink-0 text-left">
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-450 rounded-2xl text-[10.5px] leading-relaxed font-semibold">
+                  ✓ 초대장 생성이 완료되었습니다! 아래 링크를 복사하거나 공유하여 임명 대상자에게 전달해주세요.
+                </div>
+                
+                <div className="space-y-1">
+                  <span className="text-[9px] text-slate-500 font-bold block">초대 링크</span>
+                  <input
+                    type="text"
+                    readOnly
+                    value={inviteLinkResult.url}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-[10px] text-slate-300 font-mono focus:outline-none"
+                    onClick={(e) => e.target.select()}
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-[9px] text-slate-500 font-bold block">안내 메세지 템플릿</span>
+                  <textarea
+                    readOnly
+                    rows={4}
+                    value={inviteLinkResult.message}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-[10px] text-slate-400 font-sans focus:outline-none resize-none leading-relaxed"
+                  />
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 pt-1">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(inviteLinkResult.message);
+                      alert('안내 메시지가 클립보드에 복사되었습니다.');
+                    }}
+                    className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 font-bold py-2 rounded-xl text-[9px] transition-all"
+                  >
+                    메시지 복사
+                  </button>
+                  <a
+                    href={`sms:?body=${encodeURIComponent(inviteLinkResult.message)}`}
+                    className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 font-bold py-2 rounded-xl text-[9px] transition-all text-center flex items-center justify-center"
+                  >
+                    SMS 공유
+                  </a>
+                  <a
+                    href={`https://sharer.kakao.com/talk/friends/picker/link?link=${encodeURIComponent(inviteLinkResult.url)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2 rounded-xl text-[9px] transition-all text-center flex items-center justify-center"
+                  >
+                    카카오 공유
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleCreateInvitation} className="space-y-3.5 overflow-y-auto pr-1 no-scrollbar text-left">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400">이름 *</label>
+                  <input
+                    type="text"
+                    required
+                    value={inviteName}
+                    onChange={(e) => setInviteName(e.target.value)}
+                    placeholder="실명 입력"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-church-500"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400">이메일 주소 *</label>
+                  <input
+                    type="email"
+                    required
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder="candidate@gmail.com"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-church-500 font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400">휴대폰 번호 (선택)</label>
+                  <input
+                    type="text"
+                    value={invitePhone}
+                    onChange={(e) => setInvitePhone(e.target.value)}
+                    placeholder="010-0000-0000"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-church-500"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400">임명 위원회 *</label>
+                  <select
+                    required
+                    value={inviteCommId}
+                    onChange={(e) => setInviteCommId(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-church-500"
+                  >
+                    <option value="">위원회를 선택하세요</option>
+                    {profileCommittees.map(c => (
+                      <option key={c.department_id} value={c.department_id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400">임명 상세 부서/그룹</label>
+                  <select
+                    value={inviteGroupId}
+                    onChange={(e) => setInviteGroupId(e.target.value)}
+                    disabled={!inviteCommId || inviteGroupOptions.length === 0}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-church-500 disabled:opacity-50"
+                  >
+                    <option value="">선택 안 함 (위원회 소속)</option>
+                    {inviteGroupOptions.map(g => (
+                      <option key={g.group_id} value={g.group_id}>{g.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400">임명 직책 *</label>
+                  <select
+                    required
+                    value={invitePosId}
+                    onChange={(e) => setInvitePosId(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-church-500"
+                  >
+                    <option value="">직책을 선택하세요</option>
+                    {profilePositions.map(p => (
+                      <option key={p.position_id} value={p.position_id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400">할당 권한 *</label>
+                  <select
+                    required
+                    value={inviteRole}
+                    onChange={(e) => setInviteRole(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-church-500"
+                  >
+                    <option value="member">일반 회원 (member)</option>
+                    <option value="teacher">교사 (teacher)</option>
+                    <option value="department_head">부서 부장 (department_head)</option>
+                    <option value="committee_head">위원회 위원장 (committee_head)</option>
+                    <option value="auditor">감사 (auditor)</option>
+                    <option value="finance_admin">재정 부장 / 총무 (finance_admin)</option>
+                    <option value="elder">장로/안수집사 (elder)</option>
+                    <option value="pastor">교역자 (pastor)</option>
+                    <option value="system_admin">플랫폼 관리자 (system_admin)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400">전달 메시지 (선택)</label>
+                  <textarea
+                    rows={2}
+                    value={inviteMessage}
+                    onChange={(e) => setInviteMessage(e.target.value)}
+                    placeholder="초대받는 분께 보낼 메시지를 입력하세요."
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white focus:outline-none focus:border-church-500 resize-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400">링크 만료일 설정 *</label>
+                  <select
+                    required
+                    value={inviteExpiresDays}
+                    onChange={(e) => setInviteExpiresDays(parseInt(e.target.value, 10))}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-church-500"
+                  >
+                    <option value={1}>1일 후 만료</option>
+                    <option value={3}>3일 후 만료</option>
+                    <option value={7}>7일 후 만료 (기본)</option>
+                    <option value={30}>30일 후 만료</option>
+                  </select>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-church-600 to-church-500 hover:brightness-110 text-white font-bold py-2.5 rounded-xl text-xs shadow-md transition-all active:scale-[0.98] mt-2 shrink-0"
+                >
+                  초대 링크 생성
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );

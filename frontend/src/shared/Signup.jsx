@@ -16,6 +16,29 @@ export default function Signup() {
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [termsAgree, setTermsAgree] = useState(false);
+  const [inviteToken, setInviteToken] = useState('');
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const invite = params.get('invite');
+    if (invite) {
+      setInviteToken(invite);
+      const fetchInviteData = async () => {
+        try {
+          const data = await apiClient(`/api/church/invitations/${invite}`);
+          setName(data.invited_name || '');
+          setEmail(data.invited_email || '');
+          if (data.invited_phone) {
+            const rawPhone = data.invited_phone.replace(/^\+\d+\s?/, '');
+            setPhone(rawPhone);
+          }
+        } catch (err) {
+          console.error('[SIGNUP INVITE] Fetch error:', err);
+        }
+      };
+      fetchInviteData();
+    }
+  }, []);
 
   const handleCountryChange = (e) => {
     const code = e.target.value;
@@ -148,11 +171,19 @@ export default function Signup() {
 
       const userId = data.user?.id;
 
-      setSuccess(`Booza Think 계정이 생성되었습니다.
+      if (inviteToken) {
+        setSuccess(`Booza Think 계정이 생성되었습니다.
+초대 수락을 위해 초대장 페이지로 이동합니다.`);
+        setTimeout(() => {
+          navigate(`/invite/${inviteToken}`);
+        }, 2000);
+      } else {
+        setSuccess(`Booza Think 계정이 생성되었습니다.
 이제 로그인 후 원하는 서비스를 이용할 수 있습니다.
 Church Think를 이용하려면 설정 → 교회 소속 신청을 진행해주세요.`);
-      setPasskeyUserId(userId);
-      setShowPasskeySignupStep(true);
+        setPasskeyUserId(userId);
+        setShowPasskeySignupStep(true);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -311,7 +342,8 @@ Church Think를 이용하려면 설정 → 교회 소속 신청을 진행해주�
                   value={email}
                   onChange={(e) => handleEmailChange(e.target.value)}
                   placeholder="example@gmail.com"
-                  className={`w-full bg-slate-900 border rounded-xl py-2 px-3.5 text-xs text-white focus:outline-none ${
+                  disabled={!!inviteToken}
+                  className={`w-full bg-slate-900 border rounded-xl py-2 px-3.5 text-xs text-white focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed ${
                     email ? (isEmailValid ? 'border-emerald-500/50 focus:border-emerald-500' : 'border-rose-500/50 focus:border-rose-500') : 'border-slate-800 focus:border-church-500'
                   }`}
                 />

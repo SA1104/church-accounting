@@ -17,6 +17,51 @@ async function getActiveProjectId(req) {
   return anyProject ? anyProject.project_id : null;
 }
 
+async function getChurchId(projectId) {
+  const profile = await query.get('SELECT church_id FROM public.church_profiles WHERE project_id = ? LIMIT 1', [projectId]);
+  return profile ? profile.church_id : null;
+}
+
+const reverseRoleMapping = {
+  'SYSTEM_ADMIN': 'system_admin',
+  'PASTOR': 'pastor',
+  'ELDER': 'elder',
+  'FINANCE_MANAGER': 'finance_admin',
+  'AUDITOR': 'auditor',
+  'COMMITTEE_CHAIR': 'committee_head',
+  'GROUP_LEADER': 'department_head',
+  'TEACHER': 'teacher',
+  'DEPARTMENT_ACCOUNTANT': 'member'
+};
+
+async function logAssignmentHistory(projectId, userId, assignmentId, prevAssignment, newAssignment, changeType, changedBy, reason) {
+  const churchId = await getChurchId(projectId);
+  if (!churchId) return;
+
+  const prevRole = prevAssignment ? (reverseRoleMapping[prevAssignment.role_code] || prevAssignment.role_code) : null;
+  const newRole = newAssignment ? (reverseRoleMapping[newAssignment.role_code] || newAssignment.role_code) : null;
+
+  await query.run(`
+    INSERT INTO public.church_assignment_history (
+      project_id, church_id, user_id, assignment_id,
+      previous_committee_id, previous_group_id, previous_position_id, previous_role,
+      new_committee_id, new_group_id, new_position_id, new_role,
+      change_type, changed_by, reason
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `, [
+    projectId, churchId, userId, assignmentId,
+    prevAssignment ? prevAssignment.committee_id : null,
+    prevAssignment ? prevAssignment.group_id : null,
+    prevAssignment ? prevAssignment.position_id : null,
+    prevRole,
+    newAssignment ? newAssignment.committee_id : null,
+    newAssignment ? newAssignment.group_id : null,
+    newAssignment ? newAssignment.position_id : null,
+    newRole,
+    changeType, changedBy, reason
+  ]);
+}
+
 // GET /api/church/assignments/me — current user's assignments
 router.get('/me', authenticateToken, async (req, res) => {
   try {
@@ -168,6 +213,17 @@ router.post('/admin/assignments/:assignmentId/approve', authenticateToken, async
       [assignmentId]
     );
 
+    // Log to assignment history
+    const prevPrimary = await query.get(
+      "SELECT * FROM public.church_user_assignments WHERE user_id = ? AND project_id = ? AND is_primary = TRUE AND is_active = TRUE AND id != ?",
+      [assignment.user_id, projectId, assignmentId]
+    );
+    const fullAssignment = await query.get(
+      "SELECT * FROM public.church_user_assignments WHERE id = ?",
+      [assignmentId]
+    );
+    await logAssignmentHistory(projectId, assignment.user_id, assignmentId, prevPrimary, fullAssignment, 'approved', req.user.userId || req.user.id, '조직 배정 신청 승인');
+
     // If it's the first approved assignment, make it primary
     const approvedCount = await query.get(
       "SELECT COUNT(*) as count FROM public.church_user_assignments WHERE user_id = ? AND project_id = ? AND status = 'approved' AND is_active = TRUE",
@@ -309,10 +365,18 @@ router.post('/users/:id', authenticateToken, async (req, res) => {
     }
     const result = await query.run(`
       INSERT INTO public.church_user_assignments 
-        (user_id, project_id, committee_id, group_id, position_id, role_code, is_primary, is_active, status, assigned_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, 'approved', CURRENT_TIMESTAMP)
+        (user_id, project_id, committee_id, group_id, position_id, role_code, is_primary, is_active, status, assigned_at, source)
+      VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, 'approved', CURRENT_TIMESTAMP, 'manual')
       RETURNING id
     `, [id, projectId, committee_id || null, group_id || null, position_id || null, resolvedRoleCode, is_primary ? true : false]);
+
+    const prevPrimary = await query.get(
+      "SELECT * FROM public.church_user_assignments WHERE user_id = ? AND project_id = ? AND is_primary = TRUE AND is_active = TRUE AND id != ?",
+      [id, projectId, result.id]
+    );
+    const newAssign = { committee_id, group_id, position_id, role_code: resolvedRoleCode };
+    await logAssignmentHistory(projectId, id, result.id, prevPrimary, newAssign, 'approved', req.user.userId || req.user.id, '관리자에 의한 직접 배정');
+
     res.status(201).json({ success: true, assignment: { id: result.id }, message: '배정이 완료되었습니다.' });
   } catch (err) {
     console.error('[ASSIGNMENTS] Error creating assignment:', err);
@@ -329,9 +393,17 @@ router.delete('/users/:id/:assignmentId', authenticateToken, async (req, res) =>
       return res.status(403).json({ message: '교회 관리자 권한이 필요합니다.' });
     }
 
-    await query.run(
-      'UPDATE public.church_user_assignments SET is_active = FALSE WHERE id = ? AND user_id = ? AND project_id = ?',
+    const assignment = await query.get(
+      "SELECT * FROM public.church_user_assignments WHERE id = ? AND user_id = ? AND project_id = ? AND is_active = TRUE",
       [assignmentId, id, projectId]
+    );
+    if (assignment) {
+      await logAssignmentHistory(projectId, id, assignmentId, assignment, null, 'ended', req.user.userId || req.user.id, '관리자에 의한 배정 해제');
+    }
+
+    await query.run(
+      'UPDATE public.church_user_assignments SET is_active = FALSE, ended_by = ?, ended_at = CURRENT_TIMESTAMP, end_reason = ? WHERE id = ? AND user_id = ? AND project_id = ?',
+      [req.user.userId || req.user.id, '관리자에 의한 배정 해제', assignmentId, id, projectId]
     );
     res.json({ message: '배정이 해제되었습니다.' });
   } catch (error) {

@@ -61,6 +61,8 @@ let mockVoucherItems = [];
 let mockApprovalLines = [];
 let mockApprovalActions = [];
 let mockPeriodLocks = [];
+let mockInvitations = [];
+let mockAssignmentHistory = [];
 
 let mockPositions = [
   { position_id: 'pos-1', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', name: '회계', role_code: 'DEPARTMENT_ACCOUNTANT', is_active: true },
@@ -828,6 +830,167 @@ function runMockQuery(sql, params) {
   if (sqlNormalized.includes('church_profiles')) {
     return [{ church_id: 'church-id-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6' }];
   }
+  // 1. Invitations SELECT Interceptions
+  if (sqlNormalized.includes('from public.church_invitations') || sqlNormalized.includes('from church_invitations')) {
+    if (sqlNormalized.includes('invitation_token = ?')) {
+      const tok = params[0];
+      return mockInvitations.filter(inv => inv.invitation_token === tok);
+    }
+    if (sqlNormalized.includes('id = ?')) {
+      const invId = params[0];
+      return mockInvitations.filter(inv => inv.id === invId || inv.id === parseInt(invId, 10));
+    }
+    return mockInvitations;
+  }
+
+  // 2. Invitations INSERT Interceptions
+  if (sqlNormalized.startsWith('insert into public.church_invitations') || sqlNormalized.startsWith('insert into church_invitations')) {
+    const projId = params[0];
+    const churchId = params[1];
+    const email = params[2];
+    const phone = params[3];
+    const name = params[4];
+    const commId = params[5];
+    const grpId = params[6];
+    const posId = params[7];
+    const role = params[8];
+    const tok = params[9];
+    const userId = params[10];
+    const expiresAt = params[11];
+    const msg = params[12];
+
+    const newInvite = {
+      id: mockInvitations.length + 1,
+      project_id: projId,
+      church_id: churchId,
+      invited_email: email,
+      invited_phone: phone,
+      invited_name: name,
+      committee_id: commId,
+      group_id: grpId,
+      position_id: posId,
+      role: role,
+      invitation_token: tok,
+      status: 'pending',
+      invited_by: userId,
+      expires_at: expiresAt,
+      message: msg,
+      created_at: new Date().toISOString(),
+      committee_name: '예배위원회',
+      group_name: grpId ? '시온찬양대' : null,
+      position_name: '회계'
+    };
+    mockInvitations.push(newInvite);
+    return [{ id: newInvite.id }];
+  }
+
+  // 3. Invitations UPDATE Interceptions
+  if (sqlNormalized.includes('update public.church_invitations') || sqlNormalized.includes('update church_invitations')) {
+    const statusVal = params[0];
+    if (sqlNormalized.includes('invitation_token = ?')) {
+      const tok = params[1];
+      const found = mockInvitations.find(inv => inv.invitation_token === tok);
+      if (found) {
+        found.status = statusVal;
+      }
+    } else if (sqlNormalized.includes('id = ?')) {
+      const invId = params[1];
+      const found = mockInvitations.find(inv => inv.id === invId || inv.id === parseInt(invId, 10));
+      if (found) {
+        found.status = statusVal;
+      }
+    }
+    return [];
+  }
+
+  // 4. Assignment History SELECT Interceptions
+  if (sqlNormalized.includes('from public.church_assignment_history') || sqlNormalized.includes('from church_assignment_history')) {
+    return mockAssignmentHistory;
+  }
+
+  // 5. Assignment History INSERT Interceptions
+  if (sqlNormalized.startsWith('insert into public.church_assignment_history') || sqlNormalized.startsWith('insert into church_assignment_history')) {
+    let projId, churchId, userId, assignmentId, changeType, prevCommId, prevGrpId, prevPosId, prevRole, newCommId, newGrpId, newPosId, newRole, reason, changedBy, source;
+
+    if (params.length === 9) {
+      projId = params[0];
+      churchId = params[1];
+      userId = params[2];
+      assignmentId = null;
+      prevCommId = prevGrpId = prevPosId = prevRole = null;
+      newCommId = params[3];
+      newGrpId = params[4];
+      newPosId = params[5];
+      newRole = params[6];
+      changeType = 'invited';
+      changedBy = params[7];
+      reason = params[8];
+      source = 'invitation';
+    } else if (params.length === 10) {
+      projId = params[0];
+      churchId = params[1];
+      userId = params[2];
+      assignmentId = params[3];
+      prevCommId = prevGrpId = prevPosId = prevRole = null;
+      newCommId = params[4];
+      newGrpId = params[5];
+      newPosId = params[6];
+      newRole = params[7];
+      changeType = 'accepted';
+      changedBy = params[8];
+      reason = params[9];
+      source = 'invitation';
+    } else {
+      projId = params[0];
+      churchId = params[1];
+      userId = params[2];
+      assignmentId = params[3];
+      prevCommId = params[4];
+      prevGrpId = params[5];
+      prevPosId = params[6];
+      prevRole = params[7];
+      newCommId = params[8];
+      newGrpId = params[9];
+      newPosId = params[10];
+      newRole = params[11];
+      changeType = params[12];
+      changedBy = params[13];
+      reason = params[14];
+      source = params[15] || 'manual';
+    }
+
+    const newLog = {
+      id: mockAssignmentHistory.length + 1,
+      project_id: projId,
+      church_id: churchId,
+      user_id: userId,
+      assignment_id: assignmentId,
+      change_type: changeType,
+      prev_committee_id: prevCommId,
+      prev_group_id: prevGrpId,
+      prev_position_id: prevPosId,
+      prev_role: prevRole,
+      new_committee_id: newCommId,
+      new_group_id: newGrpId,
+      new_position_id: newPosId,
+      new_role: newRole,
+      reason: reason,
+      changed_by: changedBy,
+      source: source,
+      created_at: new Date().toISOString(),
+      
+      changer_name: '조치자',
+      prev_committee_name: prevCommId ? '예배위원회' : null,
+      prev_group_name: prevGrpId ? '시온찬양대' : null,
+      prev_position_name: prevPosId ? '회계' : null,
+      new_committee_name: newCommId ? '예배위원회' : null,
+      new_group_name: newGrpId ? '시온찬양대' : null,
+      new_position_name: newPosId ? '회계' : null
+    };
+    mockAssignmentHistory.push(newLog);
+    return [{ id: newLog.id }];
+  }
+
   if (sqlNormalized.includes('church_ledgers')) {
     return { balance: 5200000 };
   }

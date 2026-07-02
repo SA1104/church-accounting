@@ -15,6 +15,7 @@ const positionsRouter = require('./positions');
 const assignmentsRouter = require('./assignments');
 const onboardingRouter = require('./onboarding');
 const membershipRouter = require('./membership');
+const invitationsRouter = require('./invitations');
 
 // Legacy service routes (vouchers, approvals, ledgers, etc.)
 const vouchersRouter = require('./vouchers');
@@ -32,6 +33,7 @@ router.use('/positions', positionsRouter);
 router.use('/assignments', assignmentsRouter);
 router.use('/onboarding', onboardingRouter);
 router.use('/membership', membershipRouter);
+router.use('/invitations', invitationsRouter);
 
 // Core Business Domain Route mounts
 router.use('/vouchers', vouchersRouter);

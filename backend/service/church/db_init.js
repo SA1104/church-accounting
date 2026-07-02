@@ -60,18 +60,52 @@ async function runChurchDbMigrations() {
       approved_at TIMESTAMP WITH TIME ZONE NULL,
       approved_by UUID NULL,
       CONSTRAINT unique_user_workspace_capability UNIQUE (user_id, workspace_id, capability)
+    )`,
+    `CREATE TABLE IF NOT EXISTS public.church_invitations (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      project_id UUID NOT NULL,
+      church_id UUID NOT NULL,
+      invited_email TEXT NOT NULL,
+      invited_phone TEXT NULL,
+      invited_name TEXT NOT NULL,
+      committee_id INTEGER NOT NULL,
+      group_id INTEGER NULL,
+      position_id UUID NOT NULL,
+      role TEXT NOT NULL,
+      invitation_token TEXT UNIQUE NOT NULL,
+      status TEXT DEFAULT 'pending',
+      invited_by UUID NOT NULL,
+      accepted_by UUID NULL,
+      accepted_at TIMESTAMP WITH TIME ZONE NULL,
+      expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+      message TEXT NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (position_id) REFERENCES public.church_positions(position_id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS public.church_assignment_history (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      project_id UUID NOT NULL,
+      church_id UUID NOT NULL,
+      user_id UUID NOT NULL,
+      membership_id UUID NULL,
+      assignment_id UUID NULL,
+      previous_committee_id INTEGER NULL,
+      previous_group_id INTEGER NULL,
+      previous_position_id UUID NULL,
+      previous_role TEXT NULL,
+      new_committee_id INTEGER NULL,
+      new_group_id INTEGER NULL,
+      new_position_id UUID NULL,
+      new_role TEXT NULL,
+      change_type TEXT NOT NULL,
+      effective_from TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      effective_to TIMESTAMP WITH TIME ZONE NULL,
+      changed_by UUID NOT NULL,
+      reason TEXT NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     )`
   ];
-
-  // Try adding status column if assignments table already exists
-  try {
-    await query.exec("ALTER TABLE public.church_user_assignments ADD COLUMN status TEXT DEFAULT 'pending'");
-  } catch (e) {}
-
-  // Set existing assignments to approved
-  try {
-    await query.exec("UPDATE public.church_user_assignments SET status = 'approved' WHERE status IS NULL OR status = 'pending'");
-  } catch (e) {}
 
   for (const sql of sqls) {
     try {
@@ -80,6 +114,30 @@ async function runChurchDbMigrations() {
       console.warn('[Church DB] Migration step warning/error:', err.message);
     }
   }
+
+  // Try adding status column and other fields if assignments table already exists
+  const alters = [
+    "ALTER TABLE public.church_user_assignments ADD COLUMN status TEXT DEFAULT 'pending'",
+    "ALTER TABLE public.church_user_assignments ADD COLUMN effective_from TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP",
+    "ALTER TABLE public.church_user_assignments ADD COLUMN effective_to TIMESTAMP WITH TIME ZONE",
+    "ALTER TABLE public.church_user_assignments ADD COLUMN approved_by UUID",
+    "ALTER TABLE public.church_user_assignments ADD COLUMN approved_at TIMESTAMP WITH TIME ZONE",
+    "ALTER TABLE public.church_user_assignments ADD COLUMN ended_by UUID",
+    "ALTER TABLE public.church_user_assignments ADD COLUMN ended_at TIMESTAMP WITH TIME ZONE",
+    "ALTER TABLE public.church_user_assignments ADD COLUMN end_reason TEXT",
+    "ALTER TABLE public.church_user_assignments ADD COLUMN source TEXT DEFAULT 'manual'"
+  ];
+
+  for (const alter of alters) {
+    try {
+      await query.exec(alter);
+    } catch (e) {}
+  }
+
+  // Set existing assignments to approved
+  try {
+    await query.exec("UPDATE public.church_user_assignments SET status = 'approved' WHERE status IS NULL OR status = 'pending'");
+  } catch (e) {}
 
   // Seed default positions
   try {
