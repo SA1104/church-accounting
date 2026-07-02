@@ -255,12 +255,12 @@ export default function Dashboard() {
   // Trigger reloading dashboard statistics when parameters change
   useEffect(() => {
     const isAdmin = user?.role === 'SYSTEM_ADMIN' || user?.roles?.church_think === 'super_admin' || user?.roles?.accounting === 'SYSTEM_ADMIN';
-    const isApproved = isAdmin || (membershipStatus === 'approved' && hasApprovedAssignment);
+    const isApproved = onboardingState === 'active' || isAdmin;
 
     if (token && selectedFiscalYear && isApproved) {
       fetchDashboardData(selectedFiscalYear, selectedCommitteeId, selectedGroupId);
     }
-  }, [token, selectedFiscalYear, selectedCommitteeId, selectedGroupId, membershipStatus, hasApprovedAssignment]);
+  }, [token, selectedFiscalYear, selectedCommitteeId, selectedGroupId, onboardingState]);
 
   const fetchDashboardData = async (fYear, commId, grpId) => {
     setLoading(true);
@@ -846,6 +846,8 @@ export default function Dashboard() {
     );
   }
 
+  const hasFinanceViewAccess = !['USER', 'MEMBER', 'TEACHER', 'PASTOR_ASSISTANT'].includes(contextScope?.role) || user?.isAdmin;
+
   // Standard Personal Dashboard View
   return (
     <div className="p-4 space-y-4">
@@ -881,6 +883,7 @@ export default function Dashboard() {
       )}
 
       {/* 1. 당월 재정 상황 카드 */}
+      {hasFinanceViewAccess && (
       <div className="bg-gradient-to-br from-church-800 via-slate-900 to-church-950 p-5 rounded-2xl border border-church-500/20 shadow-lg relative overflow-hidden">
         <div className="absolute -right-10 -top-10 w-32 h-32 bg-church-500/10 rounded-full blur-2xl" />
         <div className="absolute -left-10 -bottom-10 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl" />
@@ -921,6 +924,7 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      )}
 
       {/* 2. 결재 위젯 그리드 */}
       <div className="grid grid-cols-3 gap-3">

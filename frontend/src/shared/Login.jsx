@@ -109,7 +109,7 @@ export default function Login() {
             )}
 
             <div className="space-y-1">
-              <label className="text-[11px] font-semibold text-slate-400">아이디</label>
+              <label className="text-[11px] font-semibold text-slate-400">아이디 또는 이메일</label>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
                   <User size={15} />
@@ -118,7 +118,7 @@ export default function Login() {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="아이디 입력"
+                  placeholder="아이디 또는 이메일 입력"
                   className="w-full bg-slate-900/80 border border-slate-800 rounded-xl py-2 pl-10 pr-4 text-xs text-white focus:outline-none focus:border-indigo-500 transition-colors"
                 />
               </div>

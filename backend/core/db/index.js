@@ -1,6 +1,24 @@
 const { Pool } = require('pg');
 const { createClient } = require('@supabase/supabase-js');
 
+// Strict Production Env Guard
+if (process.env.NODE_ENV === 'production') {
+  const missing = [];
+  if (!process.env.DATABASE_URL) missing.push('DATABASE_URL');
+  if (!process.env.SUPABASE_URL || process.env.SUPABASE_URL.includes('your-supabase-project')) missing.push('SUPABASE_URL');
+  
+  const hasServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.SUPABASE_SERVICE_ROLE_KEY !== 'your-service-role-key';
+  const hasSecretKey = process.env.SUPABASE_SECRET_KEY && process.env.SUPABASE_SECRET_KEY !== 'your-service-role-key';
+  if (!hasServiceKey && !hasSecretKey) {
+    missing.push('SUPABASE_SERVICE_ROLE_KEY');
+  }
+
+  if (missing.length > 0) {
+    console.error(`FATAL [Startup Guard]: Missing required production environment variables: ${missing.join(', ')}. Exiting.`);
+    process.exit(1);
+  }
+}
+
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://your-supabase-project.supabase.co';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || 'your-service-role-key';
 
@@ -770,6 +788,9 @@ function runMockQuery(sql, params) {
   if (sqlNormalized.startsWith('select now()')) {
     return [{ now: new Date().toISOString() }];
   }
+  if (sqlNormalized.startsWith('select 1')) {
+    return [{ is_alive: 1 }];
+  }
   if (sqlNormalized.includes('to_regclass')) {
     if (sqlNormalized.includes('platform_registries')) {
       return [{ platform_registries_exists: 'platform_registries' }];
@@ -826,6 +847,11 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 if (SUPABASE_URL.includes('your-supabase-project') || SUPABASE_URL.includes('booza-think')) {
   console.log('[Platform DB] Dummy Supabase URL detected. Enabling Local Mock Database mode.');
   useMocks = true;
+}
+
+if (process.env.NODE_ENV === 'production' && useMocks) {
+  console.error('FATAL [Startup Guard]: Production environment detected, but Mock DB fallback is active. Exiting to prevent data corruption.');
+  process.exit(1);
 }
 
 if (useSupabaseClientOnly) {

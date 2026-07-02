@@ -129,7 +129,7 @@ export default function Portal() {
   };
 
   return (
-    <div className="min-h-screen w-screen bg-slate-950 text-slate-100 flex flex-col justify-between p-6 md:p-10 select-none overflow-y-auto no-scrollbar font-sans relative">
+    <div className="h-screen w-screen bg-slate-950 text-slate-100 flex flex-col justify-between p-6 md:p-10 select-none overflow-y-auto no-scrollbar font-sans relative">
       {/* Background radial glow */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none" />
 

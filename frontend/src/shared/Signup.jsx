@@ -7,7 +7,6 @@ export default function Signup() {
   const navigate = useNavigate();
 
   // Basic Platform Signup Fields
-  const [username, setUsername] = useState(''); // Login ID
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
@@ -59,7 +58,7 @@ export default function Signup() {
   const handleSignupSubmit = async (e) => {
     e.preventDefault();
 
-    if (!name || !email || !username || !password || !confirmPassword || !phone) {
+    if (!name || !email || !password || !confirmPassword || !phone) {
       setError('모든 필수 항목을 입력해 주세요.');
       return;
     }
@@ -95,7 +94,7 @@ export default function Signup() {
         body: JSON.stringify({
           name,
           email,
-          username,
+          username: email,
           password,
           phone
         })
@@ -108,7 +107,9 @@ export default function Signup() {
 
       const userId = data.user?.id;
 
-      setSuccess('BOOZA THINK 플랫폼 회원가입이 완료되었습니다!');
+      setSuccess(`Booza Think 계정이 생성되었습니다.
+이제 로그인 후 원하는 서비스를 이용할 수 있습니다.
+Church Think를 이용하려면 설정 → 교회 소속 신청을 진행해주세요.`);
       setPasskeyUserId(userId);
       setShowPasskeySignupStep(true);
     } catch (err) {
@@ -181,7 +182,7 @@ export default function Signup() {
             <div className="flex flex-col items-center justify-center py-6 text-center space-y-4">
               <CheckCircle2 size={40} className="text-emerald-500 animate-bounce" />
               <h3 className="text-sm font-bold text-white">플랫폼 가입 완료</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">{success}</p>
+              <p className="text-xs text-slate-400 leading-relaxed whitespace-pre-line">{success}</p>
               
               {showPasskeySignupStep && (
                 <div className="w-full pt-4 border-t border-slate-800/80 space-y-3">
@@ -278,17 +279,6 @@ export default function Signup() {
                 )}
               </div>
 
-              {/* 아이디 */}
-              <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-slate-400">아이디 *</label>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="사용할 로그인 아이디"
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3.5 text-xs text-white focus:outline-none focus:border-church-500"
-                />
-              </div>
 
               {/* 비밀번호 및 비밀번호 확인 */}
               <div className="grid grid-cols-2 gap-3">

@@ -116,7 +116,53 @@ app.delete('/api/auth/passkey/credentials/:id', authenticateToken, deleteCredent
 // 1-1. 다교회 온보딩 공통 조회 API (미인증)
 // REMOVED: inline /api/churches route — served by legacy rewriter + church router
 // PLACEHOLDER kept for line number alignment only
-app.get('/__platform_health_check__', (req, res) => res.json({ status: 'ok', platform: '3.1' }));
+app.get('/__platform_health_check__', async (req, res) => {
+  const start = Date.now();
+  let dbOk = false;
+  let authOk = false;
+  let storageOk = false;
+
+  try {
+    const dbRes = await query.get('SELECT 1 as is_alive');
+    if (dbRes && dbRes.is_alive === 1) {
+      dbOk = true;
+    }
+  } catch (error) {
+    console.error('[HEALTH CHECK] DB error:', error.message);
+  }
+
+  const isMockMode = SUPABASE_URL.includes('your-supabase-project') || SUPABASE_URL.includes('booza-think');
+
+  if (isMockMode) {
+    authOk = dbOk;
+    storageOk = dbOk;
+  } else {
+    try {
+      const { error } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1 });
+      if (!error) authOk = true;
+    } catch (err) {
+      console.error('[HEALTH CHECK] Auth error:', err.message);
+    }
+
+    try {
+      const { error } = await supabase.storage.listBuckets();
+      if (!error) storageOk = true;
+    } catch (err) {
+      console.error('[HEALTH CHECK] Storage error:', err.message);
+    }
+  }
+
+  const latency = Date.now() - start;
+  const healthy = dbOk && authOk && storageOk;
+
+  return res.status(healthy ? 200 : 503).json({
+    status: healthy ? 'healthy' : 'unhealthy',
+    database: dbOk,
+    storage: storageOk,
+    auth: authOk,
+    latency: latency
+  });
+});
 
 // OLD: app.get('/api/churches', ...) — now served under /api/church router
 // For backward compat only, the church service router handles GET /
@@ -788,6 +834,11 @@ const { enforceContextSecurity } = require('./service/church/contextScope');
 app.get('/api/dashboard/stats', authenticateToken, enforceContextSecurity, async (req, res) => {
   if (!req.user.accounting?.activeContext && !req.user.isAdmin) {
     return res.status(403).json({ error: 'FORBIDDEN_CONTEXT', message: '승인된 조직 배정이 없습니다.' });
+  }
+
+  const scopeRole = req.contextScope?.role || 'USER';
+  if (['USER', 'MEMBER', 'TEACHER', 'PASTOR_ASSISTANT'].includes(scopeRole) && !req.user.isAdmin) {
+    return res.status(403).json({ error: 'FORBIDDEN_ROLE', message: '재정 대시보드를 조회할 권한이 없습니다.' });
   }
 
   const { group, committee, fiscalYear } = req.query;

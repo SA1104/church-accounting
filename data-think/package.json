@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Booza Think - Data Think Engine: 국내외 경제/금융/부동산/주식 데이터 자동 수집 엔진",
   "main": "index.js",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "start": "node index.js",
     "scheduler": "node scheduler/index.js",

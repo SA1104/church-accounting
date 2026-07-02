@@ -10,6 +10,8 @@
 
 require('dotenv').config();
 const axios = require('axios');
+// Supabase Realtime을 위한 네이티브 WebSocket은 Node 22 이상에서 기본 제공됩니다.
+// (또는 Node 20.x 환경일 경우 npm install ws 후 createClient(..., { global: { WebSocket: require('ws') } }) 방식 사용 권장)
 const { createClient } = require('@supabase/supabase-js');
 
 // Supabase 클라이언트 초기화

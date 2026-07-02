@@ -34,7 +34,23 @@ export function ChurchContextProvider({ children }) {
     } catch { return null; }
   });
 
+  // Onboarding states
+  const [membershipStatus, setMembershipStatus] = useState('none'); // 'none', 'pending', 'approved', 'rejected'
+  const [membershipChurchName, setMembershipChurchName] = useState('');
+
   const [loading, setLoading] = useState(false);
+
+  const fetchMembershipStatus = useCallback(async () => {
+    if (!token) return;
+    try {
+      const data = await apiClient('/api/church/membership/status');
+      setMembershipStatus(data.status || 'none');
+      setMembershipChurchName(data.churchName || '');
+    } catch (err) {
+      console.warn('[ChurchContext] Failed to fetch membership status:', err.message);
+      setMembershipStatus('none');
+    }
+  }, [token]);
 
   const fetchChurchProfile = useCallback(async () => {
     if (!token) return;
@@ -68,8 +84,8 @@ export function ChurchContextProvider({ children }) {
   useEffect(() => {
     if (!token) return;
     setLoading(true);
-    Promise.all([fetchChurchProfile(), fetchAssignments()]).finally(() => setLoading(false));
-  }, [token, fetchChurchProfile, fetchAssignments]);
+    Promise.all([fetchMembershipStatus(), fetchChurchProfile(), fetchAssignments()]).finally(() => setLoading(false));
+  }, [token, fetchMembershipStatus, fetchChurchProfile, fetchAssignments]);
 
   useEffect(() => {
     const handleAssignmentChange = (e) => {
@@ -95,16 +111,45 @@ export function ChurchContextProvider({ children }) {
   }, [activeAssignment, assignments]);
 
   const refreshContext = useCallback(async () => {
-    await Promise.all([fetchChurchProfile(), fetchAssignments()]);
-  }, [fetchChurchProfile, fetchAssignments]);
+    await Promise.all([fetchMembershipStatus(), fetchChurchProfile(), fetchAssignments()]);
+  }, [fetchMembershipStatus, fetchChurchProfile, fetchAssignments]);
+
+  // Derived onboarding state and permissions
+  const activeAssignmentData = getActiveAssignmentData();
+  const activeRole = activeAssignmentData?.role_code || user?.role || 'USER';
+
+  let onboardingState = 'no-church';
+  if (membershipStatus === 'none') {
+    onboardingState = 'no-church';
+  } else if (membershipStatus === 'pending') {
+    onboardingState = 'pending-church';
+  } else if (membershipStatus === 'approved') {
+    if (assignments.length === 0) {
+      onboardingState = 'no-assignment';
+    } else {
+      onboardingState = 'active';
+    }
+  }
+
+  const hasFinanceViewAccess = 
+    user?.role === 'SYSTEM_ADMIN' || 
+    user?.role === 'AUDITOR' || 
+    user?.isAdmin || 
+    (onboardingState === 'active' && !['USER', 'MEMBER', 'TEACHER', 'PASTOR_ASSISTANT'].includes(activeRole));
 
   const value = {
     // Workspace identity
     churchProfile,
+    // Onboarding info
+    membershipStatus,
+    membershipChurchName,
+    onboardingState,
+    hasFinanceViewAccess,
+    activeRole,
     // Assignment context
     assignments,
     activeAssignmentId: activeAssignment,
-    activeAssignment: getActiveAssignmentData(),
+    activeAssignment: activeAssignmentData,
     setActiveAssignment,
     // Helpers
     loading,

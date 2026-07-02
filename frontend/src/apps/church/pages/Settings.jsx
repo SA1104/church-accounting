@@ -43,10 +43,20 @@ export default function Settings() {
   const [profileCommittees, setProfileCommittees] = useState([]);
   const [profilePositions, setProfilePositions] = useState([]);
   const [profileSelectedCommId, setProfileSelectedCommId] = useState('');
+  const [profileSelectedGroupId, setProfileSelectedGroupId] = useState('');
   const [profileSelectedPosId, setProfileSelectedPosId] = useState('');
+  const [profileGroups, setProfileGroups] = useState([]);
   const [profileApplySuccess, setProfileApplySuccess] = useState('');
   const [profileApplyError, setProfileApplyError] = useState('');
   const [profileApplyLoading, setProfileApplyLoading] = useState(false);
+
+  // Church Application States
+  const [churches, setChurches] = useState([]);
+  const [selectedApplyChurchId, setSelectedApplyChurchId] = useState('');
+  const [applyChurchMemo, setApplyChurchMemo] = useState('');
+  const [churchApplyLoading, setChurchApplyLoading] = useState(false);
+  const [churchApplySuccess, setChurchApplySuccess] = useState('');
+  const [churchApplyError, setChurchApplyError] = useState('');
 
   // 리스트 상태
   const [categories, setCategories] = useState([]);
@@ -161,6 +171,11 @@ export default function Settings() {
 
       const positions = await apiClient('/api/church/positions');
       setProfilePositions(positions || []);
+
+      if (membership?.status === 'none' || membership?.status === 'rejected') {
+        const churchList = await apiClient('/api/churches');
+        setChurches(churchList || []);
+      }
     } catch (err) {
       console.error('Error fetching profile settings data:', err);
     } finally {
@@ -169,10 +184,26 @@ export default function Settings() {
   };
 
   useEffect(() => {
-    if (activeTab === 'profile') {
+    if (['profile', 'belonging', 'apply-church', 'apply-assignment', 'apply-status'].includes(activeTab)) {
       fetchProfileInfo();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (!profileSelectedCommId) {
+      setProfileGroups([]);
+      return;
+    }
+    const fetchGroups = async () => {
+      try {
+        const data = await apiClient(`/api/church/admin/committees/${profileSelectedCommId}/groups`);
+        setProfileGroups(data || []);
+      } catch (err) {
+        console.error('Error fetching groups:', err);
+      }
+    };
+    fetchGroups();
+  }, [profileSelectedCommId]);
 
   useEffect(() => {
     if (activeTab === 'passkey') {
@@ -232,8 +263,8 @@ export default function Settings() {
 
   const canAccessTab = (tabKey) => {
     if (isAdminUser(user)) return true;
-    if (tabKey === 'profile' || tabKey === 'categories' || tabKey === 'display' || tabKey === 'marketplace' || tabKey === 'passkey') return true;
-    if (['users', 'orgs', 'positions', 'ocr-queue', 'locks', 'database'].includes(tabKey)) {
+    if (['profile', 'belonging', 'apply-church', 'apply-assignment', 'apply-status', 'display', 'passkey'].includes(tabKey)) return true;
+    if (['categories', 'users', 'orgs', 'positions', 'ocr-queue', 'locks', 'database'].includes(tabKey)) {
       const role = user?.role || '';
       return role === 'SYSTEM_ADMIN' || role === 'AUDITOR';
     }
@@ -997,6 +1028,10 @@ export default function Settings() {
       <div className="flex gap-1 overflow-x-auto p-1 bg-slate-900/60 rounded-xl border border-slate-800/80 no-scrollbar select-none">
         {[
           { key: 'profile', label: '내 프로필' },
+          { key: 'belonging', label: '내 소속' },
+          (profileMembership?.status === 'none' || profileMembership?.status === 'rejected') && { key: 'apply-church', label: '교회 신청' },
+          profileMembership?.status === 'approved' && { key: 'apply-assignment', label: '위원회/부서 신청' },
+          { key: 'apply-status', label: '신청현황' },
           { key: 'categories', label: '계정과목' },
           { key: 'display', label: '화면설정' },
           { key: 'marketplace', label: '마켓플레이스' },
@@ -1007,7 +1042,7 @@ export default function Settings() {
           { key: 'locks', label: '결산마감' },
           { key: 'database', label: '데이터' },
           { key: 'passkey', label: '생체인증' }
-        ].filter(tab => canAccessTab(tab.key)).map(tab => {
+        ].filter(Boolean).filter(tab => canAccessTab(tab.key)).map(tab => {
           return (
             <button
               key={tab.key}
@@ -1028,104 +1063,187 @@ export default function Settings() {
         <div className="space-y-4">
           <div className="glass p-5 rounded-2xl space-y-4 shadow-md border border-slate-800">
             <h3 className="text-xs font-bold text-white mb-2">플랫폼 사용자 정보</h3>
-            
             {profileLoading ? (
               <div className="text-[10px] text-slate-500 py-4 text-center">프로필 로딩 중...</div>
             ) : (
               <div className="space-y-3 text-[11px]">
-                <div className="grid grid-cols-2 gap-2 text-slate-400 font-semibold">
+                <div className="grid grid-cols-2 gap-2 text-slate-400 font-semibold font-sans">
                   <div>이름:</div>
-                  <div className="text-white text-right">{profileData?.display_name || user?.name}</div>
+                  <div className="text-white text-right font-medium">{profileData?.display_name || user?.name}</div>
                   <div>아이디:</div>
-                  <div className="text-white text-right">{profileData?.username || user?.username}</div>
+                  <div className="text-white text-right font-mono">{profileData?.username || user?.username}</div>
                   <div>이메일:</div>
-                  <div className="text-white text-right">{profileData?.email || user?.email}</div>
+                  <div className="text-white text-right font-mono">{profileData?.email || user?.email}</div>
                   <div>휴대폰:</div>
                   <div className="text-white text-right">{profileData?.phone || '미등록'}</div>
                 </div>
               </div>
             )}
           </div>
+        </div>
+      )}
 
+      {/* 내 소속 탭 */}
+      {activeTab === 'belonging' && (
+        <div className="space-y-4">
           <div className="glass p-5 rounded-2xl space-y-4 shadow-md border border-slate-800">
-            <h3 className="text-xs font-bold text-white mb-2">교회 소속 및 가입 상태</h3>
+            <h3 className="text-xs font-bold text-white mb-2">현재 승인된 소속 정보</h3>
             {profileLoading ? (
-              <div className="text-[10px] text-slate-500 py-4 text-center">상태 조회 중...</div>
+              <div className="text-[10px] text-slate-500 py-4 text-center">소속 정보 조회 중...</div>
             ) : (
-              <div className="space-y-3">
-                <div className="flex justify-between items-center text-[11px]">
+              <div className="space-y-4">
+                <div className="flex justify-between items-center py-2 border-b border-slate-800/60 text-[11px]">
                   <span className="text-slate-400">가입 교회명</span>
-                  <span className="text-white font-bold">{profileMembership?.churchName || '없음'}</span>
+                  <span className="text-white font-bold text-xs">{profileMembership?.churchName || '소속 없음'}</span>
                 </div>
-                <div className="flex justify-between items-center text-[11px]">
-                  <span className="text-slate-400 font-semibold">가입 승인 상태</span>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
-                    profileMembership?.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                    profileMembership?.status === 'pending' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
-                    profileMembership?.status === 'rejected' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
-                    'bg-slate-800 text-slate-400'
-                  }`}>
-                    {profileMembership?.status === 'approved' ? '승인됨' :
-                     profileMembership?.status === 'pending' ? '승인 대기중' :
-                     profileMembership?.status === 'rejected' ? '반려됨' : '소속 없음'}
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="glass p-5 rounded-2xl space-y-4 shadow-md border border-slate-800">
-            <h3 className="text-xs font-bold text-white mb-2">위원회 / 그룹 소속 배정 목록</h3>
-            {profileLoading ? (
-              <div className="text-[10px] text-slate-500 py-4 text-center">배정 목록 로딩 중...</div>
-            ) : (
-              <div className="space-y-2">
-                {profileAssignments.length === 0 ? (
-                  <p className="text-[10px] text-slate-500 text-center py-3">배정된 조직 정보가 없습니다.</p>
-                ) : (
-                  profileAssignments.map(a => (
-                    <div key={a.id} className="p-3 bg-slate-900/40 border border-slate-800/80 rounded-xl flex justify-between items-center text-[11px]">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-semibold text-white">{a.committee_name} {a.group_name ? `> ${a.group_name}` : ''}</span>
-                        <span className="text-[9px] text-slate-500">{a.position_name} · {a.role_code}</span>
+                <div className="space-y-2">
+                  <span className="text-[10.5px] font-bold text-slate-400 block mt-2">배정된 위원회 및 부서</span>
+                  {profileAssignments.filter(a => a.status === 'approved').length === 0 ? (
+                    <p className="text-[10px] text-slate-500 py-3 text-center bg-slate-900/20 rounded-xl border border-slate-805/40">승인된 조직 배정 내역이 없습니다.</p>
+                  ) : (
+                    profileAssignments.filter(a => a.status === 'approved').map(a => (
+                      <div key={a.id} className="p-3 bg-slate-900/60 border border-slate-800 rounded-xl flex justify-between items-center text-[11px]">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-semibold text-white">{a.committee_name} {a.group_name ? `> ${a.group_name}` : ''}</span>
+                          <span className="text-[9px] text-slate-500">{a.position_name} · {a.role_code}</span>
+                        </div>
+                        <span className="text-[8px] bg-emerald-500/10 text-emerald-450 border border-emerald-500/20 px-2 py-0.5 rounded font-black uppercase tracking-wider">
+                          승인됨
+                        </span>
                       </div>
-                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${
-                        a.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                        a.status === 'pending' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
-                        'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                      }`}>
-                        {a.status === 'approved' ? '승인됨' : a.status === 'pending' ? '대기중' : '반려됨'}
-                      </span>
-                    </div>
-                  ))
-                )}
+                    ))
+                  )}
+                </div>
               </div>
             )}
           </div>
+        </div>
+      )}
 
-          {/* 새 조직 신청 폼 */}
-          {profileMembership?.status === 'approved' && (
-            <div className="glass p-5 rounded-2xl space-y-4 shadow-md border border-slate-800">
-              <h3 className="text-xs font-bold text-white mb-1.5">새 조직 배정 신청</h3>
-              
-              {profileApplyError && (
-                <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-[10px] font-bold">
-                  {profileApplyError}
-                </div>
-              )}
-              {profileApplySuccess && (
-                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold">
-                  {profileApplySuccess}
-                </div>
-              )}
+      {/* 교회 신청 탭 */}
+      {activeTab === 'apply-church' && (
+        <div className="space-y-4">
+          <div className="glass p-5 rounded-2xl space-y-4 shadow-md border border-slate-800">
+            <h3 className="text-xs font-bold text-white mb-2">교회 가입 신청</h3>
+            
+            {churchApplyError && (
+              <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-450 text-[10px] font-bold">
+                {churchApplyError}
+              </div>
+            )}
+            {churchApplySuccess && (
+              <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-450 text-[10px] font-bold">
+                {churchApplySuccess}
+              </div>
+            )}
 
+            {profileMembership?.status === 'approved' ? (
+              <div className="p-4 rounded-xl border border-emerald-500/25 bg-emerald-500/5 text-emerald-450 text-[10.5px] leading-relaxed font-semibold">
+                ✓ 이미 **{profileMembership?.churchName}** 소속 가입이 승인되었습니다.
+              </div>
+            ) : profileMembership?.status === 'pending' ? (
+              <div className="p-4 rounded-xl border border-amber-500/25 bg-amber-500/5 text-amber-450 text-[10.5px] leading-relaxed font-semibold">
+                ⌛ **{profileMembership?.churchName}** 가입 승인 대기 중입니다. 관리자 승인을 기다려주세요.
+              </div>
+            ) : (
               <div className="space-y-3">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400">신청할 위원회/기관</label>
+                  <label className="text-[10px] font-bold text-slate-400">신청할 교회 선택 *</label>
+                  <select
+                    value={selectedApplyChurchId}
+                    onChange={(e) => setSelectedApplyChurchId(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-church-500 font-semibold"
+                  >
+                    <option value="">교회를 선택하세요</option>
+                    {churches.map(c => (
+                      <option key={c.church_id} value={c.project_id}>{c.church_name} ({c.denomination} · {c.region})</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400">가입 신청 사유 / 메모</label>
+                  <textarea
+                    value={applyChurchMemo}
+                    onChange={(e) => setApplyChurchMemo(e.target.value)}
+                    placeholder="관리자가 확인할 수 있도록 직책 신청 사유를 간단히 적어주세요."
+                    rows={3}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-650 focus:outline-none resize-none font-semibold"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!selectedApplyChurchId) {
+                      setChurchApplyError('가입할 교회를 선택해 주세요.');
+                      return;
+                    }
+                    setChurchApplyLoading(true);
+                    setChurchApplyError('');
+                    setChurchApplySuccess('');
+                    try {
+                      const selectedChurch = churches.find(c => c.project_id === selectedApplyChurchId);
+                      const res = await apiClient('/api/church/membership/apply', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                          churchProfileId: selectedChurch?.church_id
+                        })
+                      });
+                      if (res.success) {
+                        setChurchApplySuccess(res.message);
+                        setSelectedApplyChurchId('');
+                        setApplyChurchMemo('');
+                        fetchProfileInfo();
+                      } else {
+                        setChurchApplyError(res.message || '가입 신청 실패');
+                      }
+                    } catch (err) {
+                      setChurchApplyError(err.message || '신청 중 오류가 발생했습니다.');
+                    } finally {
+                      setChurchApplyLoading(false);
+                    }
+                  }}
+                  disabled={churchApplyLoading}
+                  className="w-full py-2 bg-indigo-650 hover:bg-indigo-600 text-white rounded-xl text-xs font-bold transition-all active:scale-[0.98] mt-2"
+                >
+                  {churchApplyLoading ? '제출 중...' : '교회 가입 신청서 제출'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 위원회/부서 신청 탭 */}
+      {activeTab === 'apply-assignment' && (
+        <div className="space-y-4">
+          <div className="glass p-5 rounded-2xl space-y-4 shadow-md border border-slate-800">
+            <h3 className="text-xs font-bold text-white mb-2">새 조직 배정 신청</h3>
+            {profileApplyError && (
+              <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-450 text-[10px] font-bold">
+                {profileApplyError}
+              </div>
+            )}
+            {profileApplySuccess && (
+              <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-450 text-[10px] font-bold">
+                {profileApplySuccess}
+              </div>
+            )}
+
+            {profileMembership?.status !== 'approved' ? (
+              <div className="p-4 rounded-xl border border-rose-500/20 bg-rose-500/5 text-rose-400 text-[10.5px] leading-relaxed font-semibold">
+                ⚠️ 교회 소속 가입 승인이 완료되어야 부서/위원회 배정 신청이 가능합니다.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400">신청할 위원회/기관 *</label>
                   <select
                     value={profileSelectedCommId}
-                    onChange={(e) => setProfileSelectedCommId(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                    onChange={(e) => {
+                      setProfileSelectedCommId(e.target.value);
+                      setProfileSelectedGroupId('');
+                    }}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-church-500 font-semibold"
                   >
                     <option value="">선택하세요</option>
                     {profileCommittees.map(c => (
@@ -1135,11 +1253,26 @@ export default function Settings() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400">희망 직책</label>
+                  <label className="text-[10px] font-bold text-slate-400 font-sans">소속 그룹 / 부서</label>
+                  <select
+                    value={profileSelectedGroupId}
+                    onChange={(e) => setProfileSelectedGroupId(e.target.value)}
+                    disabled={!profileSelectedCommId || profileGroups.length === 0}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-church-500 disabled:opacity-40 disabled:cursor-not-allowed font-semibold"
+                  >
+                    <option value="">선택 안 함 (위원회 직속)</option>
+                    {profileGroups.map(g => (
+                      <option key={g.group_id} value={g.group_id}>{g.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 font-sans">희망 직책 *</label>
                   <select
                     value={profileSelectedPosId}
                     onChange={(e) => setProfileSelectedPosId(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-church-500 font-semibold"
                   >
                     <option value="">선택하세요</option>
                     {profilePositions.map(p => (
@@ -1161,17 +1294,18 @@ export default function Settings() {
                     try {
                       const res = await apiClient('/api/church/assignments/apply', {
                         method: 'POST',
-                        body: {
+                        body: JSON.stringify({
                           committee_id: profileSelectedCommId,
+                          group_id: profileSelectedGroupId || null,
                           position_id: profileSelectedPosId
-                        }
+                        })
                       });
                       if (res.success) {
                         setProfileApplySuccess(res.message);
                         setProfileSelectedCommId('');
+                        setProfileSelectedGroupId('');
                         setProfileSelectedPosId('');
-                        const assigns = await apiClient('/api/church/assignments/me');
-                        setProfileAssignments(assigns || []);
+                        fetchProfileInfo();
                       } else {
                         setProfileApplyError(res.message || '신청 실패');
                       }
@@ -1182,13 +1316,73 @@ export default function Settings() {
                     }
                   }}
                   disabled={profileApplyLoading}
-                  className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all active:scale-[0.98]"
+                  className="w-full py-2 bg-indigo-650 hover:bg-indigo-600 text-white rounded-xl text-xs font-bold transition-all active:scale-[0.98] mt-2"
                 >
-                  {profileApplyLoading ? '제출 중...' : '신청서 제출'}
+                  {profileApplyLoading ? '제출 중...' : '부서/직책 배정 신청서 제출'}
                 </button>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 신청현황 탭 */}
+      {activeTab === 'apply-status' && (
+        <div className="space-y-4">
+          <div className="glass p-5 rounded-2xl space-y-4 shadow-md border border-slate-800">
+            <h3 className="text-xs font-bold text-white mb-2">가입 및 배정 신청 현황</h3>
+            {profileLoading ? (
+              <div className="text-[10px] text-slate-500 py-4 text-center">신청현황 조회 중...</div>
+            ) : (
+              <div className="space-y-4">
+                {/* 교회 신청 */}
+                <div className="space-y-2">
+                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">교회 소속 가입 상태</h4>
+                  {!profileMembership || profileMembership.status === 'none' ? (
+                    <p className="text-[10px] text-slate-500 bg-slate-900/40 p-3 rounded-xl border border-slate-800 text-center">교회 소속 가입 신청 이력이 없습니다.</p>
+                  ) : (
+                    <div className="p-3 bg-slate-900/40 border border-slate-800 rounded-xl flex justify-between items-center text-[11px]">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-semibold text-white">{profileMembership.churchName}</span>
+                        <span className="text-[9px] text-slate-500 font-sans">교회 가입 신청</span>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                        profileMembership.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                        profileMembership.status === 'pending' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                        'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                      }`}>
+                        {profileMembership.status === 'approved' ? '승인됨' : profileMembership.status === 'pending' ? '대기중' : '반려됨'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* 부서 신청 */}
+                <div className="space-y-2">
+                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">부서/직책 배정 신청 내역</h4>
+                  {profileAssignments.length === 0 ? (
+                    <p className="text-[10px] text-slate-500 bg-slate-900/40 p-3 rounded-xl border border-slate-800 text-center">조직 배정 신청 내역이 없습니다.</p>
+                  ) : (
+                    profileAssignments.map(a => (
+                      <div key={a.id} className="p-3 bg-slate-900/40 border border-slate-800 rounded-xl flex justify-between items-center text-[11px]">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-semibold text-white">{a.committee_name} {a.group_name ? `> ${a.group_name}` : ''}</span>
+                          <span className="text-[9px] text-slate-500 font-sans">{a.position_name} · {a.role_code}</span>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                          a.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                          a.status === 'pending' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                          'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                        }`}>
+                          {a.status === 'approved' ? '승인됨' : a.status === 'pending' ? '대기중' : '반려됨'}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
