@@ -10,7 +10,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   // Workspace Context (Platform 3.1) - primary source of church profile
-  const { churchProfile: contextProfile } = useChurchContext();
+  const { churchProfile: contextProfile, onboardingState = 'unknown' } = useChurchContext() || {};
 
   // Workspace Profile State - initialized from context, refreshed by API
   const [churchProfile, setChurchProfile] = useState(contextProfile || {
