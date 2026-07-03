@@ -21,10 +21,7 @@ router.get('/workspace', async (req, res) => {
         name: '선교 협력',
         country: '인도'
       };
-      await query.run(
-        'INSERT INTO public.platform_workspaces (workspace_id, capability, name, owner_id, is_active) VALUES (?, ?, ?, ?, TRUE)',
-        [result.id, 'mission', '선교 협력', userId]
-      );
+      /* platform_workspaces removed */
     }
     res.json(ws);
   } catch (err) {

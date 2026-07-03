@@ -21,29 +21,29 @@ router.get('/status', authenticateToken, async (req, res) => {
     const projectId = await getActiveProjectId(req);
 
     // Get the workspace corresponding to this project
-    const workspace = await query.get(
-      "SELECT workspace_id, name FROM public.platform_workspaces WHERE project_id = ? AND capability = 'church' LIMIT 1",
+    const project = await query.get(
+      "SELECT project_id, project_name as name FROM public.platform_projects WHERE project_id = ? LIMIT 1",
       [projectId]
     );
 
-    if (!workspace) {
+    if (!project) {
       return res.json({ status: 'none' });
     }
 
     const membership = await query.get(
-      "SELECT membership_id, status FROM public.platform_memberships WHERE user_id = ? AND workspace_id = ? LIMIT 1",
-      [userId, workspace.workspace_id]
+      "SELECT membership_id, status FROM public.platform_memberships WHERE user_id = ? AND project_id = ? LIMIT 1",
+      [userId, project.project_id]
     );
 
     if (!membership) {
-      return res.json({ status: 'none', workspaceId: workspace.workspace_id, churchName: workspace.name });
+      return res.json({ status: 'none', workspaceId: project.project_id, churchName: project.name });
     }
 
     res.json({
       status: membership.status,
       membershipId: membership.membership_id,
-      workspaceId: workspace.workspace_id,
-      churchName: workspace.name
+      workspaceId: project.project_id,
+      churchName: project.name
     });
   } catch (error) {
     console.error('[MEMBERSHIP STATUS] Error:', error);
@@ -56,9 +56,9 @@ router.get('/me', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId || req.user.id;
     const list = await query.all(`
-      SELECT m.membership_id, m.status, m.created_at, w.name as church_name, w.workspace_id
+      SELECT m.membership_id, m.status, m.created_at, w.name as church_name, m.project_id
       FROM public.platform_memberships m
-      JOIN public.platform_workspaces w ON m.workspace_id = w.workspace_id
+      JOIN public.platform_projects p ON m.project_id = p.project_id
       WHERE m.user_id = ? AND m.capability = 'church'
       ORDER BY m.created_at DESC
     `, [userId]);
@@ -73,8 +73,8 @@ router.get('/me', authenticateToken, async (req, res) => {
 router.post('/apply', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId || req.user.id;
-    const { churchProfileId, workspaceId } = req.body;
-    let resolvedWorkspaceId = workspaceId;
+    const { churchProfileId, workspaceId, projectId } = req.body;
+    let resolvedProjectId = projectId || workspaceId;
 
     if (!resolvedWorkspaceId && churchProfileId) {
       const church = await query.get('SELECT project_id FROM public.church_profiles WHERE church_id = ?', [churchProfileId]);
@@ -83,27 +83,27 @@ router.post('/apply', authenticateToken, async (req, res) => {
           "SELECT workspace_id FROM public.platform_workspaces WHERE project_id = ? AND capability = 'church' LIMIT 1",
           [church.project_id]
         );
-        if (workspace) resolvedWorkspaceId = workspace.workspace_id;
+        if (workspace) resolvedWorkspaceId = project.project_id;
       }
     }
 
-    if (!resolvedWorkspaceId) {
+    if (!resolvedProjectId) {
       return res.status(400).json({ message: '소속 교회를 선택해 주세요.' });
     }
 
-    const workspace = await query.get(
-      "SELECT workspace_id, project_id, name FROM public.platform_workspaces WHERE workspace_id = ? LIMIT 1",
-      [resolvedWorkspaceId]
+    const project = await query.get(
+      "SELECT project_id, project_name as name FROM public.platform_projects WHERE project_id = ? LIMIT 1",
+      [resolvedProjectId]
     );
-    if (!workspace) {
+    if (!project) {
       return res.status(404).json({ message: '교회를 찾을 수 없습니다.' });
     }
 
     // Insert platform membership
     await query.run(`
-      INSERT INTO public.platform_memberships (user_id, workspace_id, capability, status)
+      INSERT INTO public.platform_memberships (user_id, project_id, capability, status)
       VALUES (?, ?, 'church', 'pending')
-      ON CONFLICT (user_id, workspace_id) DO UPDATE SET status = 'pending', updated_at = CURRENT_TIMESTAMP
+      ON CONFLICT (user_id, project_id, capability) DO UPDATE SET status = 'pending', updated_at = CURRENT_TIMESTAMP
     `, [userId, resolvedWorkspaceId]);
 
     // Find Church Admins (SYSTEM_ADMIN for this specific project)
@@ -120,7 +120,7 @@ router.post('/apply', authenticateToken, async (req, res) => {
         'new-membership-request',
         `새로운 가입 신청: ${req.user.name || req.user.username}님이 가입 신청을 보냈습니다.`,
         `/settings?tab=users`,
-        { workspace_id: resolvedWorkspaceId, capability: 'church' }
+        { project_id: resolvedProjectId, capability: 'church' }
       );
     }
 
@@ -139,20 +139,15 @@ router.get('/admin/memberships/pending', authenticateToken, async (req, res) => 
       return res.status(403).json({ message: '교회 관리자 권한이 필요합니다.' });
     }
 
-    const workspace = await query.get(
-      "SELECT workspace_id FROM public.platform_workspaces WHERE project_id = ? AND capability = 'church' LIMIT 1",
-      [projectId]
-    );
-
-    if (!workspace) return res.json([]);
+    
 
     const pending = await query.all(`
       SELECT m.membership_id, m.created_at, p.user_id, p.display_name, p.username, p.email, p.phone
       FROM public.platform_memberships m
       JOIN public.platform_profiles p ON m.user_id = p.user_id
-      WHERE m.workspace_id = ? AND m.status = 'pending'
+      WHERE m.project_id = ? AND m.status = 'pending'
       ORDER BY m.created_at ASC
-    `, [workspace.workspace_id]);
+    `, [project.project_id]);
 
     res.json(pending);
   } catch (error) {
@@ -173,7 +168,7 @@ router.post('/admin/memberships/:membershipId/approve', authenticateToken, async
 
     // Check membership details
     const membership = await query.get(
-      "SELECT user_id, workspace_id, status FROM public.platform_memberships WHERE membership_id = ?",
+      "SELECT user_id, project_id, status FROM public.platform_memberships WHERE membership_id = ?",
       [membershipId]
     );
 
@@ -182,12 +177,12 @@ router.post('/admin/memberships/:membershipId/approve', authenticateToken, async
     }
 
     // Ensure this membership belongs to the admin's active workspace
-    const workspace = await query.get(
-      "SELECT project_id, name FROM public.platform_workspaces WHERE workspace_id = ? LIMIT 1",
-      [membership.workspace_id]
+    const project = await query.get(
+      "SELECT project_id, project_name as name FROM public.platform_projects WHERE project_id = ? LIMIT 1",
+      [membership.project_id]
     );
 
-    if (!workspace || workspace.project_id !== projectId) {
+    if (!project || project.project_id !== projectId) {
       return res.status(403).json({ message: '타 교회의 가입 신청을 승인할 권한이 없습니다.' });
     }
 
@@ -209,9 +204,9 @@ router.post('/admin/memberships/:membershipId/approve', authenticateToken, async
       membership.user_id,
       projectId,
       'membership-approved',
-      `${workspace.name} 교회 가입이 승인되었습니다.`,
+      `${project.name} 교회 가입이 승인되었습니다.`,
       '/app/church',
-      { workspace_id: membership.workspace_id, capability: 'church' }
+      { project_id: membership.project_id, capability: 'church' }
     );
 
     res.json({ success: true, message: '교회 가입이 승인되었습니다.' });
@@ -232,7 +227,7 @@ router.post('/admin/memberships/:membershipId/reject', authenticateToken, async 
     }
 
     const membership = await query.get(
-      "SELECT user_id, workspace_id FROM public.platform_memberships WHERE membership_id = ?",
+      "SELECT user_id, project_id FROM public.platform_memberships WHERE membership_id = ?",
       [membershipId]
     );
 
@@ -240,13 +235,13 @@ router.post('/admin/memberships/:membershipId/reject', authenticateToken, async 
       return res.status(404).json({ message: '가입 신청 내역을 찾을 수 없습니다.' });
     }
 
-    const workspace = await query.get(
-      "SELECT project_id, name FROM public.platform_workspaces WHERE workspace_id = ? LIMIT 1",
-      [membership.workspace_id]
+    const project = await query.get(
+      "SELECT project_id, project_name as name FROM public.platform_projects WHERE project_id = ? LIMIT 1",
+      [membership.project_id]
     );
 
-    if (!workspace || workspace.project_id !== projectId) {
-      return res.status(403).json({ message: '타 교회의 가입 신청을 처리할 권한이 없습니다.' });
+    if (!project || project.project_id !== projectId) {
+      return res.status(403).json({ message: '타 교회의 가입 신청을 처리할 수 없습니다.' });
     }
 
     // Update status to rejected
@@ -260,9 +255,9 @@ router.post('/admin/memberships/:membershipId/reject', authenticateToken, async 
       membership.user_id,
       projectId,
       'membership-rejected',
-      `${workspace.name} 교회 가입 신청이 반려되었습니다.`,
+      `${project.name} 교회 가입 신청이 반려되었습니다.`,
       '/app/church',
-      { workspace_id: membership.workspace_id, capability: 'church' }
+      { project_id: membership.project_id, capability: 'church' }
     );
 
     res.json({ success: true, message: '교회 가입 신청이 반려되었습니다.' });

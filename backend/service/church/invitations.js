@@ -266,13 +266,7 @@ router.post('/:token/accept', authenticateToken, async (req, res) => {
     }
 
     // Resolve workspace to join
-    const workspace = await query.get(
-      "SELECT workspace_id FROM public.platform_workspaces WHERE project_id = ? AND capability = 'church' LIMIT 1",
-      [invite.project_id]
-    );
-    if (!workspace) {
-      return res.status(404).json({ message: '가입할 교회 워크스페이스를 찾을 수 없습니다.' });
-    }
+    // workspace logic removed - using project_id directly
 
     const dbRoleCode = roleMapping[invite.role] || 'DEPARTMENT_ACCOUNTANT';
 
@@ -281,10 +275,10 @@ router.post('/:token/accept', authenticateToken, async (req, res) => {
     try {
       // 1. Create or update platform membership
       await query.run(`
-        INSERT INTO public.platform_memberships (user_id, workspace_id, capability, status, approved_at, approved_by)
+        INSERT INTO public.platform_memberships (user_id, project_id, capability, status, approved_at, approved_by)
         VALUES (?, ?, 'church', 'approved', CURRENT_TIMESTAMP, ?)
-        ON CONFLICT (user_id, workspace_id) DO UPDATE SET status = 'approved', approved_at = CURRENT_TIMESTAMP, approved_by = ?
-      `, [userId, workspace.workspace_id, invite.invited_by, invite.invited_by]);
+        ON CONFLICT (user_id, project_id, capability) DO UPDATE SET status = 'approved', approved_at = CURRENT_TIMESTAMP, approved_by = ?
+      `, [userId, invite.project_id, invite.invited_by, invite.invited_by]);
 
       // 2. Clear any existing active primary assignments in this project
       await query.run(
@@ -306,8 +300,8 @@ router.post('/:token/accept', authenticateToken, async (req, res) => {
 
       // Resolve membership_id
       const memb = await query.get(
-        "SELECT membership_id FROM public.platform_memberships WHERE user_id = ? AND workspace_id = ? LIMIT 1",
-        [userId, workspace.workspace_id]
+        "SELECT membership_id FROM public.platform_memberships WHERE user_id = ? AND project_id = ? LIMIT 1",
+        [userId, invite.project_id]
       );
 
       // 4. Log to assignment history (accepted)

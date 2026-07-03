@@ -299,15 +299,12 @@ app.post('/api/users/:id/approve', authenticateToken, requireRole(['SYSTEM_ADMIN
     // Set user as active and approved
     await query.run("UPDATE platform_profiles SET is_active = TRUE, signup_status = 'approved' WHERE user_id = ?", [id]);
 
-    // Approve the platform membership for this workspace
-    const workspace = await query.get("SELECT workspace_id FROM public.platform_workspaces WHERE project_id = ? LIMIT 1", [projectId]);
-    if (workspace) {
-      await query.run(`
-        UPDATE public.platform_memberships 
-        SET status = 'approved', approved_at = CURRENT_TIMESTAMP, approved_by = ?
-        WHERE user_id = ? AND workspace_id = ?
-      `, [req.user.userId, id, workspace.workspace_id]);
-    }
+    // Approve the platform membership for this project
+    await query.run(`
+      UPDATE public.platform_memberships 
+      SET status = 'approved', approved_at = CURRENT_TIMESTAMP, approved_by = ?
+      WHERE user_id = ? AND project_id = ?
+    `, [req.user.userId, id, projectId]);
 
     // Convert requested assignments into active approved assignments
     const requests = await query.all("SELECT * FROM public.church_signup_assignment_requests WHERE user_id = ? AND project_id = ? AND status = 'pending'", [id, projectId]);

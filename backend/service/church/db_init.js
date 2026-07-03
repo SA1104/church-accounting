@@ -52,14 +52,14 @@ async function runChurchDbMigrations() {
     `CREATE TABLE IF NOT EXISTS public.platform_memberships (
       membership_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id UUID NOT NULL REFERENCES public.platform_profiles(user_id) ON DELETE CASCADE,
-      workspace_id UUID NOT NULL REFERENCES public.platform_workspaces(workspace_id) ON DELETE CASCADE,
+      project_id UUID NOT NULL REFERENCES public.platform_projects(project_id) ON DELETE CASCADE,
       capability VARCHAR(50) NOT NULL,
       status VARCHAR(20) DEFAULT 'pending',
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       approved_at TIMESTAMP WITH TIME ZONE NULL,
       approved_by UUID NULL,
-      CONSTRAINT unique_user_workspace_capability UNIQUE (user_id, workspace_id, capability)
+      CONSTRAINT unique_user_project_capability UNIQUE (user_id, project_id, capability)
     )`,
     `CREATE TABLE IF NOT EXISTS public.church_invitations (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

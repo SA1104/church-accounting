@@ -111,11 +111,7 @@ router.get('/workspace', async (req, res) => {
         investment_style: 'Growth',
         risk_preference: 'MEDIUM'
       };
-      // Register in platform_workspaces
-      await query.run(
-        'INSERT INTO public.platform_workspaces (workspace_id, capability, name, owner_id, is_active) VALUES (?, ?, ?, ?, TRUE)',
-        [result.id, 'stock', '내 투자계정', userId]
-      );
+      // Register in platform_workspaces (Legacy removed)
     }
     res.json(ws);
   } catch (err) {

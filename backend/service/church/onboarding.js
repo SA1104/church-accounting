@@ -52,18 +52,13 @@ router.post('/', async (req, res) => {
       assignedDeptId = firstDeptId;
       projectId = newProjectId;
 
-      // Register workspace in platform_workspaces
-      const wsResult = await query.run(
-        'INSERT INTO public.platform_workspaces (capability, name, project_id, is_active) VALUES (?, ?, ?, TRUE) RETURNING workspace_id',
-        ['church', churchName, newProjectId]
-      );
-      workspaceId = wsResult.id;
+      workspaceId = newProjectId; // using project_id directly
 
       // Insert platform memberships as approved for the creator/owner
       await query.run(`
-        INSERT INTO public.platform_memberships (user_id, workspace_id, capability, status, approved_at)
+        INSERT INTO public.platform_memberships (user_id, project_id, capability, status, approved_at)
         VALUES (?, ?, 'church', 'approved', CURRENT_TIMESTAMP)
-        ON CONFLICT (user_id, workspace_id) DO UPDATE SET status = 'approved', approved_at = CURRENT_TIMESTAMP
+        ON CONFLICT (user_id, project_id, capability) DO UPDATE SET status = 'approved', approved_at = CURRENT_TIMESTAMP
       `, [userId, workspaceId]);
 
       // Set platform role as SYSTEM_ADMIN for this project
@@ -105,22 +100,17 @@ router.post('/', async (req, res) => {
       if (!church) return res.status(404).json({ message: '교회를 찾을 수 없습니다.' });
       projectId = church.project_id;
 
-      // Get workspace
-      const workspace = await query.get(
-        "SELECT workspace_id FROM public.platform_workspaces WHERE project_id = ? AND capability = 'church' LIMIT 1",
-        [projectId]
-      );
-      workspaceId = workspace ? workspace.workspace_id : null;
+      workspaceId = projectId; // bypass workspace
 
       if (!workspaceId) {
         return res.status(404).json({ message: '교회 워크스페이스를 찾을 수 없습니다.' });
       }
 
-      // Create pending platform membership
+      // Insert membership
       await query.run(`
-        INSERT INTO public.platform_memberships (user_id, workspace_id, capability, status)
+        INSERT INTO public.platform_memberships (user_id, project_id, capability, status)
         VALUES (?, ?, 'church', 'pending')
-        ON CONFLICT (user_id, workspace_id) DO UPDATE SET status = 'pending', updated_at = CURRENT_TIMESTAMP
+        ON CONFLICT (user_id, project_id, capability) DO UPDATE SET status = 'pending', updated_at = CURRENT_TIMESTAMP
       `, [userId, workspaceId]);
 
       // Save requested assignments
@@ -151,7 +141,7 @@ router.post('/', async (req, res) => {
           'new-membership-request',
           `새로운 교회 가입 신청: ${req.body.name || '신규 사용자'}님이 ${church.church_name} 가입을 신청했습니다.`,
           `/settings?tab=users`,
-          { workspace_id: workspaceId, capability: 'church' }
+          { project_id: workspaceId, capability: 'church' }
         );
       }
     }

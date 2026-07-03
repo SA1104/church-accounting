@@ -81,11 +81,11 @@ let mockUserAssignments = [
 ];
 let mockSignupAssignmentRequests = [];
 let mockPlatformMemberships = [
-  { membership_id: 'memb-1', user_id: 'admin-uuid-placeholder', workspace_id: 'platform-ws-id', capability: 'church', status: 'approved', created_at: new Date().toISOString() },
-  { membership_id: 'memb-2', user_id: 'finance-uuid-placeholder', workspace_id: 'platform-ws-id', capability: 'church', status: 'approved', created_at: new Date().toISOString() },
-  { membership_id: 'memb-3', user_id: 'accountant-uuid-placeholder', workspace_id: 'platform-ws-id', capability: 'church', status: 'approved', created_at: new Date().toISOString() },
-  { membership_id: 'memb-4', user_id: 'depthead-uuid-placeholder', workspace_id: 'platform-ws-id', capability: 'church', status: 'approved', created_at: new Date().toISOString() },
-  { membership_id: 'memb-5', user_id: 'auditor-uuid-placeholder', workspace_id: 'platform-ws-id', capability: 'church', status: 'approved', created_at: new Date().toISOString() }
+  { membership_id: 'memb-1', user_id: 'admin-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', capability: 'church', status: 'approved', created_at: new Date().toISOString() },
+  { membership_id: 'memb-2', user_id: 'finance-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', capability: 'church', status: 'approved', created_at: new Date().toISOString() },
+  { membership_id: 'memb-3', user_id: 'accountant-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', capability: 'church', status: 'approved', created_at: new Date().toISOString() },
+  { membership_id: 'memb-4', user_id: 'depthead-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', capability: 'church', status: 'approved', created_at: new Date().toISOString() },
+  { membership_id: 'memb-5', user_id: 'auditor-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', capability: 'church', status: 'approved', created_at: new Date().toISOString() }
 ];
 
 // Mock database query runner for offline/sandboxed execution
@@ -143,19 +143,18 @@ function runMockQuery(sql, params) {
 
   // Platform Memberships Interceptions
   if (sqlNormalized.includes('from public.platform_memberships') || sqlNormalized.includes('from platform_memberships')) {
-    if (sqlNormalized.includes('platform_workspaces')) {
+    if (sqlNormalized.includes('platform_projects')) {
       const uId = params[0];
       const userMemberships = mockPlatformMemberships.filter(m => m.user_id === uId);
       return userMemberships.map(m => ({
         ...m,
-        project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6',
         church_name: '신길교회'
       }));
     }
-    if (sqlNormalized.includes('user_id = ?') && sqlNormalized.includes('workspace_id = ?')) {
+    if (sqlNormalized.includes('user_id = ?') && sqlNormalized.includes('project_id = ?')) {
       const uId = params[0];
-      const wsId = params[1];
-      return mockPlatformMemberships.filter(m => m.user_id === uId && m.workspace_id === wsId);
+      const pId = params[1];
+      return mockPlatformMemberships.filter(m => m.user_id === uId && m.project_id === pId);
     }
     if (sqlNormalized.includes('user_id = ?')) {
       const uId = params[0];
@@ -820,9 +819,7 @@ function runMockQuery(sql, params) {
   if (sqlNormalized.includes('mission_workspaces')) {
     return [{ workspace_id: 'mission-ws-id', name: '선교 협력', country: '인도' }];
   }
-  if (sqlNormalized.includes('platform_workspaces')) {
-    return [{ workspace_id: 'platform-ws-id', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', name: '신길교회', capability: 'church' }];
-  }
+
   if (sqlNormalized.includes('stock_research_history')) {
     return [];
   }

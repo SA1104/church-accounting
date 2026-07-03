@@ -113,9 +113,9 @@ async function authenticateToken(req, res, next) {
       // If no approved assignment, check approved membership
       let hasApprovedMembership = false;
       const membership = await query.get(`
-        SELECT m.membership_id, w.project_id, w.name as church_name
+        SELECT m.membership_id, m.project_id, p.project_name as church_name
         FROM public.platform_memberships m
-        JOIN public.platform_workspaces w ON m.workspace_id = w.workspace_id
+        JOIN public.platform_projects p ON m.project_id = p.project_id
         WHERE m.user_id = ? AND m.status = 'approved' AND m.capability = 'church' LIMIT 1
       `, [profile.user_id]);
 
@@ -265,9 +265,9 @@ async function authenticateToken(req, res, next) {
     // If no approved assignment, check approved membership
     let hasApprovedMembership = false;
     const membership = await query.get(`
-      SELECT m.membership_id, w.project_id, w.name as church_name
+      SELECT m.membership_id, m.project_id, p.project_name as church_name
       FROM public.platform_memberships m
-      JOIN public.platform_workspaces w ON m.workspace_id = w.workspace_id
+      JOIN public.platform_projects p ON m.project_id = p.project_id
       WHERE m.user_id = ? AND m.status = 'approved' AND m.capability = 'church' LIMIT 1
     `, [user.id]);
 

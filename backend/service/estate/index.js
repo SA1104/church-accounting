@@ -21,10 +21,7 @@ router.get('/workspace', async (req, res) => {
         name: '서울권 분석',
         region: '서울'
       };
-      await query.run(
-        'INSERT INTO public.platform_workspaces (workspace_id, capability, name, owner_id, is_active) VALUES (?, ?, ?, ?, TRUE)',
-        [result.id, 'estate', '서울권 분석', userId]
-      );
+      /* platform_workspaces removed */
     }
     res.json(ws);
   } catch (err) {
