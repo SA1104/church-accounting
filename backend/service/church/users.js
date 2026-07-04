@@ -5,7 +5,7 @@ const express = require('express');
 const router = express.Router();
 const { query, supabase } = require('../../core/db');
 const { authenticateToken, requireRole } = require('../../core/auth');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 async function getActiveProjectId(req) {
   if (req.user && req.user.projectId) return req.user.projectId;
