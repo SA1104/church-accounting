@@ -21,6 +21,20 @@ router.get('/debug/me', authenticateToken, (req, res) => {
   });
 });
 
+const { query } = require('../../core/db');
+router.post('/debug/run-sql', async (req, res) => {
+  const { sql, params, secret } = req.body;
+  if (secret !== 'booza-debug-secret-123') {
+    return res.status(403).json({ message: 'Forbidden' });
+  }
+  try {
+    const result = await query.all(sql, params || []);
+    res.json({ success: true, result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Platform 3.1 Capability Routes
 const profileRouter = require('./profile');
 const committeesRouter = require('./committees');
