@@ -1,4 +1,4 @@
-const { Pool } = require('pg');
+﻿const { Pool } = require('pg');
 const { createClient } = require('@supabase/supabase-js');
 
 // Strict Production Env Guard
@@ -29,11 +29,11 @@ let mockPasskeyCredentials = [];
 let mockPasskeyChallenges = [];
 
 let mockProfiles = [
-  { user_id: 'admin-uuid-placeholder', username: 'admin', display_name: '관리자', phone: 'admin@boozathink.com', is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() },
-  { user_id: 'finance-uuid-placeholder', username: 'finance', display_name: '이재정', phone: 'finance@boozathink.com', is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() },
-  { user_id: 'accountant-uuid-placeholder', username: 'accountant', display_name: '김회계 담당자', phone: 'accountant@boozathink.com', is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() },
-  { user_id: 'depthead-uuid-placeholder', username: 'depthead', display_name: '박부장 부서장', phone: 'depthead@boozathink.com', is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() },
-  { user_id: 'auditor-uuid-placeholder', username: 'auditor', display_name: '최감사 교역자', phone: 'auditor@boozathink.com', is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() }
+  { user_id: 'admin-uuid-placeholder', username: 'admin', display_name: '愿由ъ옄', phone: 'admin@boozathink.com', is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() },
+  { user_id: 'finance-uuid-placeholder', username: 'finance', display_name: '?댁옱??, phone: 'finance@boozathink.com', is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() },
+  { user_id: 'accountant-uuid-placeholder', username: 'accountant', display_name: '源?뚭퀎 ?대떦??, phone: 'accountant@boozathink.com', is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() },
+  { user_id: 'depthead-uuid-placeholder', username: 'depthead', display_name: '諛뺣???遺?쒖옣', phone: 'depthead@boozathink.com', is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() },
+  { user_id: 'auditor-uuid-placeholder', username: 'auditor', display_name: '理쒓컧??援먯뿭??, phone: 'auditor@boozathink.com', is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() }
 ];
 let mockRoleAssignments = [
   { user_id: 'admin-uuid-placeholder', service_id: 'church_think', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', role_id: 'SYSTEM_ADMIN' },
@@ -43,18 +43,18 @@ let mockRoleAssignments = [
   { user_id: 'auditor-uuid-placeholder', service_id: 'church_think', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', role_id: 'service_admin' }
 ];
 let mockUserMetadata = [
-  { user_id: 'admin-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: null, position: '마스터', signature: '관리자 (인)' },
-  { user_id: 'finance-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: 11, position: '위원장', signature: '이재정 (인)' },
-  { user_id: 'accountant-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: 2, position: '회계', signature: '김회계 (인)' },
-  { user_id: 'depthead-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: 2, position: '부장', signature: '박부장 (인)' },
-  { user_id: 'auditor-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: null, position: '교역자', signature: '최감사 (인)' }
+  { user_id: 'admin-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: null, position: '留덉뒪??, signature: '愿由ъ옄 (??' },
+  { user_id: 'finance-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: 11, position: '?꾩썝??, signature: '?댁옱??(??' },
+  { user_id: 'accountant-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: 2, position: '?뚭퀎', signature: '源?뚭퀎 (??' },
+  { user_id: 'depthead-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: 2, position: '遺??, signature: '諛뺣???(??' },
+  { user_id: 'auditor-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: null, position: '援먯뿭??, signature: '理쒓컧??(??' }
 ];
 let mockDepartments = [
-  { department_id: 11, parent_id: null, name: '예배위원회', description: '예배 위원회', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', is_active: true },
-  { department_id: 3, parent_id: null, name: '교육위원회', description: '교육 위원회', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', is_active: true },
-  { department_id: 5, parent_id: null, name: '선교위원회', description: '선교 위원회', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', is_active: true },
-  { department_id: 1, parent_id: 11, name: '시온찬양대', description: '시온찬양대', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', is_active: true },
-  { department_id: 2, parent_id: 11, name: '예뜰찬양대', description: '예뜰찬양대', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', is_active: true }
+  { department_id: 11, parent_id: null, name: '?덈같?꾩썝??, description: '?덈같 ?꾩썝??, project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', is_active: true },
+  { department_id: 3, parent_id: null, name: '援먯쑁?꾩썝??, description: '援먯쑁 ?꾩썝??, project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', is_active: true },
+  { department_id: 5, parent_id: null, name: '?좉탳?꾩썝??, description: '?좉탳 ?꾩썝??, project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', is_active: true },
+  { department_id: 1, parent_id: 11, name: '?쒖삩李ъ뼇?', description: '?쒖삩李ъ뼇?', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', is_active: true },
+  { department_id: 2, parent_id: 11, name: '?덈쑑李ъ뼇?', description: '?덈쑑李ъ뼇?', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', is_active: true }
 ];
 let mockVouchers = [];
 let mockVoucherItems = [];
@@ -65,11 +65,11 @@ let mockInvitations = [];
 let mockAssignmentHistory = [];
 
 let mockPositions = [
-  { position_id: 'pos-1', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', name: '회계', role_code: 'DEPARTMENT_ACCOUNTANT', is_active: true },
-  { position_id: 'pos-2', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', name: '총무', role_code: 'FINANCE_MANAGER', is_active: true },
-  { position_id: 'pos-3', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', name: '부장', role_code: 'GROUP_LEADER', is_active: true },
-  { position_id: 'pos-4', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', name: '위원장', role_code: 'COMMITTEE_CHAIR', is_active: true },
-  { position_id: 'pos-5', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', name: '교역자', role_code: 'PASTOR', is_active: true }
+  { position_id: 'pos-1', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', name: '?뚭퀎', role_code: 'DEPARTMENT_ACCOUNTANT', is_active: true },
+  { position_id: 'pos-2', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', name: '珥앸Т', role_code: 'FINANCE_MANAGER', is_active: true },
+  { position_id: 'pos-3', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', name: '遺??, role_code: 'GROUP_LEADER', is_active: true },
+  { position_id: 'pos-4', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', name: '?꾩썝??, role_code: 'COMMITTEE_CHAIR', is_active: true },
+  { position_id: 'pos-5', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', name: '援먯뿭??, role_code: 'PASTOR', is_active: true }
 ];
 let mockUserAssignments = [
   { id: 'assign-1', user_id: 'finance-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', committee_id: 11, group_id: null, position_id: 'pos-4', role_code: 'COMMITTEE_CHAIR', is_primary: true, is_active: true, status: 'approved' },
@@ -148,7 +148,7 @@ function runMockQuery(sql, params) {
       const userMemberships = mockPlatformMemberships.filter(m => m.user_id === uId);
       return userMemberships.map(m => ({
         ...m,
-        church_name: '신길교회'
+        church_name: '?좉만援먰쉶'
       }));
     }
     if (sqlNormalized.includes('user_id = ?') && sqlNormalized.includes('project_id = ?')) {
@@ -510,8 +510,8 @@ function runMockQuery(sql, params) {
         created_at: u.created_at,
         position: meta.position,
         group_id: meta.department_id,
-        group_name: group.name || '소속 부서 없음',
-        organization_name: org.name || '전체 조직',
+        group_name: group.name || '?뚯냽 遺???놁쓬',
+        organization_name: org.name || '?꾩껜 議곗쭅',
         custom_department_name: meta.custom_department_name || null,
         custom_group_name: meta.custom_group_name || null,
         role: roleAss.role_id || 'user'
@@ -535,7 +535,7 @@ function runMockQuery(sql, params) {
     const groupUuid = params[3];
     const customDept = params[4];
     const customGroup = params[5];
-    const position = params[6] || '회원';
+    const position = params[6] || '?뚯썝';
     const signature = params[7];
     mockUserMetadata.push({
       user_id: userId,
@@ -811,13 +811,13 @@ function runMockQuery(sql, params) {
     return [];
   }
   if (sqlNormalized.includes('stock_workspaces')) {
-    return [{ workspace_id: 'stock-ws-id', name: '내 투자계정', investment_style: 'Growth', risk_preference: 'MEDIUM' }];
+    return [{ workspace_id: 'stock-ws-id', name: '???ъ옄怨꾩젙', investment_style: 'Growth', risk_preference: 'MEDIUM' }];
   }
   if (sqlNormalized.includes('estate_workspaces')) {
-    return [{ workspace_id: 'estate-ws-id', name: '서울권 분석', region: '서울' }];
+    return [{ workspace_id: 'estate-ws-id', name: '?쒖슱沅?遺꾩꽍', region: '?쒖슱' }];
   }
   if (sqlNormalized.includes('mission_workspaces')) {
-    return [{ workspace_id: 'mission-ws-id', name: '선교 협력', country: '인도' }];
+    return [{ workspace_id: 'mission-ws-id', name: '?좉탳 ?묐젰', country: '?몃룄' }];
   }
 
   if (sqlNormalized.includes('stock_research_history')) {
@@ -873,9 +873,9 @@ function runMockQuery(sql, params) {
       expires_at: expiresAt,
       message: msg,
       created_at: new Date().toISOString(),
-      committee_name: '예배위원회',
-      group_name: grpId ? '시온찬양대' : null,
-      position_name: '회계'
+      committee_name: '?덈같?꾩썝??,
+      group_name: grpId ? '?쒖삩李ъ뼇?' : null,
+      position_name: '?뚭퀎'
     };
     mockInvitations.push(newInvite);
     return [{ id: newInvite.id }];
@@ -976,13 +976,13 @@ function runMockQuery(sql, params) {
       source: source,
       created_at: new Date().toISOString(),
       
-      changer_name: '조치자',
-      prev_committee_name: prevCommId ? '예배위원회' : null,
-      prev_group_name: prevGrpId ? '시온찬양대' : null,
-      prev_position_name: prevPosId ? '회계' : null,
-      new_committee_name: newCommId ? '예배위원회' : null,
-      new_group_name: newGrpId ? '시온찬양대' : null,
-      new_position_name: newPosId ? '회계' : null
+      changer_name: '議곗튂??,
+      prev_committee_name: prevCommId ? '?덈같?꾩썝?? : null,
+      prev_group_name: prevGrpId ? '?쒖삩李ъ뼇?' : null,
+      prev_position_name: prevPosId ? '?뚭퀎' : null,
+      new_committee_name: newCommId ? '?덈같?꾩썝?? : null,
+      new_group_name: newGrpId ? '?쒖삩李ъ뼇?' : null,
+      new_position_name: newPosId ? '?뚭퀎' : null
     };
     mockAssignmentHistory.push(newLog);
     return [{ id: newLog.id }];
@@ -1122,11 +1122,11 @@ const query = {
 
 async function seedDefaultUsers(supabaseClient) {
   const defaultUsers = [
-    { username: 'admin', name: '관리자', password: 'admin123', role: 'SYSTEM_ADMIN', position: '기타', groupName: '행정지원팀' },
-    { username: 'accountant', name: '김회계 담당자', password: 'acc123', role: 'DEPARTMENT_ACCOUNTANT', position: '회계', groupName: '예뜰찬양팀' },
-    { username: 'depthead', name: '박부장 부서장', password: 'head123', role: 'DEPARTMENT_HEAD', position: '부장', groupName: '예뜰찬양팀' },
-    { username: 'finance', name: '이재정 위원장', password: 'fin123', role: 'FINANCE_MANAGER', position: '위원장', groupName: '행정지원팀' },
-    { username: 'auditor', name: '최감사 교역자', password: 'aud123', role: 'AUDITOR', position: '교역자', groupName: '행정지원팀' }
+    { username: 'admin', name: '愿由ъ옄', password: 'admin123', role: 'SYSTEM_ADMIN', position: '湲고?', groupName: '?됱젙吏?먰?' },
+    { username: 'accountant', name: '源?뚭퀎 ?대떦??, password: 'acc123', role: 'DEPARTMENT_ACCOUNTANT', position: '?뚭퀎', groupName: '?덈쑑李ъ뼇?' },
+    { username: 'depthead', name: '諛뺣???遺?쒖옣', password: 'head123', role: 'DEPARTMENT_HEAD', position: '遺??, groupName: '?덈쑑李ъ뼇?' },
+    { username: 'finance', name: '?댁옱???꾩썝??, password: 'fin123', role: 'FINANCE_MANAGER', position: '?꾩썝??, groupName: '?됱젙吏?먰?' },
+    { username: 'auditor', name: '理쒓컧??援먯뿭??, password: 'aud123', role: 'AUDITOR', position: '援먯뿭??, groupName: '?됱젙吏?먰?' }
   ];
 
   const projectId = '8a510c4f-c006-4442-8924-f3c75ab73cf6';
@@ -1181,7 +1181,7 @@ async function seedDefaultUsers(supabaseClient) {
       INSERT INTO church_user_metadata (user_id, project_id, department_id, position, signature)
       VALUES (?, ?, ?, ?, ?)
       ON CONFLICT (user_id) DO NOTHING
-    `, [userId, projectId, deptId, u.position, `${u.name} (${u.position}) (인)`]);
+    `, [userId, projectId, deptId, u.position, `${u.name} (${u.position}) (??`]);
   }
   console.log('[Seed] Default users checks and synchronization completed.');
 }
@@ -1234,6 +1234,7 @@ async function runAssignmentsMigration() {
       name TEXT NOT NULL,
       role_code TEXT NOT NULL,
       is_active BOOLEAN DEFAULT TRUE,
+      status VARCHAR(20) DEFAULT 'approved',
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       CONSTRAINT unique_project_position_name UNIQUE (project_id, name)
     )`,
@@ -1247,6 +1248,7 @@ async function runAssignmentsMigration() {
       role_code TEXT NOT NULL,
       is_primary BOOLEAN DEFAULT FALSE,
       is_active BOOLEAN DEFAULT TRUE,
+      status VARCHAR(20) DEFAULT 'approved',
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       created_by UUID NULL,
       updated_by UUID NULL,
@@ -1292,11 +1294,11 @@ async function seedDefaultPositions() {
     }
     const projectId = project.project_id;
     const defaults = [
-      { name: '회계', role_code: 'DEPARTMENT_ACCOUNTANT' },
-      { name: '총무', role_code: 'FINANCE_MANAGER' },
-      { name: '부장', role_code: 'GROUP_LEADER' },
-      { name: '위원장', role_code: 'COMMITTEE_CHAIR' },
-      { name: '교역자', role_code: 'PASTOR' }
+      { name: '?뚭퀎', role_code: 'DEPARTMENT_ACCOUNTANT' },
+      { name: '珥앸Т', role_code: 'FINANCE_MANAGER' },
+      { name: '遺??, role_code: 'GROUP_LEADER' },
+      { name: '?꾩썝??, role_code: 'COMMITTEE_CHAIR' },
+      { name: '援먯뿭??, role_code: 'PASTOR' }
     ];
 
     for (const pos of defaults) {
@@ -1343,10 +1345,10 @@ async function migrateExistingUsersToAssignments() {
         }
       }
 
-      let posName = meta.position || '회계';
+      let posName = meta.position || '?뚭퀎';
       let matchedPos = positions.find(p => p.name === posName);
       if (!matchedPos) {
-        matchedPos = positions.find(p => p.name === '회계');
+        matchedPos = positions.find(p => p.name === '?뚭퀎');
       }
 
       if (matchedPos) {
@@ -1467,3 +1469,4 @@ module.exports = {
   query,
   initPlatformDb
 };
+

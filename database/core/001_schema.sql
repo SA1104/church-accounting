@@ -1,8 +1,8 @@
--- =========================================================================
+﻿-- =========================================================================
 -- Booza Think Platform OS - Platform Core Schema (001_schema.sql)
 -- =========================================================================
 
--- platform_profiles: auth.users 와 1:1 연동되는 사용자 정보
+-- platform_profiles: auth.users ? 1:1 ?곕룞?섎뒗 ?ъ슜???뺣낫
 CREATE TABLE IF NOT EXISTS public.platform_profiles (
   user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   username VARCHAR(50) NOT NULL UNIQUE,
@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS public.platform_profiles (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- platform_services: 플랫폼에 탑재된 서비스 종류
+-- platform_services: ?뚮옯?쇱뿉 ?묒옱???쒕퉬??醫낅쪟
 CREATE TABLE IF NOT EXISTS public.platform_services (
   service_id VARCHAR(50) PRIMARY KEY,
   name VARCHAR(100) NOT NULL UNIQUE,
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS public.platform_services (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- platform_organizations: 최상위 조직/그룹 단위 테넌트
+-- platform_organizations: 理쒖긽??議곗쭅/洹몃９ ?⑥쐞 ?뚮꼳??
 CREATE TABLE IF NOT EXISTS public.platform_organizations (
   org_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(100) NOT NULL UNIQUE,
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS public.platform_organizations (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- platform_projects: 서비스 내의 격리된 실제 운영 프로젝트 (예: 신길교회, 사랑교회)
+-- platform_projects: ?쒕퉬???댁쓽 寃⑸━???ㅼ젣 ?댁쁺 ?꾨줈?앺듃 (?? ?좉만援먰쉶, ?щ옉援먰쉶)
 CREATE TABLE IF NOT EXISTS public.platform_projects (
   project_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id UUID REFERENCES public.platform_organizations(org_id) ON DELETE SET NULL,
@@ -43,15 +43,15 @@ CREATE TABLE IF NOT EXISTS public.platform_projects (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- platform_roles: 전역 역할 마스터
+-- platform_roles: ?꾩뿭 ??븷 留덉뒪??
 CREATE TABLE IF NOT EXISTS public.platform_roles (
   role_id VARCHAR(50) PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   description TEXT
 );
 
--- platform_project_members: 프로젝트에 소속된 멤버 및 권한
-CREATE TABLE IF NOT EXISTS public.platform_project_members (
+-- platform_project_members: ?꾨줈?앺듃???뚯냽??硫ㅻ쾭 諛?沅뚰븳
+CREATE TABLE IF NOT EXISTS public.platform_memberships (
   project_id UUID REFERENCES public.platform_projects(project_id) ON DELETE CASCADE,
   user_id UUID REFERENCES public.platform_profiles(user_id) ON DELETE CASCADE,
   role_id VARCHAR(50) REFERENCES public.platform_roles(role_id) ON DELETE SET NULL,
@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS public.platform_project_members (
   PRIMARY KEY (project_id, user_id)
 );
 
--- platform_role_assignments: 사용자의 역할 지정
+-- platform_role_assignments: ?ъ슜?먯쓽 ??븷 吏??
 CREATE TABLE IF NOT EXISTS public.platform_role_assignments (
   user_id UUID REFERENCES public.platform_profiles(user_id) ON DELETE CASCADE,
   service_id VARCHAR(50) NOT NULL REFERENCES public.platform_services(service_id) ON DELETE CASCADE,
@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS public.platform_role_assignments (
   PRIMARY KEY (user_id, service_id, project_id, role_id)
 );
 
--- platform_workflows: 실행할 자동화 워크플로우 정의
+-- platform_workflows: ?ㅽ뻾???먮룞???뚰겕?뚮줈???뺤쓽
 CREATE TABLE IF NOT EXISTS public.platform_workflows (
   workflow_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id UUID REFERENCES public.platform_projects(project_id) ON DELETE CASCADE,
@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS public.platform_workflows (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- platform_workflow_steps: 워크플로우 단계
+-- platform_workflow_steps: ?뚰겕?뚮줈???④퀎
 CREATE TABLE IF NOT EXISTS public.platform_workflow_steps (
   step_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   workflow_id UUID REFERENCES public.platform_workflows(workflow_id) ON DELETE CASCADE,
@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS public.platform_workflow_steps (
   UNIQUE (workflow_id, step_number)
 );
 
--- platform_tasks: 개별 단계 실행에 의해 기동된 태스크의 인스턴스 정보
+-- platform_tasks: 媛쒕퀎 ?④퀎 ?ㅽ뻾???섑빐 湲곕룞???쒖뒪?ъ쓽 ?몄뒪?댁뒪 ?뺣낫
 CREATE TABLE IF NOT EXISTS public.platform_tasks (
   task_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   step_id UUID REFERENCES public.platform_workflow_steps(step_id) ON DELETE CASCADE,
@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS public.platform_tasks (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- platform_tags: 다목적 검색 및 그룹화를 위한 공통 태그
+-- platform_tags: ?ㅻぉ??寃??諛?洹몃９?붾? ?꾪븳 怨듯넻 ?쒓렇
 CREATE TABLE IF NOT EXISTS public.platform_tags (
   tag_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(50) NOT NULL UNIQUE,
@@ -110,25 +110,25 @@ CREATE TABLE IF NOT EXISTS public.platform_tags (
   description TEXT
 );
 
--- platform_tag_maps: 태그와 임의 객체 간의 관계 설정
+-- platform_tag_maps: ?쒓렇? ?꾩쓽 媛앹껜 媛꾩쓽 愿怨??ㅼ젙
 CREATE TABLE IF NOT EXISTS public.platform_tag_maps (
   tag_id UUID REFERENCES public.platform_tags(tag_id) ON DELETE CASCADE,
-  related_table VARCHAR(100) NOT NULL, -- 'church_vouchers', 'estate_properties' 등
-  related_id VARCHAR(100) NOT NULL, -- 대상 레코드의 UUID 또는 INTEGER 기본키
+  related_table VARCHAR(100) NOT NULL, -- 'church_vouchers', 'estate_properties' ??
+  related_id VARCHAR(100) NOT NULL, -- ????덉퐫?쒖쓽 UUID ?먮뒗 INTEGER 湲곕낯??
   PRIMARY KEY (tag_id, related_table, related_id)
 );
 
--- platform_events: 이벤트 기반 처리를 위한 이벤트 버스 로그
+-- platform_events: ?대깽??湲곕컲 泥섎━瑜??꾪븳 ?대깽??踰꾩뒪 濡쒓렇
 CREATE TABLE IF NOT EXISTS public.platform_events (
   event_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id UUID REFERENCES public.platform_projects(project_id) ON DELETE CASCADE,
-  event_type VARCHAR(100) NOT NULL, -- 'VOUCHER_SUBMITTED', 'OCR_COMPLETED' 등
+  event_type VARCHAR(100) NOT NULL, -- 'VOUCHER_SUBMITTED', 'OCR_COMPLETED' ??
   payload JSONB,
   triggered_by UUID REFERENCES public.platform_profiles(user_id) ON DELETE SET NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- platform_files: 스토리지에 업로드된 파일 정보 메타
+-- platform_files: ?ㅽ넗由ъ????낅줈?쒕맂 ?뚯씪 ?뺣낫 硫뷀?
 CREATE TABLE IF NOT EXISTS public.platform_files (
   file_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id UUID REFERENCES public.platform_projects(project_id) ON DELETE CASCADE,
@@ -144,7 +144,7 @@ CREATE TABLE IF NOT EXISTS public.platform_files (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- platform_search_indexes: 통합 검색을 지원하는 인덱스 테이블
+-- platform_search_indexes: ?듯빀 寃?됱쓣 吏?먰븯???몃뜳???뚯씠釉?
 CREATE TABLE IF NOT EXISTS public.platform_search_indexes (
   index_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id UUID REFERENCES public.platform_projects(project_id) ON DELETE CASCADE,
@@ -155,7 +155,7 @@ CREATE TABLE IF NOT EXISTS public.platform_search_indexes (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- platform_notifications: 알림 보관함
+-- platform_notifications: ?뚮┝ 蹂닿???
 CREATE TABLE IF NOT EXISTS public.platform_notifications (
   notification_id BIGSERIAL PRIMARY KEY,
   user_id UUID REFERENCES public.platform_profiles(user_id) ON DELETE CASCADE,
@@ -168,7 +168,7 @@ CREATE TABLE IF NOT EXISTS public.platform_notifications (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- platform_audit_logs: 시스템 운영 감사 로그
+-- platform_audit_logs: ?쒖뒪???댁쁺 媛먯궗 濡쒓렇
 CREATE TABLE IF NOT EXISTS public.platform_audit_logs (
   log_id BIGSERIAL PRIMARY KEY,
   user_id UUID REFERENCES public.platform_profiles(user_id) ON DELETE SET NULL,
@@ -181,7 +181,7 @@ CREATE TABLE IF NOT EXISTS public.platform_audit_logs (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- platform_integrations: 외부 API 및 서비스 연동 설정 정보
+-- platform_integrations: ?몃? API 諛??쒕퉬???곕룞 ?ㅼ젙 ?뺣낫
 CREATE TABLE IF NOT EXISTS public.platform_integrations (
   integration_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id UUID REFERENCES public.platform_projects(project_id) ON DELETE CASCADE,
@@ -193,7 +193,7 @@ CREATE TABLE IF NOT EXISTS public.platform_integrations (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- platform_api_keys: 서드파티 및 외부 봇을 위한 API Key 발급
+-- platform_api_keys: ?쒕뱶?뚰떚 諛??몃? 遊뉗쓣 ?꾪븳 API Key 諛쒓툒
 CREATE TABLE IF NOT EXISTS public.platform_api_keys (
   key_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id UUID REFERENCES public.platform_projects(project_id) ON DELETE CASCADE,
@@ -205,7 +205,7 @@ CREATE TABLE IF NOT EXISTS public.platform_api_keys (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- billing_stubs: 과금 구독 상태 정보 스텁
+-- billing_stubs: 怨쇨툑 援щ룆 ?곹깭 ?뺣낫 ?ㅽ뀅
 CREATE TABLE IF NOT EXISTS public.billing_stubs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id UUID NOT NULL REFERENCES public.platform_projects(project_id) ON DELETE CASCADE,
@@ -217,7 +217,7 @@ CREATE TABLE IF NOT EXISTS public.billing_stubs (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- usage_stubs: 사용량 계측 통계 정보 스텁
+-- usage_stubs: ?ъ슜??怨꾩륫 ?듦퀎 ?뺣낫 ?ㅽ뀅
 CREATE TABLE IF NOT EXISTS public.usage_stubs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id UUID NOT NULL REFERENCES public.platform_projects(project_id) ON DELETE CASCADE,
@@ -227,7 +227,7 @@ CREATE TABLE IF NOT EXISTS public.usage_stubs (
   measured_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- governance_stubs: 거버넌스 제어 관리 정보 스텁
+-- governance_stubs: 嫄곕쾭?뚯뒪 ?쒖뼱 愿由??뺣낫 ?ㅽ뀅
 CREATE TABLE IF NOT EXISTS public.governance_stubs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   registry_type VARCHAR(50) NOT NULL, -- 'PRODUCT', 'PLUGIN', 'ENGINE', etc.
@@ -243,7 +243,7 @@ CREATE INDEX IF NOT EXISTS idx_billing_stubs_project ON public.billing_stubs(pro
 CREATE INDEX IF NOT EXISTS idx_usage_stubs_project ON public.usage_stubs(project_id);
 CREATE INDEX IF NOT EXISTS idx_governance_stubs_type ON public.governance_stubs(registry_type);
 
--- platform_registries: 플랫폼 통합 동적 레지스트리 (TEAM F)
+-- platform_registries: ?뚮옯???듯빀 ?숈쟻 ?덉??ㅽ듃由?(TEAM F)
 CREATE TABLE IF NOT EXISTS public.platform_registries (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   registry_type VARCHAR(50) NOT NULL, -- 'PRODUCT', 'ENGINE', 'PLUGIN', 'DATASET', 'API', 'VERSION', 'MIGRATION', 'BILLING', 'LICENSE'
@@ -258,7 +258,7 @@ CREATE TABLE IF NOT EXISTS public.platform_registries (
   UNIQUE (registry_type, item_key)
 );
 
--- decision_histories: 플랫폼 의사결정 이력 관리 및 추적 (TEAM E)
+-- decision_histories: ?뚮옯???섏궗寃곗젙 ?대젰 愿由?諛?異붿쟻 (TEAM E)
 CREATE TABLE IF NOT EXISTS public.decision_histories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id UUID NOT NULL REFERENCES public.platform_projects(project_id) ON DELETE CASCADE,
@@ -285,3 +285,4 @@ CREATE TABLE IF NOT EXISTS public.decision_histories (
 CREATE INDEX IF NOT EXISTS idx_platform_registries_type ON public.platform_registries(registry_type);
 CREATE INDEX IF NOT EXISTS idx_decision_histories_project ON public.decision_histories(project_id);
 CREATE INDEX IF NOT EXISTS idx_decision_histories_status ON public.decision_histories(status);
+
