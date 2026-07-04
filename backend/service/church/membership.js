@@ -142,7 +142,7 @@ router.get('/admin/memberships/pending', authenticateToken, async (req, res) => 
     
 
     const pending = await query.all(`
-      SELECT m.membership_id, m.created_at, p.user_id, p.display_name, p.username, p.email, p.phone
+      SELECT m.membership_id, m.created_at, p.user_id, p.display_name, p.username, p.phone
       FROM public.platform_memberships m
       JOIN public.platform_profiles p ON m.user_id = p.user_id
       WHERE m.project_id = ? AND m.status = 'pending'

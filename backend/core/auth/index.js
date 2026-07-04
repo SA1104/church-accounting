@@ -56,8 +56,8 @@ async function authenticateToken(req, res, next) {
 
       // Query database platform_profiles to get the real user ID and profile info
       let profile = await query.get(
-        'SELECT user_id, username, display_name, email, phone, is_active FROM platform_profiles WHERE username = ? OR user_id = ? OR email = ? LIMIT 1',
-        [mockUsername, mockUsername, `${mockUsername}@boozathink.com`]
+        'SELECT user_id, username, display_name, phone, is_active FROM platform_profiles WHERE username = ? OR user_id = ? LIMIT 1',
+        [mockUsername, mockUsername]
       );
       
       if (!profile) {
@@ -213,7 +213,7 @@ async function authenticateToken(req, res, next) {
 
     // Resolve user's platform profile
     const profile = await query.get(
-      'SELECT username, display_name, email, phone, avatar_url, is_active FROM platform_profiles WHERE user_id = ?',
+      'SELECT username, display_name, phone, avatar_url, is_active FROM platform_profiles WHERE user_id = ?',
       [user.id]
     );
 
@@ -292,7 +292,7 @@ async function authenticateToken(req, res, next) {
 
     const isSystemAdminRole = roles['church_think'] === 'SYSTEM_ADMIN';
 
-    const email = profile.email || user.email;
+    const email = user.email;
 
     req.user = {
       userId: user.id,
@@ -426,7 +426,7 @@ async function login(req, res) {
       if (isPasswordValid) {
         const usernameClean = username.split('@')[0];
         const mockToken = `${usernameClean}-token`;
-        const profile = await query.get('SELECT user_id, display_name FROM platform_profiles WHERE username = ? OR username = ? OR email = ? LIMIT 1', [usernameClean, username, email]);
+        const profile = await query.get('SELECT user_id, display_name FROM platform_profiles WHERE username = ? OR username = ? LIMIT 1', [usernameClean, username]);
         const userId = profile ? profile.user_id : `${usernameClean}-uuid-placeholder`;
         const displayName = profile ? profile.display_name : (usernameClean === 'admin' ? '관리자' : (usernameClean === 'finance' ? '이재정' : '일반회원'));
 
@@ -559,8 +559,8 @@ async function signup(req, res) {
   try {
     // 1. Check if email or username already exists in platform_profiles
     const existingUser = await query.get(
-      'SELECT user_id FROM platform_profiles WHERE username = ? OR email = ?',
-      [username, email]
+      'SELECT user_id FROM platform_profiles WHERE username = ?',
+      [username]
     );
     if (existingUser) {
       return res.status(400).json({ message: '이미 가입된 아이디 또는 이메일 주소입니다.' });
@@ -573,9 +573,9 @@ async function signup(req, res) {
       userId = `mock-user-uuid-${Math.random().toString(36).substring(7)}`;
       // Insert profile record directly since there is no Supabase trigger in mock mode
       await query.run(`
-        INSERT INTO public.platform_profiles (user_id, username, display_name, email, phone, signup_status, is_active)
-        VALUES (?, ?, ?, ?, ?, 'approved', TRUE)
-      `, [userId, username, name, email, phone || '']);
+        INSERT INTO public.platform_profiles (user_id, username, display_name, phone, signup_status, is_active)
+        VALUES (?, ?, ?, ?, 'approved', TRUE)
+      `, [userId, username, name, phone || '']);
     } else {
       const { data, error } = await supabasePublic.auth.signUp({
         email: email,
@@ -593,15 +593,14 @@ async function signup(req, res) {
       // Ensure platform profile is written / active
       try {
         await query.run(`
-          INSERT INTO public.platform_profiles (user_id, username, display_name, email, phone, signup_status, is_active)
-          VALUES (?, ?, ?, ?, ?, 'approved', TRUE)
-          ON CONFLICT (user_id) DO UPDATE SET
-            username = EXCLUDED.username,
-            display_name = EXCLUDED.display_name,
-            email = EXCLUDED.email,
-            phone = EXCLUDED.phone,
-            is_active = TRUE
-        `, [userId, username, name, email, phone || '']);
+        INSERT INTO public.platform_profiles (user_id, username, display_name, phone, signup_status, is_active)
+        VALUES (?, ?, ?, ?, 'approved', TRUE)
+        ON CONFLICT (user_id) DO UPDATE SET
+          username = EXCLUDED.username,
+          display_name = EXCLUDED.display_name,
+          phone = EXCLUDED.phone,
+          is_active = TRUE
+      `, [userId, username, name, phone || '']);
       } catch (e) {
         console.warn('Failed to insert platform profile manually (may already exist via trigger):', e.message);
       }

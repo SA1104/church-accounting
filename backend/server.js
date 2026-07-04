@@ -173,7 +173,7 @@ app.get('/api/churches', async (req, res) => {
   try {
     const showAll = req.query.all === 'true';
     const search = req.query.search;
-    let sql = "SELECT church_id, project_id, church_name, denomination, region, address, phone, email, homepage_url, logo_url, primary_color, secondary_color, status FROM public.church_profiles";
+    let sql = "SELECT church_id, project_id, church_name, denomination, region, manager_name, logo_url, primary_color, secondary_color FROM public.church_profiles";
     const params = [];
     const whereClauses = [];
     if (!showAll) {

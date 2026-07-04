@@ -164,8 +164,8 @@ async function getLoginOptions(req, res) {
 
     // Look up user by email or username
     const profile = await query.get(
-      "SELECT user_id, username FROM public.platform_profiles WHERE username = ? OR username = ? OR email = ? LIMIT 1",
-      [email, email.split('@')[0], email]
+      "SELECT user_id, username FROM public.platform_profiles WHERE username = ? OR username = ? LIMIT 1",
+      [email, email.split('@')[0]]
     );
 
     if (!profile) {
@@ -212,8 +212,8 @@ async function verifyLogin(req, res) {
 
     // Look up user
     const profile = await query.get(
-      "SELECT user_id, username, display_name FROM public.platform_profiles WHERE username = ? OR username = ? OR email = ? LIMIT 1",
-      [email, email.split('@')[0], email]
+      "SELECT user_id, username, display_name FROM public.platform_profiles WHERE username = ? OR username = ? LIMIT 1",
+      [email, email.split('@')[0]]
     );
 
     if (!profile) {
