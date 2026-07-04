@@ -360,10 +360,8 @@ async function authenticateToken(req, res, next) {
     const responsePayload = {
       message: '로그인이 만료되었거나 권한 확인 중 문제가 발생했습니다'
     };
-    if (process.env.NODE_ENV !== 'production') {
-      responsePayload.error = err.message;
-      responsePayload.stack = err.stack;
-    }
+    responsePayload.error = err.message;
+    responsePayload.stack = err.stack;
     return res.status(500).json(responsePayload);
   }
 }
