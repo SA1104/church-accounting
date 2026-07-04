@@ -368,6 +368,7 @@ async function authenticateToken(req, res, next) {
 
 function requireRole(allowedRoles, serviceId = 'platform') {
   return (req, res, next) => {
+    console.log(`[AUTH requireRole] User: ${req.user ? req.user.username : 'undefined'}, ServiceId: ${serviceId}, Roles:`, req.user ? req.user.roles : 'undefined', `AllowedRoles:`, allowedRoles, `req.user.accounting.role:`, req.user && req.user.accounting ? req.user.accounting.role : 'undefined');
     if (!req.user || !req.user.roles) {
       return res.status(403).json({ message: 'Access denied: Insufficient permissions' });
     }
