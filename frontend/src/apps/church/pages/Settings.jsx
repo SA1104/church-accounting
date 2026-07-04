@@ -874,7 +874,7 @@ export default function Settings() {
     setNewUserGroupId('');
     if (commId) {
       try {
-        const data = await apiClient(/api/church/admin/committees//groups);
+        const data = await apiClient(`/api/church/admin/committees/${commId}/groups`);
         if (Array.isArray(data)) {
           setNewUserAvailableGroups(data);
         }
@@ -903,7 +903,7 @@ export default function Settings() {
       });
 
       if (res.userId && newUserCommitteeId && newUserPositionId) {
-        await apiClient(/api/church/assignments/users/, {
+        await apiClient(`/api/church/assignments/users/${res.userId}`, {
           method: 'POST',
           body: JSON.stringify({
             committee_id: newUserCommitteeId,
