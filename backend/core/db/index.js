@@ -160,13 +160,12 @@ const query = {
 };
 
 async function seedDefaultUsers(supabaseClient) {
-  const defaultUsers = [
-    { username: 'admin', name: '愿由ъ옄', password: 'admin123', role: 'SYSTEM_ADMIN', position: '湲고?', groupName: '?됱젙吏?먰?' },
-    { username: 'accountant', name: '源?뚭퀎 ?대떦??, password: 'acc123', role: 'DEPARTMENT_ACCOUNTANT', position: '?뚭퀎', groupName: '?덈쑑李ъ뼇?' },
-    { username: 'depthead', name: '諛뺣???遺?쒖옣', password: 'head123', role: 'DEPARTMENT_HEAD', position: '遺??, groupName: '?덈쑑李ъ뼇?' },
-    { username: 'finance', name: '?댁옱???꾩썝??, password: 'fin123', role: 'FINANCE_MANAGER', position: '?꾩썝??, groupName: '?됱젙吏?먰?' },
-    { username: 'auditor', name: '理쒓컧??援먯뿭??, password: 'aud123', role: 'AUDITOR', position: '援먯뿭??, groupName: '?됱젙吏?먰?' }
-  ];
+  let defaultUsers = [];
+  if (process.env.NODE_ENV !== 'production') {
+    try {
+      defaultUsers = require('./mock-data.js').defaultUsers || [];
+    } catch(e) {}
+  }
 
   const projectId = '8a510c4f-c006-4442-8924-f3c75ab73cf6';
 
@@ -332,13 +331,12 @@ async function seedDefaultPositions() {
       return;
     }
     const projectId = project.project_id;
-    const defaults = [
-      { name: '?뚭퀎', role_code: 'DEPARTMENT_ACCOUNTANT' },
-      { name: '珥앸Т', role_code: 'FINANCE_MANAGER' },
-      { name: '遺??, role_code: 'GROUP_LEADER' },
-      { name: '?꾩썝??, role_code: 'COMMITTEE_CHAIR' },
-      { name: '援먯뿭??, role_code: 'PASTOR' }
-    ];
+    let defaults = [];
+    if (process.env.NODE_ENV !== 'production') {
+      try {
+        defaults = require('./mock-data.js').defaultPositions || [];
+      } catch(e) {}
+    }
 
     for (const pos of defaults) {
       await query.run(`

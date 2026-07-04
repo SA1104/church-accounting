@@ -965,4 +965,23 @@ function runMockQuery(sql, params) {
   return [];
 }
 
-module.exports = { runMockQuery };
+
+
+const defaultUsers = [
+  { username: 'admin', name: '관리자', password: 'admin123', role: 'SYSTEM_ADMIN', position: '기본', groupName: '재정지원실' },
+  { username: 'accountant', name: '김회계 담당자', password: 'acc123', role: 'DEPARTMENT_ACCOUNTANT', position: '회계', groupName: '늘찬찬양대' },
+  { username: 'depthead', name: '박부장 부장', password: 'head123', role: 'DEPARTMENT_HEAD', position: '부장', groupName: '늘찬찬양대' },
+  { username: 'finance', name: '이재정 위원장', password: 'fin123', role: 'FINANCE_MANAGER', position: '위원장', groupName: '재정지원실' },
+  { username: 'auditor', name: '최감사 교역자', password: 'aud123', role: 'AUDITOR', position: '교역자', groupName: '재정지원실' }
+];
+
+const defaultPositions = [
+  { name: '회계', role_code: 'DEPARTMENT_ACCOUNTANT' },
+  { name: '총무', role_code: 'FINANCE_MANAGER' },
+  { name: '부장', role_code: 'GROUP_LEADER' },
+  { name: '위원장', role_code: 'COMMITTEE_CHAIR' },
+  { name: '교역자', role_code: 'PASTOR' }
+];
+
+module.exports = { runMockQuery, defaultUsers, defaultPositions };
+
