@@ -7,6 +7,20 @@ const router = express.Router();
 // Initialize capability-specific DB (schema migrations & seed)
 require('./db_init');
 
+const { authenticateToken } = require('../../core/auth');
+router.get('/debug/me', authenticateToken, (req, res) => {
+  res.json({
+    user_id: req.user.userId,
+    username: req.user.username,
+    service_id: 'church_think',
+    activeContext: req.user.accounting ? req.user.accounting : null,
+    accountingRole: req.user.accounting ? req.user.accounting.role : null,
+    platformRoles: req.user.roles ? req.user.roles.platform : null,
+    roles: req.user.roles,
+    debug: 'added for P0 verification'
+  });
+});
+
 // Platform 3.1 Capability Routes
 const profileRouter = require('./profile');
 const committeesRouter = require('./committees');
