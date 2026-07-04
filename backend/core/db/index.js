@@ -1,4 +1,4 @@
-﻿const { Pool } = require('pg');
+const { Pool } = require('pg');
 const { createClient } = require('@supabase/supabase-js');
 
 // Strict Production Env Guard
@@ -29,11 +29,11 @@ let mockPasskeyCredentials = [];
 let mockPasskeyChallenges = [];
 
 let mockProfiles = [
-  { user_id: 'admin-uuid-placeholder', username: 'admin', display_name: '愿由ъ옄', phone: 'admin@boozathink.com', is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() },
-  { user_id: 'finance-uuid-placeholder', username: 'finance', display_name: '?댁옱??, phone: 'finance@boozathink.com', is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() },
-  { user_id: 'accountant-uuid-placeholder', username: 'accountant', display_name: '源?뚭퀎 ?대떦??, phone: 'accountant@boozathink.com', is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() },
-  { user_id: 'depthead-uuid-placeholder', username: 'depthead', display_name: '諛뺣???遺?쒖옣', phone: 'depthead@boozathink.com', is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() },
-  { user_id: 'auditor-uuid-placeholder', username: 'auditor', display_name: '理쒓컧??援먯뿭??, phone: 'auditor@boozathink.com', is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() }
+  { user_id: 'admin-uuid-placeholder', username: 'admin', display_name: '관리자', phone: null, is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() },
+  { user_id: 'finance-uuid-placeholder', username: 'finance', display_name: '재정담당자', phone: null, is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() },
+  { user_id: 'accountant-uuid-placeholder', username: 'accountant', display_name: '회계담당자', phone: null, is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() },
+  { user_id: 'depthead-uuid-placeholder', username: 'depthead', display_name: '부장', phone: null, is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() },
+  { user_id: 'auditor-uuid-placeholder', username: 'auditor', display_name: '감사', phone: null, is_active: 1, signup_status: 'approved', created_at: new Date().toISOString() }
 ];
 let mockRoleAssignments = [
   { user_id: 'admin-uuid-placeholder', service_id: 'church_think', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', role_id: 'SYSTEM_ADMIN' },
@@ -43,18 +43,18 @@ let mockRoleAssignments = [
   { user_id: 'auditor-uuid-placeholder', service_id: 'church_think', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', role_id: 'service_admin' }
 ];
 let mockUserMetadata = [
-  { user_id: 'admin-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: null, position: '留덉뒪??, signature: '愿由ъ옄 (??' },
-  { user_id: 'finance-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: 11, position: '?꾩썝??, signature: '?댁옱??(??' },
-  { user_id: 'accountant-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: 2, position: '?뚭퀎', signature: '源?뚭퀎 (??' },
-  { user_id: 'depthead-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: 2, position: '遺??, signature: '諛뺣???(??' },
-  { user_id: 'auditor-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: null, position: '援먯뿭??, signature: '理쒓컧??(??' }
+  { user_id: 'admin-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: null, position: '마스터', signature: '관리자' },
+  { user_id: 'finance-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: 11, position: '위원장', signature: '재정담당자' },
+  { user_id: 'accountant-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: 2, position: '회계', signature: '회계담당자' },
+  { user_id: 'depthead-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: 2, position: '부장', signature: '부장' },
+  { user_id: 'auditor-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', department_id: null, position: '교역자', signature: '감사' }
 ];
 let mockDepartments = [
-  { department_id: 11, parent_id: null, name: '?덈같?꾩썝??, description: '?덈같 ?꾩썝??, project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', is_active: true },
-  { department_id: 3, parent_id: null, name: '援먯쑁?꾩썝??, description: '援먯쑁 ?꾩썝??, project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', is_active: true },
-  { department_id: 5, parent_id: null, name: '?좉탳?꾩썝??, description: '?좉탳 ?꾩썝??, project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', is_active: true },
-  { department_id: 1, parent_id: 11, name: '?쒖삩李ъ뼇?', description: '?쒖삩李ъ뼇?', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', is_active: true },
-  { department_id: 2, parent_id: 11, name: '?덈쑑李ъ뼇?', description: '?덈쑑李ъ뼇?', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', is_active: true }
+  { department_id: 11, parent_id: null, name: '예배위원회', description: '예배 위원회', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', is_active: true },
+  { department_id: 3, parent_id: null, name: '교육위원회', description: '교육 위원회', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', is_active: true },
+  { department_id: 5, parent_id: null, name: '선교위원회', description: '선교 위원회', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', is_active: true },
+  { department_id: 1, parent_id: 11, name: '시온찬양대', description: '시온찬양대', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', is_active: true },
+  { department_id: 2, parent_id: 11, name: '늘찬찬양대', description: '늘찬찬양대', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', is_active: true }
 ];
 let mockVouchers = [];
 let mockVoucherItems = [];
@@ -459,15 +459,13 @@ function runMockQuery(sql, params) {
     const userId = params[0];
     const username = params[1];
     const displayName = params[2];
-    const email = params[3] || username;
-    const phone = params[4] || '';
-    const createdAt = params[5] || new Date().toISOString();
+    const phone = params[3] || '';
+    const createdAt = params[4] || new Date().toISOString();
     mockProfiles.push({
       user_id: userId,
       username: username,
       display_name: displayName,
       phone: phone,
-      email: email,
       is_active: 1, // Platform accounts are active by default
       signup_status: 'approved',
       created_at: createdAt
@@ -488,9 +486,9 @@ function runMockQuery(sql, params) {
     }
     return [];
   }
-  if (sqlNormalized.includes('platform_profiles') && (sqlNormalized.includes('username = ?') || sqlNormalized.includes('user_id = ?') || sqlNormalized.includes('email = ?'))) {
+  if (sqlNormalized.includes('platform_profiles') && sqlNormalized.includes('select')) {
     const searchVal = params[0];
-    const found = mockProfiles.find(p => p.username === searchVal || p.phone === searchVal || p.user_id === searchVal || p.email === searchVal);
+    const found = mockProfiles.find(p => p.username === searchVal || p.phone === searchVal || p.user_id === searchVal);
     return found ? [found] : [];
   }
   if (sqlNormalized.includes('platform_profiles') && sqlNormalized.includes('created_at asc')) {
