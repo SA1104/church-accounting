@@ -357,11 +357,14 @@ async function authenticateToken(req, res, next) {
     next();
   } catch (err) {
     console.error('[AUTH ERROR] Token authentication error:', err);
-    return res.status(500).json({ 
-      message: '로그인이 만료되었거나 권한 확인 중 문제가 발생했습니다',
-      error: err.message,
-      stack: err.stack
-    });
+    const responsePayload = {
+      message: '로그인이 만료되었거나 권한 확인 중 문제가 발생했습니다'
+    };
+    if (process.env.NODE_ENV !== 'production') {
+      responsePayload.error = err.message;
+      responsePayload.stack = err.stack;
+    }
+    return res.status(500).json(responsePayload);
   }
 }
 
