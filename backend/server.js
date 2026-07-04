@@ -1382,12 +1382,18 @@ app.post('/api/decisions/:id/feedback', authenticateToken, (req, res) => {
 const { startQueueWorker } = require('./core/ai.js');
 
 async function startServer() {
+  const tStart = Date.now();
   try {
+    console.log('[Platform Server] Booting up...');
     // 1. Initialize Platform Core database
+    const tDbStart = Date.now();
     await initPlatformDb();
+    console.log(`[Platform Server] DB Init completed in ${Date.now() - tDbStart}ms`);
     
     // 2. Load all service modules dynamically
+    const tModStart = Date.now();
     await loadModules(app);
+    console.log(`[Platform Server] Modules loaded in ${Date.now() - tModStart}ms`);
     
     // 2b. Register fallback wildcard route at the very bottom of Express stack
     app.get('*', (req, res) => {
@@ -1406,14 +1412,17 @@ async function startServer() {
     });
     
     // 3. Start AI queue processing
+    const tQueueStart = Date.now();
     if (typeof startQueueWorker === 'function') {
       await startQueueWorker();
+      console.log(`[Platform Server] Queue worker started in ${Date.now() - tQueueStart}ms`);
     } else {
       console.warn('[Queue] Worker not available. Skipping.');
     }
 
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`[Platform Server] Running on http://localhost:${PORT}`);
+      console.log(`[Platform Server] Total Startup Time: ${Date.now() - tStart}ms`);
     });
   } catch (err) {
     console.error('[Platform Server] Failed to initialize:', err);

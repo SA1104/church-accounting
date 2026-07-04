@@ -1193,6 +1193,8 @@ async function initPlatformDb() {
       await seedPlatformRegistries();
       return;
     }
+    
+    const tConnStart = Date.now();
     if (useSupabaseClientOnly) {
       console.log('Testing Supabase Client connection...');
       const { data, error } = await supabase.rpc('exec_sql', {
@@ -1200,16 +1202,23 @@ async function initPlatformDb() {
         params: []
       });
       if (error) throw error;
-      console.log('Supabase Client RPC Success:', data[0].now);
+      console.log(`Supabase Client RPC Success: ${data[0].now} (${Date.now() - tConnStart}ms)`);
     } else {
       console.log('Testing Supabase PostgreSQL Connection...');
       const res = await pool.query('SELECT NOW()');
-      console.log('Supabase PostgreSQL Connection Success:', res.rows[0].now);
+      console.log(`Supabase PostgreSQL Connection Success: ${res.rows[0].now} (${Date.now() - tConnStart}ms)`);
+    }
+    
+    if (process.env.NODE_ENV === 'production' && process.env.RUN_AUTO_SEED !== 'true') {
+      console.log('[Platform DB] Skipping auto-seed in production environment (RUN_AUTO_SEED is not true).');
+      return;
     }
     
     // Auto seed default users on startup
+    const tSeedStart = Date.now();
     await seedDefaultUsers(supabase);
     await seedPlatformRegistries();
+    console.log(`[Platform DB] Seeding completed in ${Date.now() - tSeedStart}ms`);
   } catch (err) {
     console.error('Failed to connect to Supabase database:', err);
     throw err;
