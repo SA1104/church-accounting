@@ -1,0 +1,160 @@
+1931:                 />
+
+1932:               </div>
+
+1933:               <div className="space-y-1">
+
+1934:                 <span className="text-[9px] text-slate-500 font-semibold">비밀번호 *</span>
+
+1935:                 <input
+
+1936:                   type="password"
+
+1937:                   value={newUserPassword}
+
+1938:                   onChange={(e) => setNewUserPassword(e.target.value)}
+
+1939:                   placeholder="PW 입력"
+
+1940:                   className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+
+1941:                 />
+
+1942:               </div>
+
+1943:             </div>
+
+1944: 
+
+1945:             <div className="grid grid-cols-2 gap-3">
+
+1946:               <div className="space-y-1">
+
+1947:                 <span className="text-[9px] text-slate-500 font-semibold">이름 *</span>
+
+1948:                 <input
+
+1949:                   type="text"
+
+1950:                   value={newUserName}
+
+1951:                   onChange={(e) => setNewUserName(e.target.value)}
+
+1952:                   placeholder="실명 입력"
+
+1953:                   className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+
+1954:                 />
+
+1955:               </div>
+
+1956: 
+
+1957:               <div className="space-y-1">
+
+1958:                 <span className="text-[9px] text-slate-500 font-semibold">직책 지정 *</span>
+
+1959:                 <select
+
+1960:                   value={newUserPositionId}
+
+1961:                   onChange={(e) => setNewUserPositionId(e.target.value)}
+
+1962:                   className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+
+1963:                 >
+
+1964:                   <option value="">직책 선택</option>
+
+1965:                   {groupPositions.filter(p => p.is_active).map(p => (
+
+1966:                     <option key={p.position_id} value={p.position_id}>{p.name}</option>
+
+1967:                   ))}
+
+1968:                 </select>
+
+1969:               </div>
+
+1970:             </div>
+
+1971: 
+
+1972:             <div className="grid grid-cols-2 gap-3">
+
+1973:               <div className="space-y-1">
+
+1974:                 <span className="text-[9px] text-slate-500 font-semibold">권한 역할</span>
+
+1975:                 <select
+
+1976:                   value={newUserRole}
+
+1977:                   onChange={(e) => setNewUserRole(e.target.value)}
+
+1978:                   className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+
+1979:                 >
+
+1980:                   <option value="DEPARTMENT_ACCOUNTANT">부서 회계</option>
+
+1981:                   <option value="DEPARTMENT_HEAD">위원회/부서장</option>
+
+1982:                   <option value="FINANCE_MANAGER">재정부장 (회계팀장)</option>
+
+1983:                   <option value="AUDITOR">감사</option>
+
+1984:                   <option value="SYSTEM_ADMIN">시스템 관리자</option>
+
+1985:                 </select>
+
+1986:               </div>
+
+1987: 
+
+1988:               <div className="space-y-1">
+
+1989:                 <span className="text-[9px] text-slate-500 font-semibold">소속 위원회</span>
+
+1990:                 <select
+
+1991:                   value={newUserCommitteeId}
+
+1992:                   onChange={handleNewUserCommitteeChange}
+
+1993:                   className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+
+1994:                 >
+
+1995:                   <option value="">위원회 선택</option>
+
+1996:                   {adminOrgs.map(org => (
+
+1997:                     <option key={org.department_id} value={org.department_id}>{org.name}</option>
+
+1998:                   ))}
+
+1999:                 </select>
+
+2000:               </div>
+
+2001:             </div>
+
+2002:             
+
+2003:             <div className="grid grid-cols-1 gap-3">
+
+2004:               <div className="space-y-1">
+
+2005:                 <span className="text-[9px] text-slate-500 font-semibold">소속 찬양팀/그룹</span>
+
+2006:                 <select
+
+2007:                   value={newUserGroupId}
+
+2008:                   onChange={(e) => setNewUserGroupId(e.target.value)}
+
+2009:                   disabled={!newUserCommitteeId}
+
+2010:                   className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none disabled:opacity-50"
+

@@ -1,0 +1,32 @@
+671:   };
+672: 
+673:   const handleAddCategory = async (e) => {
+674:     e.preventDefault();
+675:     if (!newCatParent || !newCatChild) return;
+676: 
+677:     try {
+678:       await apiClient('/api/categories', {
+679:         method: 'POST',
+680:         body: JSON.stringify({
+681:           type: newCatType,
+682:           parent_category: newCatParent,
+683:           child_category: newCatChild,
+684:           description: newCatDesc
+685:         })
+686:       });
+687: 
+688:       setNewCatParent('');
+689:       setNewCatChild('');
+690:       setNewCatDesc('');
+691:       fetchCategories();
+692:       alert('계정과목 등록 성공');
+693:     } catch (err) {
+694:       alert(err.message);
+695:     }
+696:   };
+697: 
+698:   const handleAddOrg = async (e) => {
+699:     e.preventDefault();
+700:     if (!newOrgName) return;
+701: 
+702:     try {

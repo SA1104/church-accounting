@@ -1,0 +1,40 @@
+1957:               <div className="space-y-1">
+1958:                 <span className="text-[9px] text-slate-500 font-semibold">직책 지정 *</span>
+1959:                 <select
+1960:                   value={newUserPositionId}
+1961:                   onChange={(e) => setNewUserPositionId(e.target.value)}
+1962:                   className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+1963:                 >
+1964:                   <option value="">직책 선택</option>
+1965:                   {groupPositions.filter(p => p.is_active).map(p => (
+1966:                     <option key={p.position_id} value={p.position_id}>{p.name}</option>
+1967:                   ))}
+1968:                 </select>
+1969:               </div>
+1970:             </div>
+1971: 
+1972:             <div className="grid grid-cols-2 gap-3">
+1973:               <div className="space-y-1">
+1974:                 <span className="text-[9px] text-slate-500 font-semibold">권한 역할</span>
+1975:                 <select
+1976:                   value={newUserRole}
+1977:                   onChange={(e) => setNewUserRole(e.target.value)}
+1978:                   className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+1979:                 >
+1980:                   <option value="DEPARTMENT_ACCOUNTANT">부서 회계</option>
+1981:                   <option value="DEPARTMENT_HEAD">위원회/부서장</option>
+1982:                   <option value="FINANCE_MANAGER">재정부장 (회계팀장)</option>
+1983:                   <option value="AUDITOR">감사</option>
+1984:                   <option value="SYSTEM_ADMIN">시스템 관리자</option>
+1985:                 </select>
+1986:               </div>
+1987: 
+1988:               <div className="space-y-1">
+1989:                 <span className="text-[9px] text-slate-500 font-semibold">소속 위원회</span>
+1990:                 <select
+1991:                   value={newUserCommitteeId}
+1992:                   onChange={handleNewUserCommitteeChange}
+1993:                   className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+1994:                 >
+1995:                   <option value="">위원회 선택</option>
+1996:                   {adminOrgs.map(org => (

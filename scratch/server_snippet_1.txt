@@ -1,0 +1,62 @@
+283: 
+284: // 2. 가입 승인 API (Platform Core)
+285: app.post('/api/users/:id/approve', authenticateToken, requireRole(['SYSTEM_ADMIN']), async (req, res) => {
+286:   const { id } = req.params; // UUID
+287:   const projectId = req.user.projectId || (await query.get("SELECT project_id FROM platform_projects LIMIT 1"))?.project_id;
+288:   try {
+289:     const targetUser = await query.get('SELECT user_id, display_name, signup_status FROM platform_profiles WHERE user_id = ?', [id]);
+290:     if (!targetUser) return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+291: 
+292:     if (targetUser.signup_status === 'pending_church_approval') {
+293:       // Find the associated project_id from platform_project_members
+294:       const membership = await query.get('SELECT project_id FROM platform_project_members WHERE user_id = ? LIMIT 1', [id]);
+295:       if (membership && membership.project_id) {
+296:         // Activate church profile
+297:         await query.run("UPDATE church_profiles SET status = 'active', approved_by = ?, approved_at = CURRENT_TIMESTAMP WHERE project_id = ?", [req.user.userId, membership.project_id]);
+298:         // Activate platform project
+299:         await query.run("UPDATE platform_projects SET status = 'ACTIVE', is_active = TRUE WHERE project_id = ?", [membership.project_id]);
+300:       }
+301:     }
+302: 
+303:     // Set user as active and approved
+304:     await query.run("UPDATE platform_profiles SET is_active = TRUE, signup_status = 'approved' WHERE user_id = ?", [id]);
+305: 
+306:     // Approve the platform membership for this project
+307:     await query.run(`
+308:       UPDATE public.platform_memberships 
+309:       SET status = 'approved', approved_at = CURRENT_TIMESTAMP, approved_by = ?
+310:       WHERE user_id = ? AND project_id = ?
+311:     `, [req.user.userId, id, projectId]);
+312: 
+313:     // Convert requested assignments into active approved assignments
+314:     const requests = await query.all("SELECT * FROM public.church_signup_assignment_requests WHERE user_id = ? AND project_id = ? AND status = 'pending'", [id, projectId]);
+315:     let first = true;
+316:     for (const request of requests) {
+317:       let roleCode = 'DEPARTMENT_ACCOUNTANT';
+318:       if (request.position_id) {
+319:         const pos = await query.get("SELECT role_code FROM public.church_positions WHERE position_id = ?", [request.position_id]);
+320:         if (pos) roleCode = pos.role_code;
+321:       }
+322:       
+323:       await query.run(`
+324:         INSERT INTO public.church_user_assignments (
+325:           user_id, project_id, committee_id, group_id, position_id, role_code, is_primary, status, created_by
+326:         ) VALUES (?, ?, ?, ?, ?, ?, ?, 'approved', ?)
+327:       `, [
+328:         id,
+329:         projectId,
+330:         request.committee_id,
+331:         request.group_id,
+332:         request.position_id || (await query.get("SELECT position_id FROM public.church_positions WHERE project_id = ? AND name = '회계' LIMIT 1", [projectId]))?.position_id,
+333:         roleCode,
+334:         first ? true : false,
+335:         req.user.userId
+336:       ]);
+337:       
+338:       await query.run("UPDATE public.church_signup_assignment_requests SET status = 'approved', approved_at = CURRENT_TIMESTAMP, approved_by = ? WHERE id = ?", [req.user.userId, request.id]);
+339:       first = false;
+340:     }
+341: 
+342:     // Handle custom department/group approval if present
+343:     const meta = await query.get('SELECT project_id, custom_department_name, custom_group_name FROM church_user_metadata WHERE user_id = ?', [id]);
+344:     if (meta) {

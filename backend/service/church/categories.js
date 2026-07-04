@@ -35,7 +35,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // 2. 계정과목 등록
-router.post('/', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN', 'AUDITOR']), async (req, res) => {
+router.post('/', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN', 'FINANCE_CHAIR', 'FINANCE_MANAGER', 'DEPARTMENT_ACCOUNTANT', 'PASTOR']), async (req, res) => {
   const { type, parent_category, child_category, description } = req.body;
 
   if (!type || !parent_category || !child_category) {
@@ -71,7 +71,7 @@ router.post('/', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN', 'AUDI
 });
 
 // 3. 계정과목 수정
-router.put('/:id', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN', 'AUDITOR']), async (req, res) => {
+router.put('/:id', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN', 'FINANCE_CHAIR', 'FINANCE_MANAGER', 'DEPARTMENT_ACCOUNTANT', 'PASTOR']), async (req, res) => {
   const { id } = req.params;
   const { parent_category, child_category, description } = req.body;
 
@@ -99,7 +99,7 @@ router.put('/:id', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN', 'AU
 });
 
 // 4. 계정과목 삭제
-router.delete('/:id', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN', 'AUDITOR']), async (req, res) => {
+router.delete('/:id', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN', 'FINANCE_CHAIR', 'FINANCE_MANAGER', 'DEPARTMENT_ACCOUNTANT', 'PASTOR']), async (req, res) => {
   const { id } = req.params;
   try {
     const category = await query.get('SELECT * FROM church_account_categories WHERE category_id = ?', [id]);

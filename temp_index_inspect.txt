@@ -1,154 +1,4 @@
-const { Pool } = require('pg');
-const { createClient } = require('@supabase/supabase-js');
-
-// Strict Production Env Guard
-if (process.env.NODE_ENV === 'production') {
-  const missing = [];
-  if (!process.env.DATABASE_URL) missing.push('DATABASE_URL');
-  if (!process.env.SUPABASE_URL || process.env.SUPABASE_URL.includes('your-supabase-project')) missing.push('SUPABASE_URL');
-  
-  const hasServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.SUPABASE_SERVICE_ROLE_KEY !== 'your-service-role-key';
-  const hasSecretKey = process.env.SUPABASE_SECRET_KEY && process.env.SUPABASE_SECRET_KEY !== 'your-service-role-key';
-  if (!hasServiceKey && !hasSecretKey) {
-    missing.push('SUPABASE_SERVICE_ROLE_KEY');
-  }
-
-  if (missing.length > 0) {
-    console.error(`FATAL [Startup Guard]: Missing required production environment variables: ${missing.join(', ')}. Exiting.`);
-    process.exit(1);
-  }
-}
-
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://your-supabase-project.supabase.co';
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || 'your-service-role-key';
-
-let useSupabaseClientOnly = !process.env.DATABASE_URL;
-let useMocks = false;
-
-let runMockQuery = null;
-if (process.env.NODE_ENV !== 'production') {
-  try {
-    runMockQuery = require('./mock-data.js').runMockQuery;
-  } catch (e) {
-    console.error('Failed to load mock data', e);
-  }
-}
-
-let pool = null;
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false
-  }
-});
-
-// Auto detect sandboxed mode
-if (SUPABASE_URL.includes('your-supabase-project') || SUPABASE_URL.includes('booza-think')) {
-  console.log('[Platform DB] Dummy Supabase URL detected. Enabling Local Mock Database mode.');
-  useMocks = true;
-}
-
-if (process.env.NODE_ENV === 'production' && useMocks) {
-  console.error('FATAL [Startup Guard]: Production environment detected, but Mock DB fallback is active. Exiting to prevent data corruption.');
-  process.exit(1);
-}
-
-if (useSupabaseClientOnly) {
-  console.log('[Platform DB] DATABASE_URL is not set. Using Supabase JS Client for all queries.');
-} else {
-  console.log('[Platform DB] DATABASE_URL is set. Using direct PostgreSQL connection pool.');
-  pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
-  });
-  
-  pool.on('error', (err) => {
-    console.error('Unexpected error on idle client', err);
-  });
-}
-
-const query = {
-  run: async (sql, params = []) => {
-    if (useMocks) {
-      const data = runMockQuery(sql, params);
-      const firstRow = data && data[0];
-      const id = firstRow ? (firstRow.id || firstRow.file_id || firstRow.voucher_id || Object.values(firstRow)[0]) : null;
-      return { id, changes: data ? data.length : 0 };
-    }
-    if (useSupabaseClientOnly) {
-      const { data, error } = await supabase.rpc('exec_sql', {
-        query_text: sql,
-        params: params
-      });
-      if (error) {
-        console.error('Supabase Client Query Run Error:', error);
-        throw error;
-      }
-      const firstRow = data && data[0];
-      const id = firstRow ? (firstRow.id || firstRow.file_id || firstRow.voucher_id || Object.values(firstRow)[0]) : null;
-      const changes = firstRow && firstRow.changes !== undefined ? firstRow.changes : (data ? data.length : 0);
-      return { id, changes };
-    } else {
-      let index = 1;
-      const pgSql = sql.replace(/\?/g, () => `$${index++}`);
-      const res = await pool.query(pgSql, params);
-      const lastRow = res.rows && res.rows[0];
-      const id = lastRow ? (lastRow.id || lastRow.file_id || lastRow.voucher_id || Object.values(lastRow)[0]) : null;
-      return { id, changes: res.rowCount };
-    }
-  },
-  get: async (sql, params = []) => {
-    if (useMocks) {
-      const data = runMockQuery(sql, params);
-      return (data && data[0]) || null;
-    }
-    if (useSupabaseClientOnly) {
-      const { data, error } = await supabase.rpc('exec_sql', {
-        query_text: sql,
-        params: params
-      });
-      if (error) {
-        console.error('Supabase Client Query Get Error:', error);
-        throw error;
-      }
-      return (data && data[0]) || null;
-    } else {
-      let index = 1;
-      const pgSql = sql.replace(/\?/g, () => `$${index++}`);
-      const res = await pool.query(pgSql, params);
-      return res.rows[0] || null;
-    }
-  },
-  all: async (sql, params = []) => {
-    if (useMocks) {
-      return runMockQuery(sql, params);
-    }
-    if (useSupabaseClientOnly) {
-      const { data, error } = await supabase.rpc('exec_sql', {
-        query_text: sql,
-        params: params
-      });
-      if (error) {
-        console.error('Supabase Client Query All Error:', error);
-        throw error;
-      }
-      return data || [];
-    } else {
-      let index = 1;
-      const pgSql = sql.replace(/\?/g, () => `$${index++}`);
-      const res = await pool.query(pgSql, params);
-      return res.rows;
-    }
-  },
-  exec: async (sql) => {
-    if (useMocks) {
-      return;
-    }
-    if (useSupabaseClientOnly) {
-      const { error } = await supabase.rpc('exec_sql', {
-        query_text: sql,
-        params: []
-      });
+﻿      });
       if (error) {
         console.error('Supabase Client Exec Error:', error);
         throw error;
@@ -160,12 +10,13 @@ const query = {
 };
 
 async function seedDefaultUsers(supabaseClient) {
-  let defaultUsers = [];
-  if (process.env.NODE_ENV !== 'production') {
-    try {
-      defaultUsers = require('./mock-data.js').defaultUsers || [];
-    } catch(e) {}
-  }
+  const defaultUsers = [
+    { username: 'admin', name: '?온?귐딆쁽', password: 'admin123', role: 'SYSTEM_ADMIN', position: '疫꿸퀬?', groupName: '??깆젟筌왖?癒?' },
+    { username: 'accountant', name: '繹먃?????????, password: 'acc123', role: 'DEPARTMENT_ACCOUNTANT', position: '????, groupName: '??덉몣筌⊥딅펶??' },
+    { username: 'depthead', name: '獄쏅베????봔??뽰삢', password: 'head123', role: 'DEPARTMENT_HEAD', position: '?봔??, groupName: '??덉몣筌⊥딅펶??' },
+    { username: 'finance', name: '??곸삺???袁⑹뜚??, password: 'fin123', role: 'FINANCE_MANAGER', position: '?袁⑹뜚??, groupName: '??깆젟筌왖?癒?' },
+    { username: 'auditor', name: '筌ㅼ뮄而???대Ŋ肉??, password: 'aud123', role: 'AUDITOR', position: '?대Ŋ肉??, groupName: '??깆젟筌왖?癒?' }
+  ];
 
   const projectId = '8a510c4f-c006-4442-8924-f3c75ab73cf6';
 
@@ -309,10 +160,7 @@ async function runAssignmentsMigration() {
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       approved_at TIMESTAMP WITH TIME ZONE NULL,
       approved_by UUID NULL
-    )`,
-    `CREATE UNIQUE INDEX IF NOT EXISTS unique_active_assignment_per_user 
-     ON public.church_user_assignments(user_id, project_id, committee_id, COALESCE(group_id, -1), position_id, role_code) 
-     WHERE status = 'approved' AND is_active = TRUE`
+    )`
   ];
 
   for (const sql of sqls) {
@@ -334,12 +182,13 @@ async function seedDefaultPositions() {
       return;
     }
     const projectId = project.project_id;
-    let defaults = [];
-    if (process.env.NODE_ENV !== 'production') {
-      try {
-        defaults = require('./mock-data.js').defaultPositions || [];
-      } catch(e) {}
-    }
+    const defaults = [
+      { name: '????, role_code: 'DEPARTMENT_ACCOUNTANT' },
+      { name: '?μ빖龜', role_code: 'FINANCE_MANAGER' },
+      { name: '?봔??, role_code: 'GROUP_LEADER' },
+      { name: '?袁⑹뜚??, role_code: 'COMMITTEE_CHAIR' },
+      { name: '?대Ŋ肉??, role_code: 'PASTOR' }
+    ];
 
     for (const pos of defaults) {
       await query.run(`
@@ -385,10 +234,10 @@ async function migrateExistingUsersToAssignments() {
         }
       }
 
-      let posName = meta.position || '?뚭퀎';
+      let posName = meta.position || '????;
       let matchedPos = positions.find(p => p.name === posName);
       if (!matchedPos) {
-        matchedPos = positions.find(p => p.name === '?뚭퀎');
+        matchedPos = positions.find(p => p.name === '????);
       }
 
       if (matchedPos) {
@@ -449,64 +298,3 @@ async function seedPlatformRegistries() {
       { key: 'stock_think', name: 'Stock Think', owner: 'INVEST_COMM', enabled: false },
       { key: 'estate_think', name: 'Estate Think', owner: 'ESTATE_COMM', enabled: false },
       { key: 'mission_think', name: 'Mission Think', owner: 'MISSION_COMM', enabled: false },
-      { key: 'education_think', name: 'Education Think', owner: 'EDU_COMM', enabled: false },
-      { key: 'finance_think', name: 'Finance Think', owner: 'FINANCE_COMM', enabled: false },
-      { key: 'construction_think', name: 'Construction Think', owner: 'BUILD_COMM', enabled: false },
-      { key: 'manufacturing_think', name: 'Manufacturing Think', owner: 'MFG_COMM', enabled: false },
-      { key: 'medical_think', name: 'Medical Think', owner: 'MED_COMM', enabled: false },
-      { key: 'legal_think', name: 'Legal Think', owner: 'LEGAL_COMM', enabled: false },
-      { key: 'hr_think', name: 'HR Think', owner: 'HR_COMM', enabled: false },
-      { key: 'esg_think', name: 'ESG Think', owner: 'ESG_COMM', enabled: false }
-    ];
-
-    for (const p of products) {
-      await query.run(`
-        INSERT INTO platform_registries (registry_type, item_key, item_name, owner, enabled)
-        VALUES ('PRODUCT', ?, ?, ?, ?)
-        ON CONFLICT (registry_type, item_key) DO NOTHING
-      `, [p.key, p.name, p.owner, p.enabled]);
-    }
-
-    // 2. Engines (18 Core Engines)
-    const engines = [
-      'DataEngine', 'CleaningEngine', 'StandardizationEngine', 'KnowledgeEngine',
-      'IntelligenceEngine', 'DecisionEngine', 'SimulationEngine', 'PredictionEngine',
-      'LearningEngine', 'WorkflowEngine', 'MediaEngine', 'DistributionEngine',
-      'NotificationEngine', 'PluginEngine', 'MonitoringEngine', 'BillingEngine',
-      'UsageEngine', 'GovernanceEngine'
-    ];
-
-    for (const e of engines) {
-      await query.run(`
-        INSERT INTO platform_registries (registry_type, item_key, item_name, owner, enabled)
-        VALUES ('ENGINE', ?, ?, 'PLATFORM_ADMIN', true)
-        ON CONFLICT (registry_type, item_key) DO NOTHING
-      `, [e, `${e} Component`]);
-    }
-
-    // 3. Plugins
-    const plugins = [
-      { key: 'stripe_pay', name: 'Stripe Payment Gateway Plugin' },
-      { key: 'toss_pay', name: 'Toss Payments Gateway Plugin' },
-      { key: 'naver_ocr', name: 'Naver Clova OCR Parsing Plugin' }
-    ];
-
-    for (const pl of plugins) {
-      await query.run(`
-        INSERT INTO platform_registries (registry_type, item_key, item_name, owner, enabled)
-        VALUES ('PLUGIN', ?, ?, 'PLATFORM_ADMIN', true)
-        ON CONFLICT (registry_type, item_key) DO NOTHING
-      `, [pl.key, pl.name]);
-    }
-    console.log('[Seed] Seeding platform registries completed.');
-  } catch (err) {
-    console.error('[Seed] Failed to seed platform registries:', err);
-  }
-}
-
-module.exports = {
-  pool,
-  query,
-  initPlatformDb
-};
-

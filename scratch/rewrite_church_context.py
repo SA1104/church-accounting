@@ -1,4 +1,6 @@
-// frontend/src/apps/church/ChurchContextProvider.jsx
+import re
+
+content = r"""// frontend/src/apps/church/ChurchContextProvider.jsx
 // Church Think - Capability Context Provider (Platform 3.1)
 // Manages Church Think workspace context independently from Platform
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
@@ -175,3 +177,7 @@ export function ChurchContextProvider({ children }) {
     </ChurchContext.Provider>
   );
 }
+"""
+
+with open('frontend/src/apps/church/ChurchContextProvider.jsx', 'w', encoding='utf8') as f:
+    f.write(content)

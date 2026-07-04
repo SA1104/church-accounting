@@ -247,6 +247,7 @@ const requireAdminRole = requireRole(['SYSTEM_ADMIN', 'AUDITOR'], 'accounting');
 const requireSystemAdminRole = requireRole(['SYSTEM_ADMIN'], 'accounting');
 
 // Mount Capability Routers (Platform 3.1)
+app.use('/api/platform/preferences', require('./service/platform/preferences'));
 app.use('/api/church', churchServiceRouter);
 app.use('/api/stock', authenticateToken, stockServiceRouter);
 app.use('/api/estate', authenticateToken, estateServiceRouter);
@@ -333,6 +334,19 @@ app.post('/api/users/:id/approve', authenticateToken, requireRole(['SYSTEM_ADMIN
         first ? true : false,
         req.user.userId
       ]);
+      
+      if (first) {
+        // 동기화: 주 임무의 권한을 platform_role_assignments 의 church_think 서비스에 기록
+        await query.run(`
+          DELETE FROM public.platform_role_assignments 
+          WHERE user_id = ? AND service_id = 'church_think' AND project_id = ?
+        `, [id, projectId]);
+        
+        await query.run(`
+          INSERT INTO public.platform_role_assignments (user_id, service_id, project_id, role_id)
+          VALUES (?, 'church_think', ?, ?)
+        `, [id, projectId, roleCode]);
+      }
       
       await query.run("UPDATE public.church_signup_assignment_requests SET status = 'approved', approved_at = CURRENT_TIMESTAMP, approved_by = ? WHERE id = ?", [req.user.userId, request.id]);
       first = false;

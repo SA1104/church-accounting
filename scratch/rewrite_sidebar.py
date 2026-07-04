@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import os
+
+content = """import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Home, 
@@ -277,3 +279,7 @@ export default function WorkspaceSidebar({ user, token, logout, isOpen, toggleSi
     </aside>
   );
 }
+"""
+
+with open('frontend/src/shared/WorkspaceSidebar.jsx', 'w', encoding='utf8') as f:
+    f.write(content)

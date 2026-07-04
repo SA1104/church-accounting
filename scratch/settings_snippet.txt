@@ -1,0 +1,20 @@
+296:         body: JSON.stringify({ regResponse, deviceName: newDeviceName })
+297:       });
+298: 
+299:       if (verifyResult.success) {
+300:         alert('지문/Face ID 기기 등록 완료!');
+301:         fetchPasskeys();
+302:       } else {
+303:         throw new Error(verifyResult.message || '인증 기기 등록 실패');
+304:       }
+305:     } catch (err) {
+306:       console.error(err);
+307:       alert(err.message || '기기 등록 중 오류가 발생했습니다.');
+308:     } finally {
+309:       setPasskeyLoading(false);
+310:     }
+311:   };
+312: 
+313:   const handleDeletePasskey = async (id) => {
+314:     if (!window.confirm('이 기기를 삭제해도 이메일/비밀번호로 로그인할 수 있습니다.\n정말 이 기기를 삭제하시겠습니까?')) {
+315:       return;

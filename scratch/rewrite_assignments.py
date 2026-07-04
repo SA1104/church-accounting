@@ -1,4 +1,6 @@
-// backend/service/church/assignments.js
+import os
+
+content = r"""// backend/service/church/assignments.js
 // Church Think - User Assignment Router
 // Platform 3.1: Capability-isolated assignment APIs under /api/church/assignments
 
@@ -489,3 +491,7 @@ router.put('/users/:id/:assignmentId', authenticateToken, async (req, res) => {
 });
 
 module.exports = router;
+"""
+
+with open('backend/service/church/assignments.js', 'w', encoding='utf8') as f:
+    f.write(content)
