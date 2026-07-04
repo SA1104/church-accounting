@@ -116,8 +116,20 @@ app.delete('/api/auth/passkey/credentials/:id', authenticateToken, deleteCredent
 // 1-1. 다교회 온보딩 공통 조회 API (미인증)
 // REMOVED: inline /api/churches route — served by legacy rewriter + church router
 // Lightweight ping endpoints for UptimeRobot
-app.get('/api/ping', (req, res) => res.status(200).json({ ok: true, service: 'church-think', timestamp: new Date().toISOString() }));
-app.get('/ping', (req, res) => res.status(200).json({ ok: true, service: 'church-think', timestamp: new Date().toISOString() }));
+app.get('/api/ping', (req, res) => {
+  let commit = process.env.RENDER_GIT_COMMIT || 'unknown';
+  try {
+    commit = require('child_process').execSync('git rev-parse HEAD').toString().trim();
+  } catch (e) {}
+  res.status(200).json({ ok: true, service: 'church-think', commit, timestamp: new Date().toISOString() });
+});
+app.get('/ping', (req, res) => {
+  let commit = process.env.RENDER_GIT_COMMIT || 'unknown';
+  try {
+    commit = require('child_process').execSync('git rev-parse HEAD').toString().trim();
+  } catch (e) {}
+  res.status(200).json({ ok: true, service: 'church-think', commit, timestamp: new Date().toISOString() });
+});
 
 app.get('/__platform_health_check__', async (req, res) => {
   const start = Date.now();

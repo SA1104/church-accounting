@@ -1977,7 +1977,7 @@ export default function Settings() {
                   disabled={!newUserCommitteeId}
                   className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none disabled:opacity-50"
                 >
-                  <option value="">그룹 선택 (선택 사항)</option>
+                  <option value="">{newUserCommitteeId ? "그룹 선택 (선택 사항)" : "위원회 선택 전 그룹 비활성화"}</option>
                   {newUserAvailableGroups.map(g => (
                     <option key={g.group_id} value={g.group_id}>{g.name}</option>
                   ))}
@@ -2532,6 +2532,7 @@ export default function Settings() {
                   onChange={(e) => setNewPosRole(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
                 >
+                  <option value="USER">일반 사용자 (USER)</option>
                   <option value="DEPARTMENT_ACCOUNTANT">부서 회계 (DEPARTMENT_ACCOUNTANT)</option>
                   <option value="FINANCE_MANAGER">총무 권한 (FINANCE_MANAGER)</option>
                   <option value="GROUP_LEADER">부장 권한 (GROUP_LEADER)</option>
