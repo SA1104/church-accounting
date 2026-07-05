@@ -36,38 +36,57 @@ router.get('/', authenticateToken, async (req, res) => {
 
 // 2. 계정과목 등록
 router.post('/', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN', 'FINANCE_CHAIR', 'FINANCE_MANAGER', 'DEPARTMENT_ACCOUNTANT', 'PASTOR']), async (req, res) => {
+  console.log('1. request url:', req.originalUrl);
+  console.log('2. request body:', req.body);
+  console.log('3. authenticated user:', req.user?.username);
+  console.log('4. authenticated role:', req.user?.accounting?.role);
+  console.log('5. middleware result: Passed requireAccountingRole');
+
   const { type, parent_category, child_category, description } = req.body;
-  console.log('[CATEGORIES POST] user:', req.user?.username, 'role:', req.user?.accounting?.role, 'isAdmin:', req.user?.isAdmin, 'roles:', req.user?.roles);
 
   if (!type || !parent_category || !child_category) {
+    console.log('8. response status:', 400);
+    console.log('9. response body:', { message: 'Type, parent category, and child category are required' });
     return res.status(400).json({ message: 'Type, parent category, and child category are required' });
   }
 
   try {
     const projectId = await getActiveProjectId(req);
-    const existing = await query.get(`
+    const sql1 = `
       SELECT category_id FROM church_account_categories 
       WHERE project_id = ? AND type = ? AND parent_category = ? AND child_category = ?
-    `, [projectId, type, parent_category, child_category]);
+    `;
+    console.log('6. SQL executed:', sql1, [projectId, type, parent_category, child_category]);
+    const existing = await query.get(sql1, [projectId, type, parent_category, child_category]);
 
     if (existing) {
-      await query.run(`
+      const sql2 = `
         UPDATE church_account_categories SET is_active = TRUE, description = ? 
         WHERE category_id = ?
-      `, [description, existing.category_id]);
+      `;
+      console.log('6. SQL executed:', sql2, [description, existing.category_id]);
+      await query.run(sql2, [description, existing.category_id]);
+      console.log('8. response status:', 200);
+      console.log('9. response body:', { message: 'Category added/activated successfully', id: existing.category_id });
       return res.json({ message: 'Category added/activated successfully', id: existing.category_id });
     }
 
-    const result = await query.run(`
+    const sql3 = `
       INSERT INTO church_account_categories (project_id, type, parent_category, child_category, description)
       VALUES (?, ?, ?, ?, ?)
       RETURNING category_id
-    `, [projectId, type, parent_category, child_category, description]);
+    `;
+    console.log('6. SQL executed:', sql3, [projectId, type, parent_category, child_category, description]);
+    const result = await query.run(sql3, [projectId, type, parent_category, child_category, description]);
 
+    console.log('8. response status:', 201);
+    console.log('9. response body:', { message: 'Category created successfully', id: result.id });
     res.status(201).json({ message: 'Category created successfully', id: result.id });
   } catch (error) {
-    console.error('Create category error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.log('7. SQL error:', error);
+    console.log('8. response status:', 500);
+    console.log('9. response body:', { message: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 

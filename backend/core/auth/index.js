@@ -358,7 +358,7 @@ async function authenticateToken(req, res, next) {
   } catch (err) {
     console.error('[AUTH ERROR] Token authentication error:', err);
     const responsePayload = {
-      message: '로그인이 만료되었거나 권한 확인 중 문제가 발생했습니다'
+      message: `[Auth Error] ${err.message}`
     };
     responsePayload.error = err.message;
     responsePayload.stack = err.stack;

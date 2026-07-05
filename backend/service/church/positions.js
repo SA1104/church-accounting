@@ -47,19 +47,33 @@ router.get('/public', async (req, res) => {
 
 // POST /api/church/positions
 router.post('/', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN', 'FINANCE_CHAIR', 'FINANCE_MANAGER', 'PASTOR']), async (req, res) => {
+  console.log('1. request url:', req.originalUrl);
+  console.log('2. request body:', req.body);
+  console.log('3. authenticated user:', req.user?.username);
+  console.log('4. authenticated role:', req.user?.accounting?.role);
+  console.log('5. middleware result: Passed requireAccountingRole');
+
   const { name, role_code } = req.body;
-  if (!name || !role_code) return res.status(400).json({ message: '직책명과 역할 코드가 필요합니다.' });
-  console.log('[POSITIONS POST] user:', req.user?.username, 'role:', req.user?.accounting?.role, 'isAdmin:', req.user?.isAdmin);
+  if (!name || !role_code) {
+    console.log('8. response status:', 400);
+    console.log('9. response body:', { message: '직책명과 역할 코드가 필요합니다.' });
+    return res.status(400).json({ message: '직책명과 역할 코드가 필요합니다.' });
+  }
+
   try {
     const projectId = await getActiveProjectId(req);
-    const result = await query.run(
-      'INSERT INTO public.church_positions (project_id, name, role_code, is_active) VALUES (?, ?, ?, TRUE) RETURNING position_id',
-      [projectId, name, role_code]
-    );
+    const sql = 'INSERT INTO public.church_positions (project_id, name, role_code, is_active) VALUES (?, ?, ?, TRUE) RETURNING position_id';
+    console.log('6. SQL executed:', sql, [projectId, name, role_code]);
+    const result = await query.run(sql, [projectId, name, role_code]);
+
+    console.log('8. response status:', 201);
+    console.log('9. response body:', { success: true, position: { id: result.id, name, role_code }, message: '직책이 등록되었습니다.' });
     res.status(201).json({ success: true, position: { id: result.id, name, role_code }, message: '직책이 등록되었습니다.' });
   } catch (err) {
-    console.error('[POSITIONS] Error creating position:', err);
-    res.status(500).json({ success: false, message: '직책 등록 중 오류가 발생했습니다.', details: err.message });
+    console.log('7. SQL error:', err);
+    console.log('8. response status:', 500);
+    console.log('9. response body:', { message: err.message });
+    res.status(500).json({ message: err.message });
   }
 });
 

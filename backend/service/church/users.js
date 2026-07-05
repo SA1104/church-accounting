@@ -55,8 +55,13 @@ router.get('/:id', authenticateToken, requireRole(['SYSTEM_ADMIN', 'AUDITOR']), 
   }
 });
 
-// POST /api/church/users
 router.post('/', authenticateToken, requireRole(['SYSTEM_ADMIN']), async (req, res) => {
+  console.log('1. request url:', req.originalUrl);
+  console.log('2. request body:', req.body);
+  console.log('3. authenticated user:', req.user?.username);
+  console.log('4. authenticated role:', req.user?.roles?.platform);
+  console.log('5. middleware result: Passed requireRole');
+
   try {
     const { username, password, name, email, phone, role } = req.body;
     const projectId = await getActiveProjectId(req);
@@ -70,39 +75,51 @@ router.post('/', authenticateToken, requireRole(['SYSTEM_ADMIN']), async (req, r
     });
 
     if (authError) {
-      console.error('[USERS POST] Auth Error:', authError);
+      console.log('7. SQL error:', authError);
+      console.log('8. response status:', 400);
+      console.log('9. response body:', { message: '사용자 생성에 실패했습니다 (Auth).', details: authError.message });
       return res.status(400).json({ message: '사용자 생성에 실패했습니다 (Auth).', details: authError.message });
     }
 
     const userId = authData.user.id;
 
     // Platform profile
-    await query.run(`
+    const sql1 = `
       INSERT INTO public.platform_profiles (user_id, username, display_name, phone)
       VALUES (?, ?, ?, ?)
       ON CONFLICT (user_id) DO UPDATE SET username = EXCLUDED.username, display_name = EXCLUDED.display_name, phone = EXCLUDED.phone
-    `, [userId, username, name, phone || null]);
+    `;
+    console.log('6. SQL executed:', sql1, [userId, username, name, phone || null]);
+    await query.run(sql1, [userId, username, name, phone || null]);
 
     // Platform membership
-    await query.run(`
+    const sql2 = `
       INSERT INTO public.platform_memberships (user_id, project_id, is_active)
       VALUES (?, ?, TRUE)
       ON CONFLICT (user_id, project_id) DO NOTHING
-    `, [userId, projectId]);
+    `;
+    console.log('6. SQL executed:', sql2, [userId, projectId]);
+    await query.run(sql2, [userId, projectId]);
 
     // Role
     if (role) {
-      await query.run(`
+      const sql3 = `
         INSERT INTO public.platform_role_assignments (user_id, project_id, role_id)
         VALUES (?, ?, ?)
         ON CONFLICT (user_id, project_id, role_id) DO NOTHING
-      `, [userId, projectId, role]);
+      `;
+      console.log('6. SQL executed:', sql3, [userId, projectId, role]);
+      await query.run(sql3, [userId, projectId, role]);
     }
 
-    res.status(201).json({ success: true, userId, message: '사용자가 생성되었습니다.' });
+    console.log('8. response status:', 201);
+    console.log('9. response body:', { success: true, message: '사용자가 생성되었습니다.', userId });
+    res.status(201).json({ success: true, message: '사용자가 생성되었습니다.', userId });
   } catch (error) {
-    console.error('[USERS POST]', error);
-    res.status(500).json({ message: 'Database error' });
+    console.log('7. SQL error:', error);
+    console.log('8. response status:', 500);
+    console.log('9. response body:', { message: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
