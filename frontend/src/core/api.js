@@ -19,8 +19,11 @@ export async function apiClient(url, options = {}) {
   }
 
   const activeAssignmentId = localStorage.getItem('activeAssignmentId');
-  if (activeAssignmentId) {
+  const isUuid = (v) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+  if (activeAssignmentId && isUuid(activeAssignmentId)) {
     headers['X-Context-Assignment-Id'] = activeAssignmentId;
+  } else if (activeAssignmentId) {
+    console.warn('[apiClient] Ignoring non-UUID activeAssignmentId:', activeAssignmentId);
   }
 
   const fetchOptions = {

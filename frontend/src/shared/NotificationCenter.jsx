@@ -28,7 +28,7 @@ export default function NotificationCenter({ isOpen, onClose }) {
       capability: 'church', 
       workspace_id: 'church-ws-id', 
       context_type: 'assignment', 
-      context_id: 'assign-3', 
+      context_id: '00000000-0000-0000-0000-000000000000', 
       target_url: '/vouchers/1?fiscalYear=2026&committeeId=11&groupId=1', 
       icon: <FileText size={14} className="text-amber-400" /> 
     },

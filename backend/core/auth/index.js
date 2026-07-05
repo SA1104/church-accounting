@@ -222,7 +222,14 @@ async function authenticateToken(req, res, next) {
     }
 
     // Resolve active context and projectId
-    const assignmentId = req.headers['x-context-assignment-id'];
+    let assignmentId = req.headers['x-context-assignment-id'];
+    const isUuid = (v) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+    
+    if (assignmentId && !isUuid(assignmentId)) {
+      console.warn('[Auth] Ignoring invalid context assignment id:', assignmentId);
+      assignmentId = null;
+    }
+
     let projectId = '8a510c4f-c006-4442-8924-f3c75ab73cf6';
     let activeContext = null;
 

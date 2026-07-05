@@ -45,12 +45,12 @@ let mockPositions = [
   { position_id: 'pos-5', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', name: '교역자', role_code: 'PASTOR', is_active: true }
 ];
 let mockUserAssignments = [
-  { id: 'assign-1', user_id: 'finance-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', committee_id: 11, group_id: null, position_id: 'pos-4', role_code: 'COMMITTEE_CHAIR', is_primary: true, is_active: true, status: 'approved' },
-  { id: 'assign-2', user_id: 'finance-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', committee_id: 3, group_id: null, position_id: 'pos-4', role_code: 'COMMITTEE_CHAIR', is_primary: false, is_active: true, status: 'approved' },
-  { id: 'assign-3', user_id: 'finance-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', committee_id: 11, group_id: 2, position_id: 'pos-1', role_code: 'DEPARTMENT_ACCOUNTANT', is_primary: false, is_active: true, status: 'approved' },
-  { id: 'assign-4', user_id: 'accountant-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', committee_id: 11, group_id: 2, position_id: 'pos-1', role_code: 'DEPARTMENT_ACCOUNTANT', is_primary: true, is_active: true, status: 'approved' },
-  { id: 'assign-5', user_id: 'depthead-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', committee_id: 11, group_id: 2, position_id: 'pos-3', role_code: 'GROUP_LEADER', is_primary: true, is_active: true, status: 'approved' },
-  { id: 'assign-6', user_id: 'auditor-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', committee_id: 11, group_id: null, position_id: 'pos-5', role_code: 'AUDITOR', is_primary: true, is_active: true, status: 'approved' }
+  { id: '11111111-1111-1111-1111-111111111111', user_id: 'finance-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', committee_id: 11, group_id: null, position_id: 'pos-4', role_code: 'COMMITTEE_CHAIR', is_primary: true, is_active: true, status: 'approved' },
+  { id: '22222222-2222-2222-2222-222222222222', user_id: 'finance-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', committee_id: 3, group_id: null, position_id: 'pos-4', role_code: 'COMMITTEE_CHAIR', is_primary: false, is_active: true, status: 'approved' },
+  { id: '33333333-3333-3333-3333-333333333333', user_id: 'finance-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', committee_id: 11, group_id: 2, position_id: 'pos-1', role_code: 'DEPARTMENT_ACCOUNTANT', is_primary: false, is_active: true, status: 'approved' },
+  { id: '44444444-4444-4444-4444-444444444444', user_id: 'accountant-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', committee_id: 11, group_id: 2, position_id: 'pos-1', role_code: 'DEPARTMENT_ACCOUNTANT', is_primary: true, is_active: true, status: 'approved' },
+  { id: '55555555-5555-5555-5555-555555555555', user_id: 'depthead-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', committee_id: 11, group_id: 2, position_id: 'pos-3', role_code: 'GROUP_LEADER', is_primary: true, is_active: true, status: 'approved' },
+  { id: '66666666-6666-6666-6666-666666666666', user_id: 'auditor-uuid-placeholder', project_id: '8a510c4f-c006-4442-8924-f3c75ab73cf6', committee_id: 11, group_id: null, position_id: 'pos-5', role_code: 'AUDITOR', is_primary: true, is_active: true, status: 'approved' }
 ];
 let mockSignupAssignmentRequests = [];
 let mockPlatformMemberships = [

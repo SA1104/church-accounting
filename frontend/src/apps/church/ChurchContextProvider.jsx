@@ -29,7 +29,13 @@ export function ChurchContextProvider({ children }) {
   const [assignments, setAssignments] = useState([]);
   const [activeAssignment, setActiveAssignmentState] = useState(() => {
     try {
-      return localStorage.getItem('activeAssignmentId') || null;
+      const id = localStorage.getItem('activeAssignmentId');
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+      if (id && !isUuid) {
+        localStorage.removeItem('activeAssignmentId');
+        return null;
+      }
+      return id || null;
     } catch { return null; }
   });
 
@@ -65,6 +71,11 @@ export function ChurchContextProvider({ children }) {
     try {
       const pref = await apiClient('/api/platform/preferences/church_think/last_context');
       let backendId = pref ? pref.assignment_id : null;
+      
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(backendId);
+      if (backendId && !isUuid) {
+        backendId = null;
+      }
       
       if (!backendId && localAssignments.length > 0) {
         // Fallback to primary if DB pref doesn't exist
