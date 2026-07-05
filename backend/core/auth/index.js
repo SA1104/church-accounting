@@ -143,7 +143,7 @@ async function authenticateToken(req, res, next) {
       req.user = {
         userId: profile.user_id,
         id: profile.user_id,
-        email: profile.email || `${profile.username}@boozathink.com`,
+        email: `${profile.username}@boozathink.com`,
         username: profile.username,
         name: profile.display_name,
         projectId: projectId,
@@ -368,7 +368,8 @@ async function authenticateToken(req, res, next) {
 
 function requireRole(allowedRoles, serviceId = 'platform') {
   return (req, res, next) => {
-    console.log(`[AUTH requireRole] User: ${req.user ? req.user.username : 'undefined'}, ServiceId: ${serviceId}, Roles:`, req.user ? req.user.roles : 'undefined', `AllowedRoles:`, allowedRoles, `req.user.accounting.role:`, req.user && req.user.accounting ? req.user.accounting.role : 'undefined');
+    const accountingRole = req.user && req.user.accounting ? req.user.accounting.role : 'undefined';
+    console.log(`[AUTH requireRole] User: ${req.user ? req.user.username : 'undefined'}, ServiceId: ${serviceId}, Roles:`, req.user ? req.user.roles : 'undefined', `AllowedRoles:`, allowedRoles, `accounting.role:`, accountingRole, `isAdmin:`, req.user ? req.user.isAdmin : false);
     if (!req.user || !req.user.roles) {
       return res.status(403).json({ message: 'Access denied: Insufficient permissions' });
     }
@@ -385,13 +386,21 @@ function requireRole(allowedRoles, serviceId = 'platform') {
       return next();
     }
 
+    // Check accounting.role for accounting service requests
+    if (serviceId === 'accounting' && accountingRole) {
+      const normalizedAccountingRole = accountingRole === 'super_admin' || accountingRole === 'admin' ? 'SYSTEM_ADMIN' : accountingRole;
+      if (allowedRoles.includes(normalizedAccountingRole)) {
+        return next();
+      }
+    }
+
     const userRole = req.user.roles[legacyServiceId];
     if (userRole && allowedRoles.includes(userRole)) {
       return next();
     }
 
     // Map system role string compatibility
-    const systemAdminEquiv = allowedRoles.includes('SYSTEM_ADMIN') && userRole === 'super_admin';
+    const systemAdminEquiv = allowedRoles.includes('SYSTEM_ADMIN') && (userRole === 'super_admin' || userRole === 'admin');
     const auditorEquiv = allowedRoles.includes('AUDITOR') && userRole === 'service_admin';
     if (systemAdminEquiv || auditorEquiv) {
       return next();
@@ -502,14 +511,14 @@ async function login(req, res) {
         email: email,
         username: profile.username || username,
         name: isSystemAdminRole ? '관리자' : profile.display_name,
-        role: isSystemAdminRole ? 'admin' : (roles['church_think'] || 'USER'),
+        role: isSystemAdminRole ? 'SYSTEM_ADMIN' : (roles['church_think'] || 'USER'),
         roles: {
           platform: roles['platform'] || (roles['church_think'] === 'SYSTEM_ADMIN' ? 'SYSTEM_ADMIN' : 'USER'),
           accounting: roles['church_think'] || 'USER',
           church_think: roles['church_think'] === 'SYSTEM_ADMIN' ? 'super_admin' : (roles['church_think'] || 'user')
         },
         accounting: {
-          role: isSystemAdminRole ? 'admin' : (roles['church_think'] || 'USER'),
+          role: isSystemAdminRole ? 'SYSTEM_ADMIN' : (roles['church_think'] || 'USER'),
           organizationName: '신길교회',
           departmentName: accountingMeta ? accountingMeta.groupName : (isSystemAdminRole ? '전체 조직' : null),
           position: accountingMeta ? accountingMeta.position : (isSystemAdminRole ? '마스터' : '회원'),

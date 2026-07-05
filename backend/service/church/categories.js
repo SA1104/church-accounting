@@ -37,6 +37,7 @@ router.get('/', authenticateToken, async (req, res) => {
 // 2. 계정과목 등록
 router.post('/', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN', 'FINANCE_CHAIR', 'FINANCE_MANAGER', 'DEPARTMENT_ACCOUNTANT', 'PASTOR']), async (req, res) => {
   const { type, parent_category, child_category, description } = req.body;
+  console.log('[CATEGORIES POST] user:', req.user?.username, 'role:', req.user?.accounting?.role, 'isAdmin:', req.user?.isAdmin, 'roles:', req.user?.roles);
 
   if (!type || !parent_category || !child_category) {
     return res.status(400).json({ message: 'Type, parent category, and child category are required' });

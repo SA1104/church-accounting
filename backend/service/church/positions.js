@@ -4,6 +4,8 @@
 const express = require('express');
 const router = express.Router();
 const { query } = require('../../core/db');
+const { authenticateToken, requireRole } = require('../../core/auth');
+const requireAccountingRole = (roles) => requireRole(roles, 'accounting');
 
 async function getActiveProjectId(req) {
   if (req.user && req.user.projectId) return req.user.projectId;
@@ -44,14 +46,15 @@ router.get('/public', async (req, res) => {
 });
 
 // POST /api/church/positions
-router.post('/', async (req, res) => {
-  const { name, role_code, description } = req.body;
+router.post('/', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN', 'FINANCE_CHAIR', 'FINANCE_MANAGER', 'PASTOR']), async (req, res) => {
+  const { name, role_code } = req.body;
   if (!name || !role_code) return res.status(400).json({ message: '직책명과 역할 코드가 필요합니다.' });
+  console.log('[POSITIONS POST] user:', req.user?.username, 'role:', req.user?.accounting?.role, 'isAdmin:', req.user?.isAdmin);
   try {
     const projectId = await getActiveProjectId(req);
     const result = await query.run(
-      'INSERT INTO public.church_positions (project_id, name, role_code, description, is_active) VALUES (?, ?, ?, ?, TRUE) RETURNING position_id',
-      [projectId, name, role_code, description || '']
+      'INSERT INTO public.church_positions (project_id, name, role_code, is_active) VALUES (?, ?, ?, TRUE) RETURNING position_id',
+      [projectId, name, role_code]
     );
     res.status(201).json({ success: true, position: { id: result.id, name, role_code }, message: '직책이 등록되었습니다.' });
   } catch (err) {
@@ -61,7 +64,7 @@ router.post('/', async (req, res) => {
 });
 
 // DELETE /api/church/positions/:id — soft delete (is_active = FALSE)
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN', 'FINANCE_CHAIR', 'FINANCE_MANAGER', 'PASTOR']), async (req, res) => {
   const { id } = req.params;
   try {
     await query.run(

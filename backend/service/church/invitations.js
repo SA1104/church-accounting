@@ -217,7 +217,9 @@ router.get('/:token', async (req, res) => {
     const position = await query.get("SELECT name FROM public.church_positions WHERE position_id = ?", [invite.position_id]);
     const inviter = await query.get("SELECT display_name FROM public.platform_profiles WHERE user_id = ?", [invite.invited_by]);
 
-    const account = await query.get("SELECT user_id FROM public.platform_profiles WHERE email = ?", [invite.invited_email]);
+    // platform_profiles has no email column — match by username prefix (email prefix before @)
+    const emailPrefix = invite.invited_email ? invite.invited_email.split('@')[0] : null;
+    const account = emailPrefix ? await query.get("SELECT user_id FROM public.platform_profiles WHERE username = ?", [emailPrefix]) : null;
 
     res.json({
       id: invite.id,
@@ -260,9 +262,11 @@ router.post('/:token/accept', authenticateToken, async (req, res) => {
       return res.status(400).json({ message: '만료된 초대 링크입니다.' });
     }
 
-    // Security check: email validation
-    if (req.user.email !== invite.invited_email) {
-      return res.status(403).json({ message: '초대장 수신자 이메일과 현재 로그인 이메일이 일치하지 않습니다.' });
+    // Security check: email or username validation (platform_profiles has no email column)
+    const userEmail = req.user.email || `${req.user.username}@boozathink.com`;
+    const usernameMatch = req.user.username === invite.invited_email.split('@')[0];
+    if (userEmail !== invite.invited_email && !usernameMatch) {
+      return res.status(403).json({ message: '초대장 수신자와 현재 로그인 계정이 일치하지 않습니다.' });
     }
 
     // Resolve workspace to join
