@@ -674,9 +674,19 @@ export default function Settings() {
   const fetchCategories = async () => {
     try {
       const data = await apiClient('/api/church/categories?include_inactive=true');
+      console.log('[Categories GET response]', data);
+      
+      let parsedCategories = [];
       if (Array.isArray(data)) {
-        setCategories(data);
+        parsedCategories = data;
+      } else if (data && Array.isArray(data.categories)) {
+        parsedCategories = data.categories;
+      } else if (data && Array.isArray(data.data)) {
+        parsedCategories = data.data;
       }
+      
+      setCategories(parsedCategories);
+      console.log('[Categories state length]', parsedCategories.length);
     } catch (err) {
       console.error(err);
     }
@@ -740,8 +750,8 @@ export default function Settings() {
       setNewCatParent('');
       setNewCatChild('');
       setNewCatDesc('');
-      fetchCategories();
       alert('계정과목 등록 성공');
+      await fetchCategories();
     } catch (err) {
       alert(err.message || '요청 처리 중 오류가 발생했습니다.');
     }

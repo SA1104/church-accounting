@@ -91,10 +91,25 @@ export default function VoucherForm() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
-      if (response.ok && Array.isArray(data)) {
-        setCategories(data);
-        if (data.length > 0 && !categoryId) {
-          setCategoryId(data.find(c => c.type === transactionType)?.category_id || data[0].category_id);
+      console.log('[Categories GET response]', data);
+      
+      let parsedCategories = [];
+      if (Array.isArray(data)) {
+        parsedCategories = data;
+      } else if (data && Array.isArray(data.categories)) {
+        parsedCategories = data.categories;
+      } else if (data && Array.isArray(data.data)) {
+        parsedCategories = data.data;
+      }
+      
+      if (response.ok) {
+        console.log('[Categories GET parsed length]', parsedCategories.length);
+        setCategories(parsedCategories);
+        console.log('[Voucher categories state after]', parsedCategories);
+        const filtered = parsedCategories.filter(c => c.type === transactionType && c.is_active !== false);
+        
+        if (filtered.length > 0 && !categoryId) {
+          setCategoryId(filtered[0]?.category_id || filtered[0].category_id);
         }
       } else {
         console.error('Failed to fetch categories:', data.message || 'Unknown error');

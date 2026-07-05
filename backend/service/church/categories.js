@@ -30,7 +30,25 @@ router.get('/', authenticateToken, async (req, res) => {
     }
     sql += ' ORDER BY type DESC, sort_order ASC, parent_category ASC, child_category ASC';
     const categories = await query.all(sql, params);
-    res.json(categories);
+    
+    // Ensure the response is always a flat array of rows
+    let responseData = [];
+    if (Array.isArray(categories)) {
+      responseData = categories;
+    } else if (categories && Array.isArray(categories.data)) {
+      responseData = categories.data;
+    } else if (categories && Array.isArray(categories.categories)) {
+      responseData = categories.categories;
+    } else if (typeof categories === 'string') {
+      try {
+        const parsed = JSON.parse(categories);
+        responseData = Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        responseData = [];
+      }
+    }
+
+    res.json(responseData);
   } catch (error) {
     console.error('Fetch categories error:', error);
     res.status(500).json({ message: 'Internal server error' });
