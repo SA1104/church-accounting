@@ -157,7 +157,7 @@ export default function VoucherForm() {
         console.error('Failed to fetch approvers:', data.message || 'Unknown error');
         setError(data.message || '결재자 정보를 불러오지 못했습니다.');
       }
-    } catch (err) {} catch (err) {
+    } catch (err) {
       console.error('Fetch approvers error:', err);
       setError('서버 연결에 실패했습니다.');
     }
