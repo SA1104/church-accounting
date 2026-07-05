@@ -929,7 +929,7 @@ export default function Dashboard() {
       {/* 2. 결재 위젯 그리드 */}
       <div className="grid grid-cols-3 gap-3">
         <div 
-          onClick={() => navigate('/vouchers?status=SUBMITTED')} 
+          onClick={() => navigate('/vouchers?status=pending_approval')} 
           className="glass p-3 rounded-xl flex flex-col items-center justify-center text-center cursor-pointer active:scale-95 transition-all"
         >
           <div className={`w-8 h-8 rounded-full ${stats.pendingApprovals > 0 ? 'bg-amber-500/20 text-amber-400 animate-pulse' : 'bg-slate-800 text-slate-400'} flex items-center justify-center mb-1.5`}>
@@ -999,13 +999,13 @@ export default function Dashboard() {
                   <span className={`text-[8px] px-1.5 py-0.5 rounded-full inline-block mt-0.5 ${
                     v.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400' :
                     v.status === 'REJECTED' ? 'bg-rose-500/10 text-rose-400' :
-                    v.status === 'TEMP' ? 'bg-slate-800 text-slate-400' :
+                    v.status === 'draft' ? 'bg-slate-800 text-slate-400' :
                     'bg-amber-500/10 text-amber-400'
                   }`}>
                     {v.status === 'APPROVED' && '승인완료'}
                     {v.status === 'REJECTED' && '반려'}
-                    {v.status === 'TEMP' && '임시저장'}
-                    {v.status === 'SUBMITTED' && '1차결재중'}
+                    {v.status === 'draft' && '임시저장'}
+                    {v.status === 'pending_approval' && '결재중'}
                     {v.status === 'DEPT_APPROVED' && '최종결재중'}
                   </span>
                 </div>

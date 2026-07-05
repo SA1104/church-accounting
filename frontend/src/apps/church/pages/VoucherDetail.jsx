@@ -328,8 +328,8 @@ export default function VoucherDetail() {
     switch (status) {
       case 'APPROVED': return '최종승인 완료';
       case 'REJECTED': return '반려됨';
-      case 'TEMP': return '임시저장';
-      case 'SUBMITTED': return '1차 승인 대기';
+      case 'draft': return '임시저장';
+      case 'pending_approval': return '결재 진행중';
       case 'DEPT_APPROVED': return '최종 승인 대기';
       default: return status;
     }
@@ -356,14 +356,14 @@ export default function VoucherDetail() {
       };
     }
 
-    if (voucher.status === 'TEMP') {
+    if (voucher.status === 'draft') {
       return {
         type: 'info',
         text: '📝 임시저장 상태인 전표입니다. 기안자가 결재 요청(상신)을 올릴 수 있습니다.'
       };
     }
 
-    if (voucher.status === 'SUBMITTED') {
+    if (voucher.status === 'pending_approval') {
       if (isDeptHead || isSystemAdmin) {
         return {
           type: 'action',
@@ -409,11 +409,11 @@ export default function VoucherDetail() {
 
   const isVoucherLocked = voucher ? isLocked(voucher.transaction_date) : false;
 
-  const showDeptHeadButtons = voucher.status === 'SUBMITTED' && voucher.dept_head_approver_id === user.userId && !isVoucherLocked;
+  const showApproveButtons = voucher.status === 'pending_approval' && voucher.current_approver_id === user.userId && !isVoucherLocked;
   const showFinanceButtons = voucher.status === 'DEPT_APPROVED' && voucher.finance_approver_id === user.userId && !isVoucherLocked;
 
   const isWriter = user.userId === voucher.writer_id;
-  const showEditButtons = isWriter && (voucher.status === 'TEMP' || voucher.status === 'REJECTED') && !isVoucherLocked;
+  const showEditButtons = isWriter && (voucher.status === 'draft' || voucher.status === 'rejected') && !isVoucherLocked;
   const canModifyAttachments = showEditButtons;
 
   const guide = getApprovalGuideText();
@@ -459,7 +459,7 @@ export default function VoucherDetail() {
           <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
             voucher.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
             voucher.status === 'REJECTED' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
-            voucher.status === 'TEMP' ? 'bg-slate-800 text-slate-400 border border-slate-700/50' :
+            voucher.status === 'draft' ? 'bg-slate-800 text-slate-400 border border-slate-700/50' :
             'bg-amber-500/10 text-amber-400 border border-amber-500/20'
           }`}>
             {getStatusText(voucher.status)}
@@ -765,7 +765,7 @@ export default function VoucherDetail() {
       )}
 
       {/* 작성자 상신 취소 (결재 회수) 버튼 */}
-      {isWriter && (voucher.status === 'SUBMITTED' || voucher.status === 'DEPT_APPROVED') && !isVoucherLocked && (
+      {isWriter && voucher.status === 'pending_approval' && !isVoucherLocked && (
         <div className="flex justify-center">
           <button
             onClick={handleCancel}

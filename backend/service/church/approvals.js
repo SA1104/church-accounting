@@ -45,7 +45,7 @@ router.get('/pending', authenticateToken, async (req, res) => {
       JOIN platform_profiles u ON v.writer_id = u.user_id
       JOIN church_voucher_items vi ON v.voucher_id = vi.voucher_id
       JOIN church_account_categories c ON vi.category_id = c.category_id
-      WHERE l.approver_id = ? AND l.status = 'PENDING' AND v.project_id = ?
+      WHERE l.approver_id = ? AND l.status = 'PENDING' AND v.project_id = ? AND v.status IN ('pending_approval', 'SUBMITTED')
       ORDER BY v.created_at DESC
     `, [userId, projectId]);
 
@@ -141,42 +141,6 @@ router.post('/action', authenticateToken, async (req, res) => {
     let voucherObj = null;
 
     if (targetType === 'VOUCHER') {
-      voucherObj = await query.get('SELECT writer_id, status FROM church_vouchers WHERE voucher_id = ? AND project_id = ?', [targetId, projectId]);
-      if (!voucherObj) return res.status(404).json({ message: 'Voucher not found' });
-      current_status = voucherObj.status;
-    } else if (targetType === 'LEDGER') {
-      const ledger = await query.get('SELECT status FROM church_ledgers WHERE ledger_id = ? AND project_id = ?', [targetId, projectId]);
-      if (!ledger) return res.status(404).json({ message: 'Ledger not found' });
-      current_status = ledger.status;
-    } else if (targetType === 'SETTLEMENT') {
-      const report = await query.get('SELECT status FROM church_settlements WHERE settlement_id = ? AND project_id = ?', [targetId, projectId]);
-      if (!report) return res.status(404).json({ message: 'Settlement report not found' });
-      current_status = report.status;
-    }
-
-    if (action === 'SUBMIT') {
-      if (current_status !== 'TEMP' && current_status !== 'REJECTED') {
-        return res.status(400).json({ message: '기안할 수 없는 상태입니다.' });
-      }
-      
-      const newStatus = 'SUBMITTED';
-      await updateTargetStatus(targetType, targetId, newStatus, null, projectId);
-      
-      if (targetType === 'VOUCHER') {
-        // Initialize/update approval lines
-        await query.run("UPDATE church_approval_lines SET status = 'PENDING' WHERE voucher_id = ?", [targetId]);
-        // Insert submit history
-        await query.run(`
-          INSERT INTO church_approval_actions (voucher_id, actor_id, action, comment, signature)
-          VALUES (?, ?, 'SUBMIT', ?, ?)
-        `, [targetId, userId, comment || '기안 상신', signature || null]);
-      }
-
-      res.json({ message: '상신 처리가 완료되었습니다.' });
-
-    } else if (action === 'APPROVE') {
-      if (targetType === 'VOUCHER') {
-        // Find current pending approval line step
         const activeLine = await query.get(
           'SELECT * FROM church_approval_lines WHERE voucher_id = ? AND approver_id = ? AND status = \'PENDING\'',
           [targetId, userId]
@@ -196,30 +160,24 @@ router.post('/action', authenticateToken, async (req, res) => {
           );
         }
 
-        // Check if there is a next step
         const nextLine = await query.get(
-          'SELECT * FROM church_approval_lines WHERE voucher_id = ? AND step_number = ?',
-          [targetId, stepNumber + 1]
+          'SELECT * FROM church_approval_lines WHERE voucher_id = ? AND step_number > ? ORDER BY step_number ASC LIMIT 1',
+          [targetId, stepNumber]
         );
 
         if (nextLine) {
-          // Move to next step (e.g. DEPT_APPROVED)
-          const nextStatus = 'DEPT_APPROVED';
-          await updateTargetStatus(targetType, targetId, nextStatus, null, projectId);
+          await query.run("UPDATE church_approval_lines SET status = 'PENDING' WHERE line_id = ?", [nextLine.line_id]);
         } else {
-          // Final approval
-          const nextStatus = 'APPROVED';
+          const nextStatus = 'approved';
           await updateTargetStatus(targetType, targetId, nextStatus, null, projectId);
         }
 
-        // Log approval history action
         await query.run(`
           INSERT INTO church_approval_actions (voucher_id, actor_id, action, comment, signature)
           VALUES (?, ?, 'APPROVE', ?, ?)
         `, [targetId, userId, comment || `제 ${stepNumber}단계 승인 완료`, signature || null]);
 
         res.json({ message: '결재 승인이 성공적으로 완료되었습니다.' });
-
       } else {
         // Ledgers and Reports approvals
         if (current_status === 'SUBMITTED') {
@@ -240,17 +198,15 @@ router.post('/action', authenticateToken, async (req, res) => {
       }
 
     } else if (action === 'REJECT') {
-      if (current_status !== 'SUBMITTED' && current_status !== 'DEPT_APPROVED') {
+      if (current_status !== 'pending_approval' && current_status !== 'SUBMITTED' && current_status !== 'DEPT_APPROVED') {
         return res.status(400).json({ message: '반려할 수 없는 상태입니다.' });
       }
       
-      const newStatus = 'REJECTED';
+      const newStatus = 'rejected';
       await updateTargetStatus(targetType, targetId, newStatus, comment || '결재 반려', projectId);
 
       if (targetType === 'VOUCHER') {
-        // Set all lines status to REJECTED
         await query.run("UPDATE church_approval_lines SET status = 'REJECTED' WHERE voucher_id = ?", [targetId]);
-        // Insert history action
         await query.run(`
           INSERT INTO church_approval_actions (voucher_id, actor_id, action, comment, signature)
           VALUES (?, ?, 'REJECT', ?, ?)
@@ -258,17 +214,17 @@ router.post('/action', authenticateToken, async (req, res) => {
       }
 
       res.json({ message: '반려 처리가 완료되었습니다.' });
-
     } else if (action === 'CANCEL') {
-      if (current_status !== 'SUBMITTED' && current_status !== 'DEPT_APPROVED') {
+      if (current_status !== 'pending_approval' && current_status !== 'SUBMITTED' && current_status !== 'DEPT_APPROVED') {
         return res.status(400).json({ message: '회수할 수 없는 상태입니다.' });
       }
       
-      const newStatus = 'TEMP';
+      const newStatus = 'draft';
       await updateTargetStatus(targetType, targetId, newStatus, null, projectId);
 
       if (targetType === 'VOUCHER') {
-        await query.run("UPDATE church_approval_lines SET status = 'PENDING' WHERE voucher_id = ?", [targetId]);
+        await query.run("UPDATE church_approval_lines SET status = 'WAITING' WHERE voucher_id = ?", [targetId]);
+        await query.run("UPDATE church_approval_lines SET status = 'PENDING' WHERE voucher_id = ? AND step_number = 1", [targetId]);
         await query.run(`
           INSERT INTO church_approval_actions (voucher_id, actor_id, action, comment, signature)
           VALUES (?, ?, 'CANCEL', ?, ?)

@@ -1,0 +1,12 @@
+=== deploy/supabase\2026_07_01_church_think_v1_p0_stabilization.sql ===
+CREATE TABLE IF NOT EXISTS public.church_account_categories (
+  category_id SERIAL PRIMARY KEY,
+  project_id UUID NOT NULL REFERENCES public.platform_projects(project_id) ON DELETE CASCADE,
+  type VARCHAR(50) NOT NULL, -- INCOME / EXPENSE
+  parent_category VARCHAR(100) NOT NULL,
+  child_category VARCHAR(100) NOT NULL,
+  description TEXT,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+---

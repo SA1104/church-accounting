@@ -29,8 +29,10 @@ export default function VoucherForm() {
 
   // 결재자 설정 상태
   const [deptHeadApproverId, setDeptHeadApproverId] = useState('');
+  const [secondApproverId, setSecondApproverId] = useState('');
   const [financeApproverId, setFinanceApproverId] = useState('');
   const [deptHeadsList, setDeptHeadsList] = useState([]);
+  const [secondList, setSecondList] = useState([]);
   const [financeList, setFinanceList] = useState([]);
 
   // UI 상태
@@ -112,15 +114,23 @@ export default function VoucherForm() {
       const data = await response.json();
       if (response.ok) {
         setDeptHeadsList(data.deptHeads || []);
+        setSecondList(data.secondApprovers || []);
         setFinanceList(data.financeTeams || []);
 
         const savedDeptHead = localStorage.getItem('preferred_dept_head_approver');
+        const savedSecond = localStorage.getItem('preferred_second_approver');
         const savedFinance = localStorage.getItem('preferred_finance_approver');
 
         if (savedDeptHead && data.deptHeads?.some(h => h.user_id.toString() === savedDeptHead)) {
           setDeptHeadApproverId(savedDeptHead);
         } else if (data.deptHeads?.length > 0) {
           setDeptHeadApproverId(data.deptHeads[0].user_id.toString());
+        }
+
+        if (savedSecond && data.secondApprovers?.some(s => s.user_id.toString() === savedSecond)) {
+          setSecondApproverId(savedSecond);
+        } else {
+          setSecondApproverId('');
         }
 
         if (savedFinance && data.financeTeams?.some(f => f.user_id.toString() === savedFinance)) {
@@ -132,7 +142,7 @@ export default function VoucherForm() {
         console.error('Failed to fetch approvers:', data.message || 'Unknown error');
         setError(data.message || '결재자 정보를 불러오지 못했습니다.');
       }
-    } catch (err) {
+    } catch (err) {} catch (err) {
       console.error('Fetch approvers error:', err);
       setError('서버 연결에 실패했습니다.');
     }
@@ -156,6 +166,9 @@ export default function VoucherForm() {
       setMemo(data.memo || '');
       if (data.dept_head_approver_id) {
         setDeptHeadApproverId(data.dept_head_approver_id.toString());
+      }
+      if (data.second_approver_id) {
+        setSecondApproverId(data.second_approver_id.toString());
       }
       if (data.finance_approver_id) {
         setFinanceApproverId(data.finance_approver_id.toString());
@@ -268,12 +281,31 @@ export default function VoucherForm() {
   };
 
   const handleSubmit = async (submitType) => {
-    if (!categoryId || !summary || !amount || !deptHeadApproverId || !financeApproverId) {
-      const msg = '필수 항목(적요, 계정과목, 금액 및 결재선)을 모두 지정해 주세요.';
+    if (!categoryId || !summary || !amount) {
+      const msg = '필수 항목(거래일자, 적요, 계정과목, 금액)을 지정해 주세요.';
       setError(msg);
       alert(`⚠️ 입력 오류\n\n${msg}`);
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
+    }
+
+    if (submitType === 'pending_approval') {
+      if (!deptHeadApproverId || !financeApproverId) {
+        const msg = '결재 상신 시 1차 결재자와 최종 결재자는 필수입니다.';
+        setError(msg);
+        alert(`⚠️ 입력 오류\n\n${msg}`);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      const approvers = [deptHeadApproverId, financeApproverId];
+      if (secondApproverId) approvers.push(secondApproverId);
+      if (new Set(approvers).size !== approvers.length) {
+        const msg = '동일인을 여러 결재 단계에 중복 지정할 수 없습니다.';
+        setError(msg);
+        alert(`⚠️ 중복 지정 오류\n\n${msg}`);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
     }
 
     if (transactionType === 'EXPENSE' && attachments.length === 0) {
@@ -288,6 +320,7 @@ export default function VoucherForm() {
     setError('');
 
     localStorage.setItem('preferred_dept_head_approver', deptHeadApproverId);
+    localStorage.setItem('preferred_second_approver', secondApproverId);
     localStorage.setItem('preferred_finance_approver', financeApproverId);
 
     const formData = new FormData();
@@ -300,10 +333,10 @@ export default function VoucherForm() {
     formData.append('payment_method', paymentMethod);
     formData.append('status', submitType);
     formData.append('memo', memo);
-    formData.append('dept_head_approver_id', deptHeadApproverId);
-    formData.append('finance_approver_id', financeApproverId);
+    if (deptHeadApproverId) formData.append('dept_head_approver_id', deptHeadApproverId);
+    if (secondApproverId) formData.append('second_approver_id', secondApproverId);
+    if (financeApproverId) formData.append('finance_approver_id', financeApproverId);
 
-    // 신규 추가된 파일들 추가
     attachments.forEach(att => {
       if (att.file) {
         formData.append('receipts', att.file);
@@ -323,7 +356,7 @@ export default function VoucherForm() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || '전표 저장 실패');
 
-      alert(submitType === 'SUBMITTED' ? '결재 상신(결재요청)이 완료되었습니다.' : '전표가 임시저장되었습니다.');
+      alert(submitType === 'pending_approval' ? '결재 상신(결재요청)이 완료되었습니다.' : '전표가 임시저장되었습니다.');
       navigate('/vouchers');
     } catch (err) {
       setError(err.message);
@@ -333,6 +366,8 @@ export default function VoucherForm() {
       setSubmitting(false);
     }
   };
+
+  const handleCameraClick};
 
   const handleCameraClick = () => {
     fileInputRef.current.click();
@@ -700,9 +735,9 @@ export default function VoucherForm() {
         </h4>
         <p className="text-[9px] text-slate-500">한 번 설정하면 다음 전표 등록 시 해당 결재선이 기본값으로 자동지정됩니다.</p>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400">1차 결재자 (부서장) *</label>
+            <label className="text-[10px] font-bold text-slate-400">1차 결재자 *</label>
             <select
               value={deptHeadApproverId}
               onChange={(e) => setDeptHeadApproverId(e.target.value)}
@@ -716,7 +751,21 @@ export default function VoucherForm() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400">최종 결재자 (회계팀/위원장) *</label>
+            <label className="text-[10px] font-bold text-slate-400">2차 결재자 (선택)</label>
+            <select
+              value={secondApproverId}
+              onChange={(e) => setSecondApproverId(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-church-500"
+            >
+              <option value="">생략 / 선택 안 함</option>
+              {secondList.map(s => (
+                <option key={s.user_id} value={s.user_id}>{s.name} ({s.position})</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-400">최종 결재자 *</label>
             <select
               value={financeApproverId}
               onChange={(e) => setFinanceApproverId(e.target.value)}
@@ -736,21 +785,32 @@ export default function VoucherForm() {
         <button
           type="button"
           disabled={submitting}
-          onClick={() => handleSubmit('TEMP')}
+          onClick={() => handleSubmit('draft')}
           className="bg-slate-800 hover:bg-slate-700 text-slate-200 py-3 rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition-colors"
         >
-          임시저장
+          임시저장 (Draft)
         </button>
 
-        <button
-          type="button"
-          disabled={submitting}
-          onClick={() => handleSubmit('SUBMITTED')}
-          className="bg-gradient-to-r from-church-600 to-church-500 hover:brightness-110 text-white py-3 rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition-all"
-        >
-          결재요청 (상신)
-        </button>
+        {user?.roles?.accounting === 'USER' || user?.accounting?.role === 'USER' ? (
+          <div className="flex flex-col">
+            <button
+              type="button"
+              disabled={true}
+              className="bg-slate-800 opacity-50 cursor-not-allowed text-slate-400 py-3 rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-1.5"
+            >
+              결재요청 (상신)
+            </button>
+            <span className="text-[9px] text-rose-400 text-center mt-1">일반 사용자는 임시저장만 가능합니다.</span>
+          </div>
+        ) : (
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={() => handleSubmit('pending_approval')}
+            className="bg-gradient-to-r from-church-600 to-church-500 hover:brightness-110 text-white py-3 rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition-all"
+          >
+            결재요청 (상신)
+          </button>
+        )}
       </div>
     </div>
-  );
-}

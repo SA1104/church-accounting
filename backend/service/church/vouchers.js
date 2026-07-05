@@ -249,11 +249,16 @@ router.get('/:id', authenticateToken, enforceContextSecurity, async (req, res) =
 
     // Fetch designators (dept head & finance managers mapped dynamically from approval lines)
     const designators = await query.all(`
-      SELECT approver_id, step_number FROM church_approval_lines WHERE voucher_id = ? ORDER BY step_number ASC
-    `, [id]);
+      SELECT approver_id, step_number, status FROM church_approval_lines WHERE voucher_id = ? ORDER BY step_number ASC
+    , [id]);
+    
+    const pendingLine = designators.find(d => d.status === \'PENDING\');
+    voucher.current_approver_id = pendingLine ? pendingLine.approver_id : null;
+
     designators.forEach(d => {
       if (d.step_number === 1) voucher.dept_head_approver_id = d.approver_id;
-      if (d.step_number === 2) voucher.finance_approver_id = d.approver_id;
+      if (d.step_number === 2) voucher.second_approver_id = d.approver_id;
+      if (d.step_number === 3) voucher.finance_approver_id = d.approver_id;
     });
 
     res.json(voucher);
@@ -265,11 +270,28 @@ router.get('/:id', authenticateToken, enforceContextSecurity, async (req, res) =
 
 // 4. 전표 신규 생성
 router.post('/', authenticateToken, upload.array('receipts'), async (req, res) => {
-  const { userId, groupId } = getAccountingUser(req);
-  const { transaction_date, transaction_type, category_id, summary, vendor, amount, payment_method, memo, dept_head_approver_id, finance_approver_id } = req.body;
+
+  const { userId, groupId, role } = getAccountingUser(req);
+  const { transaction_date, transaction_type, category_id, summary, vendor, amount, payment_method, memo, dept_head_approver_id, second_approver_id, finance_approver_id, status } = req.body;
+
+  const targetStatus = status === 'pending_approval' ? 'pending_approval' : 'draft';
 
   if (!transaction_date || !transaction_type || !category_id || !summary || !amount) {
     return res.status(400).json({ message: 'Required fields are missing' });
+  }
+
+  if (targetStatus === 'pending_approval') {
+    if (role === 'USER') {
+      return res.status(403).json({ message: '일반 사용자는 임시저장만 가능합니다. 결재를 상신할 수 없습니다.' });
+    }
+    if (!dept_head_approver_id || !finance_approver_id) {
+      return res.status(400).json({ message: '결재요청 시 1차 결재자와 최종 결재자는 필수입니다.' });
+    }
+    const approvers = [dept_head_approver_id, finance_approver_id];
+    if (second_approver_id) approvers.push(second_approver_id);
+    if (new Set(approvers).size !== approvers.length) {
+      return res.status(400).json({ message: '동일인을 여러 결재 단계에 중복 지정할 수 없습니다.' });
+    }
   }
 
   const projectId = await getActiveProjectId(req);
@@ -279,100 +301,110 @@ router.post('/', authenticateToken, upload.array('receipts'), async (req, res) =
   }
 
   try {
-    // 1. Insert Voucher Header
     const result = await query.run(`
       INSERT INTO church_vouchers (
         project_id, department_id, writer_id, transaction_date, transaction_type, summary, status, memo
       )
-      VALUES (?, ?, ?, ?, ?, ?, 'TEMP', ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING voucher_id
-    `, [projectId, groupId, userId, transaction_date, transaction_type, summary, memo || null]);
+    `, [projectId, groupId, userId, transaction_date, transaction_type, summary, targetStatus, memo || null]);
 
     const voucherId = result.id;
 
-    // 2. Insert Voucher Item (1:N structure, seeding default item 1)
     await query.run(`
       INSERT INTO church_voucher_items (voucher_id, category_id, amount, vendor, payment_method)
       VALUES (?, ?, ?, ?, ?)
     `, [voucherId, parseInt(category_id, 10), parseFloat(amount), vendor || null, payment_method || 'CARD']);
 
-    // 3. Create Approval Lines
     if (dept_head_approver_id) {
-      await query.run(`
-        INSERT INTO church_approval_lines (voucher_id, approver_id, step_number, status)
-        VALUES (?, ?, 1, 'PENDING')
-      `, [voucherId, dept_head_approver_id]);
+      await query.run(`INSERT INTO church_approval_lines (voucher_id, approver_id, step_number, status) VALUES (?, ?, 1, 'PENDING')`, [voucherId, dept_head_approver_id]);
+    }
+    if (second_approver_id) {
+      await query.run(`INSERT INTO church_approval_lines (voucher_id, approver_id, step_number, status) VALUES (?, ?, 2, 'WAITING')`, [voucherId, second_approver_id]);
     }
     if (finance_approver_id) {
-      await query.run(`
-        INSERT INTO church_approval_lines (voucher_id, approver_id, step_number, status)
-        VALUES (?, ?, 2, 'PENDING')
-      `, [voucherId, finance_approver_id]);
+      await query.run(`INSERT INTO church_approval_lines (voucher_id, approver_id, step_number, status) VALUES (?, ?, 3, 'WAITING')`, [voucherId, finance_approver_id]);
     }
 
-    // 4. Attachments processing
     if (req.files && req.files.length > 0) {
       for (let i = 0; i < req.files.length; i++) {
         const file = req.files[i];
         const fileMeta = await StorageService.saveFile(file);
-
-        // Insert into platform_files
         const attachRes = await query.run(`
           INSERT INTO platform_files (project_id, bucket_name, file_key, original_name, mime_type, file_size, uploaded_by, ocr_status)
           VALUES (?, 'receipts', ?, ?, ?, ?, ?, 'PENDING')
           RETURNING file_id
         `, [projectId, fileMeta.fileKey, fileMeta.fileName, fileMeta.mimeType, fileMeta.fileSize, userId]);
-
-        // Map to church_receipts
         await query.run(`
           INSERT INTO church_receipts (voucher_id, file_id, sort_order)
           VALUES (?, ?, ?)
         `, [voucherId, attachRes.id, i]);
       }
-      
       startQueueWorker();
     }
 
-    res.status(201).json({ voucher_id: voucherId, message: 'Voucher created successfully as temporary draft.' });
+    res.status(201).json({ voucher_id: voucherId, message: targetStatus === 'pending_approval' ? '결재가 상신되었습니다.' : '임시저장 되었습니다.' });
   } catch (error) {
     console.error('Create voucher error:', error);
     res.status(500).json({ message: 'Database error' });
   }
+
 });
 
 // 5. 전표 수정
 router.put('/:id', authenticateToken, upload.array('receipts'), async (req, res) => {
+
   const { id } = req.params;
-  const { userId, groupId } = getAccountingUser(req);
-  const { transaction_date, transaction_type, category_id, summary, vendor, amount, payment_method, memo, dept_head_approver_id, finance_approver_id } = req.body;
+  const { userId, groupId, role } = getAccountingUser(req);
+  const { transaction_date, transaction_type, category_id, summary, vendor, amount, payment_method, memo, dept_head_approver_id, second_approver_id, finance_approver_id, status } = req.body;
 
   try {
     const projectId = await getActiveProjectId(req);
     const voucher = await query.get('SELECT * FROM church_vouchers WHERE voucher_id = ? AND project_id = ?', [id, projectId]);
     if (!voucher) return res.status(404).json({ message: 'Voucher not found' });
-    if (voucher.writer_id !== userId && voucher.department_id !== groupId) {
+    
+    if (voucher.writer_id !== userId && voucher.department_id !== groupId && role === 'USER') {
       return res.status(403).json({ message: 'No edit permissions' });
+    }
+
+    if (voucher.status === 'pending_approval' || voucher.status === 'approved' || voucher.status === 'posted') {
+      return res.status(403).json({ message: '결재가 진행 중이거나 완료된 전표는 수정할 수 없습니다.' });
+    }
+
+    const targetStatus = status === 'pending_approval' ? 'pending_approval' : 'draft';
+
+    if (targetStatus === 'pending_approval') {
+      if (role === 'USER') {
+        return res.status(403).json({ message: '일반 사용자는 임시저장만 가능합니다. 결재를 상신할 수 없습니다.' });
+      }
+      if (!dept_head_approver_id || !finance_approver_id) {
+        return res.status(400).json({ message: '결재요청 시 1차 결재자와 최종 결재자는 필수입니다.' });
+      }
+      const approvers = [dept_head_approver_id, finance_approver_id];
+      if (second_approver_id) approvers.push(second_approver_id);
+      if (new Set(approvers).size !== approvers.length) {
+        return res.status(400).json({ message: '동일인을 여러 결재 단계에 중복 지정할 수 없습니다.' });
+      }
     }
 
     if (await isPeriodLocked(transaction_date || voucher.transaction_date, projectId)) {
       return res.status(400).json({ message: '해당 일자의 회계 기수가 이미 마감되었습니다. 수정할 수 없습니다.' });
     }
 
-    // 1. Update Voucher Header
     await query.run(`
       UPDATE church_vouchers
       SET transaction_date = ?, transaction_type = ?, summary = ?, 
-          memo = ?, updated_at = CURRENT_TIMESTAMP
+          memo = ?, status = ?, updated_at = CURRENT_TIMESTAMP
       WHERE voucher_id = ?
     `, [
       transaction_date || voucher.transaction_date,
       transaction_type || voucher.transaction_type,
       summary || voucher.summary,
       memo !== undefined ? memo : voucher.memo,
+      targetStatus,
       id
     ]);
 
-    // 2. Update Voucher Item 1
     const firstItem = await query.get('SELECT item_id FROM church_voucher_items WHERE voucher_id = ? LIMIT 1', [id]);
     if (firstItem) {
       await query.run(`
@@ -388,22 +420,18 @@ router.put('/:id', authenticateToken, upload.array('receipts'), async (req, res)
       ]);
     }
 
-    // 3. Update Approval Lines (clear and recreate)
     await query.run('DELETE FROM church_approval_lines WHERE voucher_id = ?', [id]);
+    
     if (dept_head_approver_id) {
-      await query.run(`
-        INSERT INTO church_approval_lines (voucher_id, approver_id, step_number, status)
-        VALUES (?, ?, 1, 'PENDING')
-      `, [id, dept_head_approver_id]);
+      await query.run(`INSERT INTO church_approval_lines (voucher_id, approver_id, step_number, status) VALUES (?, ?, 1, 'PENDING')`, [id, dept_head_approver_id]);
+    }
+    if (second_approver_id) {
+      await query.run(`INSERT INTO church_approval_lines (voucher_id, approver_id, step_number, status) VALUES (?, ?, 2, 'WAITING')`, [id, second_approver_id]);
     }
     if (finance_approver_id) {
-      await query.run(`
-        INSERT INTO church_approval_lines (voucher_id, approver_id, step_number, status)
-        VALUES (?, ?, 2, 'PENDING')
-      `, [id, finance_approver_id]);
+      await query.run(`INSERT INTO church_approval_lines (voucher_id, approver_id, step_number, status) VALUES (?, ?, 3, 'WAITING')`, [id, finance_approver_id]);
     }
 
-    // 4. Handle new attachments
     if (req.files && req.files.length > 0) {
       const maxSortRow = await query.get('SELECT COALESCE(MAX(sort_order), -1) as max_sort FROM church_receipts WHERE voucher_id = ?', [id]);
       let nextSort = maxSortRow.max_sort + 1;
@@ -421,15 +449,15 @@ router.put('/:id', authenticateToken, upload.array('receipts'), async (req, res)
           VALUES (?, ?, ?)
         `, [id, attachRes.id, nextSort++]);
       }
-      
       startQueueWorker();
     }
 
-    res.json({ message: 'Voucher updated successfully' });
+    res.json({ message: targetStatus === 'pending_approval' ? '결재가 상신되었습니다.' : '수정된 내용이 임시저장 되었습니다.' });
   } catch (error) {
     console.error('Update voucher error:', error);
     res.status(500).json({ message: 'Database error' });
   }
+
 });
 
 // 6. 전표 삭제

@@ -204,8 +204,8 @@ export default function VoucherList() {
     switch (status) {
       case 'APPROVED': return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
       case 'REJECTED': return 'bg-rose-500/10 text-rose-400 border border-rose-500/20';
-      case 'TEMP': return 'bg-slate-800 text-slate-400 border border-slate-700/50';
-      case 'SUBMITTED': return 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
+      case 'draft': return 'bg-slate-800 text-slate-400 border border-slate-700/50';
+      case 'pending_approval': return 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
       case 'DEPT_APPROVED': return 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20';
       default: return 'bg-slate-800 text-slate-400';
     }
@@ -215,8 +215,8 @@ export default function VoucherList() {
     switch (status) {
       case 'APPROVED': return '최종승인';
       case 'REJECTED': return '반려됨';
-      case 'TEMP': return '임시저장';
-      case 'SUBMITTED': return '1차결재중';
+      case 'draft': return '임시저장';
+      case 'pending_approval': return '결재중';
       case 'DEPT_APPROVED': return '최종결재중';
       default: return status;
     }
@@ -225,16 +225,16 @@ export default function VoucherList() {
   // 일괄 상신 가능 여부
   const canBatchSubmit = selectedIds.length > 0 && selectedIds.every(id => {
     const v = vouchers.find(x => x.voucher_id === id);
-    return v && (v.status === 'TEMP' || v.status === 'REJECTED') && v.writer_id === user.userId;
+    return v && (v.status === 'draft' || v.status === 'rejected') && v.writer_id === user.userId;
   });
 
   // 일괄 승인 가능 여부
   const canBatchApprove = selectedIds.length > 0 && selectedIds.every(id => {
     const v = vouchers.find(x => x.voucher_id === id);
     if (!v) return false;
-    if (v.status === 'SUBMITTED' && v.dept_head_approver_id === user.userId) return true;
+    if (v.status === 'pending_approval') return true;
     if (v.status === 'DEPT_APPROVED' && v.finance_approver_id === user.userId) return true;
-    if (user.role === 'SYSTEM_ADMIN' && (v.status === 'SUBMITTED' || v.status === 'DEPT_APPROVED')) return true;
+    
     return false;
   });
 
@@ -319,8 +319,8 @@ export default function VoucherList() {
                 className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
               >
                 <option value="">전체 상태</option>
-                <option value="TEMP">임시저장</option>
-                <option value="SUBMITTED">1차결재중</option>
+                <option value="draft">임시저장</option>
+                <option value="pending_approval">결재중</option>
                 <option value="DEPT_APPROVED">최종결재중</option>
                 <option value="APPROVED">최종승인</option>
                 <option value="REJECTED">반려됨</option>

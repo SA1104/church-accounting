@@ -319,25 +319,37 @@ router.get('/users/approvers', authenticateToken, async (req, res) => {
   try {
     const projectId = await getActiveProjectId(req);
 
-    // Resolve Department Heads (Role is 'user' and position is '부장')
+    // 1차 결재자: GROUP_LEADER, DEPARTMENT_ACCOUNTANT, FINANCE_MANAGER
     const deptHeads = await query.all(`
       SELECT u.user_id, u.display_name as name, m.position, r.role_id as role 
       FROM platform_profiles u 
       JOIN platform_role_assignments r ON u.user_id = r.user_id AND r.service_id = 'church_think'
-      JOIN church_user_metadata m ON u.user_id = m.user_id
-      WHERE u.is_active = TRUE AND r.project_id = ? AND m.position = '부장'
+      LEFT JOIN church_user_metadata m ON u.user_id = m.user_id
+      WHERE u.is_active = TRUE AND r.project_id = ? AND r.role_id IN ('GROUP_LEADER', 'DEPARTMENT_ACCOUNTANT', 'FINANCE_MANAGER')
     `, [projectId]);
     
-    // Resolve Finance Teams / Admins (Role is 'service_admin' or 'super_admin')
-    const financeTeams = await query.all(`
+    // 2차 결재자: FINANCE_MANAGER, COMMITTEE_CHAIR, PASTOR
+    const secondApprovers = await query.all(`
       SELECT u.user_id, u.display_name as name, m.position, r.role_id as role 
       FROM platform_profiles u 
       JOIN platform_role_assignments r ON u.user_id = r.user_id AND r.service_id = 'church_think'
       LEFT JOIN church_user_metadata m ON u.user_id = m.user_id
-      WHERE u.is_active = TRUE AND r.project_id = ? AND r.role_id IN ('service_admin', 'super_admin')
+      WHERE u.is_active = TRUE AND r.project_id = ? AND r.role_id IN ('FINANCE_MANAGER', 'COMMITTEE_CHAIR', 'PASTOR')
     `, [projectId]);
 
-    res.json({ deptHeads, financeTeams });
+    // 최종 결재자: FINANCE_CHAIR, COMMITTEE_CHAIR, PASTOR, SYSTEM_ADMIN, super_admin
+    // (SYSTEM_ADMIN and super_admin might be assigned at platform level, but let's check both platform and service roles)
+    const financeTeams = await query.all(`
+      SELECT u.user_id, u.display_name as name, m.position, r.role_id as role 
+      FROM platform_profiles u 
+      JOIN platform_role_assignments r ON u.user_id = r.user_id 
+      LEFT JOIN church_user_metadata m ON u.user_id = m.user_id
+      WHERE u.is_active = TRUE 
+        AND ((r.project_id = ? AND r.service_id = 'church_think' AND r.role_id IN ('FINANCE_CHAIR', 'COMMITTEE_CHAIR', 'PASTOR'))
+             OR (r.role_id IN ('SYSTEM_ADMIN', 'super_admin')))
+    `, [projectId]);
+
+    res.json({ deptHeads, secondApprovers, financeTeams });
   } catch (error) {
     console.error('Approvers load error:', error);
     res.status(500).json({ message: 'Database error' });
