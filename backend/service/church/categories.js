@@ -16,16 +16,19 @@ async function getActiveProjectId(req) {
 
 // 1. 계정과목 전체 조회
 router.get('/', authenticateToken, async (req, res) => {
-  const { type } = req.query;
+  const { type, include_inactive } = req.query;
   try {
     const projectId = await getActiveProjectId(req);
-    let sql = 'SELECT * FROM church_account_categories WHERE is_active = TRUE AND project_id = ?';
+    let sql = 'SELECT * FROM church_account_categories WHERE project_id = ?';
+    if (include_inactive !== 'true') {
+      sql += ' AND is_active = TRUE';
+    }
     const params = [projectId];
     if (type) {
       sql += ' AND type = ?';
       params.push(type);
     }
-    sql += ' ORDER BY type DESC, parent_category ASC, child_category ASC';
+    sql += ' ORDER BY type DESC, sort_order ASC, parent_category ASC, child_category ASC';
     const categories = await query.all(sql, params);
     res.json(categories);
   } catch (error) {
@@ -93,23 +96,35 @@ router.post('/', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN', 'FINA
 // 3. 계정과목 수정
 router.put('/:id', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN', 'FINANCE_CHAIR', 'FINANCE_MANAGER', 'DEPARTMENT_ACCOUNTANT', 'PASTOR']), async (req, res) => {
   const { id } = req.params;
-  const { parent_category, child_category, description } = req.body;
-
-  if (!parent_category || !child_category) {
-    return res.status(400).json({ message: 'Parent category and child category are required' });
-  }
+  const { category_type, major_category, minor_category, description, is_active, sort_order } = req.body;
+  const user = req.user;
 
   try {
-    const category = await query.get('SELECT * FROM church_account_categories WHERE category_id = ?', [id]);
+    const projectId = await getActiveProjectId(req);
+    const category = await query.get('SELECT * FROM church_account_categories WHERE category_id = ? AND project_id = ?', [id, projectId]);
+    
     if (!category) {
       return res.status(404).json({ message: 'Category not found' });
     }
 
+    const newType = category_type || category.type;
+    const newParent = major_category || category.parent_category;
+    const newChild = minor_category || category.child_category;
+    const newDesc = description !== undefined ? description : category.description;
+    const newActive = is_active !== undefined ? is_active : category.is_active;
+    const newSortOrder = sort_order !== undefined ? sort_order : (category.sort_order || 0);
+
     await query.run(`
       UPDATE church_account_categories 
-      SET parent_category = ?, child_category = ?, description = ?
+      SET type = ?, parent_category = ?, child_category = ?, description = ?, is_active = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP, updated_by = ?
       WHERE category_id = ?
-    `, [parent_category, child_category, description, id]);
+    `, [newType, newParent, newChild, newDesc, newActive, newSortOrder, user.id, id]);
+
+    // 감사 로그 기록
+    await query.run(`
+      INSERT INTO platform_audit_logs (user_id, project_id, service_id, action, details)
+      VALUES (?, ?, 'church_think', 'UPDATE_ACCOUNT_CATEGORY', ?)
+    `, [user.id, projectId, `Category ID ${id} updated: [${category.parent_category}] ${category.child_category} -> [${newParent}] ${newChild}`]);
 
     res.json({ message: 'Category updated successfully' });
   } catch (error) {
@@ -118,25 +133,73 @@ router.put('/:id', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN', 'FI
   }
 });
 
-// 4. 계정과목 삭제
+// 4. 계정과목 삭제 (Soft Delete & Block if used)
 router.delete('/:id', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN', 'FINANCE_CHAIR', 'FINANCE_MANAGER', 'DEPARTMENT_ACCOUNTANT', 'PASTOR']), async (req, res) => {
   const { id } = req.params;
+  const user = req.user;
+
   try {
-    const category = await query.get('SELECT * FROM church_account_categories WHERE category_id = ?', [id]);
+    const projectId = await getActiveProjectId(req);
+    const category = await query.get('SELECT * FROM church_account_categories WHERE category_id = ? AND project_id = ?', [id, projectId]);
+    
     if (!category) {
       return res.status(404).json({ message: 'Category not found' });
     }
 
     const inUse = await query.get('SELECT item_id FROM church_voucher_items WHERE category_id = ? LIMIT 1', [id]);
     if (inUse) {
-      await query.run('UPDATE church_account_categories SET is_active = FALSE WHERE category_id = ?', [id]);
-      return res.json({ message: 'Category is in use. Soft deleted (deactivated).' });
+      return res.status(400).json({ message: '이미 사용된 계정과목입니다. 비활성화를 이용하세요.' });
     }
 
-    await query.run('DELETE FROM church_account_categories WHERE category_id = ?', [id]);
+    // Soft delete since it's unused
+    await query.run(`
+      UPDATE church_account_categories 
+      SET is_active = FALSE, deleted_at = CURRENT_TIMESTAMP, deleted_by = ?
+      WHERE category_id = ?
+    `, [user.id, id]);
+
+    // 감사 로그 기록
+    await query.run(`
+      INSERT INTO platform_audit_logs (user_id, project_id, service_id, action, details)
+      VALUES (?, ?, 'church_think', 'DELETE_ACCOUNT_CATEGORY', ?)
+    `, [user.id, projectId, `Category ID ${id} deleted (soft delete)`]);
+
     res.json({ message: 'Category deleted successfully' });
   } catch (error) {
     console.error('Delete category error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// 5. 비활성화/활성화 토글
+router.patch('/:id/active', authenticateToken, requireAccountingRole(['SYSTEM_ADMIN', 'FINANCE_CHAIR', 'FINANCE_MANAGER', 'DEPARTMENT_ACCOUNTANT', 'PASTOR']), async (req, res) => {
+  const { id } = req.params;
+  const { is_active } = req.body;
+  const user = req.user;
+
+  try {
+    const projectId = await getActiveProjectId(req);
+    const category = await query.get('SELECT * FROM church_account_categories WHERE category_id = ? AND project_id = ?', [id, projectId]);
+    
+    if (!category) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+
+    await query.run(`
+      UPDATE church_account_categories 
+      SET is_active = ?, updated_at = CURRENT_TIMESTAMP, updated_by = ?
+      WHERE category_id = ?
+    `, [is_active, user.id, id]);
+
+    // 감사 로그 기록
+    await query.run(`
+      INSERT INTO platform_audit_logs (user_id, project_id, service_id, action, details)
+      VALUES (?, ?, 'church_think', 'TOGGLE_ACCOUNT_CATEGORY_ACTIVE', ?)
+    `, [user.id, projectId, `Category ID ${id} is_active changed to ${is_active}`]);
+
+    res.json({ message: `Category ${is_active ? 'activated' : 'deactivated'} successfully` });
+  } catch (error) {
+    console.error('Toggle category active error:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });

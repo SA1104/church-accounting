@@ -71,7 +71,7 @@ export default function AuditView() {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('/api/categories', {
+      const response = await fetch('/api/church/categories', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();

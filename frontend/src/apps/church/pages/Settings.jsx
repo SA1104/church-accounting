@@ -91,6 +91,8 @@ export default function Settings() {
   const [newCatParent, setNewCatParent] = useState('');
   const [newCatChild, setNewCatChild] = useState('');
   const [newCatDesc, setNewCatDesc] = useState('');
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [deletingCategory, setDeletingCategory] = useState(null);
 
   // 2. 위원회 추가 폼
   const [newOrgName, setNewOrgName] = useState('');
@@ -558,6 +560,56 @@ export default function Settings() {
     }
   };
 
+  const handleEditCategory = async (e) => {
+    e.preventDefault();
+    if (!editingCategory) return;
+    try {
+      await apiClient(`/api/church/categories/${editingCategory.category_id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          category_type: editingCategory.type,
+          major_category: editingCategory.parent_category,
+          minor_category: editingCategory.child_category,
+          description: editingCategory.description,
+          is_active: editingCategory.is_active,
+          sort_order: editingCategory.sort_order
+        })
+      });
+      setEditingCategory(null);
+      fetchCategories();
+      alert('계정과목 수정 성공');
+    } catch (err) {
+      alert(err.message || '수정 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleDeleteCategory = async () => {
+    if (!deletingCategory) return;
+    try {
+      await apiClient(`/api/church/categories/${deletingCategory.category_id}`, {
+        method: 'DELETE'
+      });
+      setDeletingCategory(null);
+      fetchCategories();
+      alert('계정과목 삭제 성공');
+    } catch (err) {
+      alert(err.message || '삭제 중 오류가 발생했습니다.');
+      setDeletingCategory(null);
+    }
+  };
+
+  const handleToggleActiveCategory = async (cat, isActive) => {
+    try {
+      await apiClient(`/api/church/categories/${cat.category_id}/active`, {
+        method: 'PATCH',
+        body: JSON.stringify({ is_active: isActive })
+      });
+      fetchCategories();
+    } catch (err) {
+      alert(err.message || '상태 변경 중 오류가 발생했습니다.');
+    }
+  };
+
   const handleUnlockPeriod = async (type, val) => {
     if (!window.confirm(`정말 ${val} 기간의 마감을 해제하시겠습니까?`)) return;
 
@@ -621,7 +673,7 @@ export default function Settings() {
 
   const fetchCategories = async () => {
     try {
-      const data = await apiClient('/api/categories');
+      const data = await apiClient('/api/church/categories?include_inactive=true');
       if (Array.isArray(data)) {
         setCategories(data);
       }
@@ -675,7 +727,7 @@ export default function Settings() {
     if (!newCatParent || !newCatChild) return;
 
     try {
-      await apiClient('/api/categories', {
+      await apiClient('/api/church/categories', {
         method: 'POST',
         body: JSON.stringify({
           type: newCatType,
@@ -1892,18 +1944,55 @@ export default function Settings() {
             </h3>
             <div className="max-h-[300px] overflow-y-auto no-scrollbar space-y-2">
               {categories.map((c) => (
-                <div key={c.category_id} className="glass p-3 rounded-2xl flex items-center justify-between border border-slate-800/40">
-                  <div>
-                    <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${
-                      c.type === 'INCOME' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                    }`}>
-                      {c.type === 'INCOME' ? '수입' : '지출'}
-                    </span>
+                <div key={c.category_id} className={`glass p-3 rounded-2xl flex items-center justify-between border ${c.is_active !== false ? 'border-slate-800/40' : 'border-slate-800/20 opacity-50'}`}>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${
+                        c.type === 'INCOME' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                      }`}>
+                        {c.type === 'INCOME' ? '수입' : '지출'}
+                      </span>
+                      {c.is_active === false && (
+                        <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-slate-500/10 text-slate-400 border border-slate-500/20">
+                          사용안함
+                        </span>
+                      )}
+                    </div>
                     <h4 className="text-xs font-bold text-white mt-1.5">
                       [{c.parent_category}] {c.child_category}
                     </h4>
                   </div>
-                  <span className="text-[9px] text-slate-500 italic">{c.description || '-'}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[9px] text-slate-500 italic mr-2">{c.description || '-'}</span>
+                    {isAdminUser(user) && (
+                      <div className="flex items-center gap-2 border-l border-slate-800/50 pl-3">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleActiveCategory(c, c.is_active === false ? true : false)}
+                          className="text-slate-400 hover:text-white transition-colors"
+                          title={c.is_active !== false ? "사용안함" : "사용"}
+                        >
+                          {c.is_active !== false ? <ToggleRight size={14} className="text-church-400" /> : <ToggleLeft size={14} />}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingCategory(c)}
+                          className="text-slate-400 hover:text-church-400 transition-colors"
+                          title="수정"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeletingCategory(c)}
+                          className="text-slate-400 hover:text-rose-400 transition-colors"
+                          title="삭제"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -3245,6 +3334,99 @@ export default function Settings() {
         </div>
       )}
       </div>
+
+      {/* 계정과목 수정 모달 */}
+      {editingCategory && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl">
+            <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Edit2 size={16} className="text-church-400" /> 계정과목 수정
+              </h3>
+              <button onClick={() => setEditingCategory(null)} className="text-slate-400 hover:text-white">
+                <X size={16} />
+              </button>
+            </div>
+            <form onSubmit={handleEditCategory} className="p-4 space-y-3">
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 font-bold ml-1">구분</label>
+                <select 
+                  value={editingCategory.type || 'EXPENSE'} 
+                  onChange={(e) => setEditingCategory({...editingCategory, type: e.target.value})}
+                  className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-church-500"
+                >
+                  <option value="EXPENSE">지출</option>
+                  <option value="INCOME">수입</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-[10px] text-slate-400 font-bold ml-1">대분류</label>
+                  <input 
+                    type="text" 
+                    value={editingCategory.parent_category || ''}
+                    onChange={(e) => setEditingCategory({...editingCategory, parent_category: e.target.value})}
+                    className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-church-500" 
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] text-slate-400 font-bold ml-1">중분류</label>
+                  <input 
+                    type="text" 
+                    value={editingCategory.child_category || ''}
+                    onChange={(e) => setEditingCategory({...editingCategory, child_category: e.target.value})}
+                    className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-church-500" 
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 font-bold ml-1">설명</label>
+                <input 
+                  type="text" 
+                  value={editingCategory.description || ''}
+                  onChange={(e) => setEditingCategory({...editingCategory, description: e.target.value})}
+                  className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-church-500" 
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={() => setEditingCategory(null)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 rounded-xl text-xs transition-all">
+                  취소
+                </button>
+                <button type="submit" className="flex-1 bg-church-600 hover:bg-church-500 text-white font-bold py-2 rounded-xl text-xs transition-all">
+                  저장
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 계정과목 삭제 확인 모달 */}
+      {deletingCategory && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl">
+            <div className="p-5 text-center space-y-3">
+              <div className="w-12 h-12 bg-rose-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
+                <AlertTriangle size={24} className="text-rose-400" />
+              </div>
+              <h3 className="text-sm font-bold text-white">정말 삭제하시겠습니까?</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                [{deletingCategory.parent_category}] {deletingCategory.child_category}
+                <br/>
+                사용 내역이 없는 계정과목만 삭제할 수 있습니다.
+              </p>
+            </div>
+            <div className="p-4 border-t border-slate-800 flex gap-2 bg-slate-800/30">
+              <button onClick={() => setDeletingCategory(null)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 rounded-xl text-xs transition-all">
+                취소
+              </button>
+              <button onClick={handleDeleteCategory} className="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-bold py-2 rounded-xl text-xs transition-all">
+                삭제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
