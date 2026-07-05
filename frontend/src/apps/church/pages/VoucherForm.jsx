@@ -382,7 +382,6 @@ export default function VoucherForm() {
     }
   };
 
-  const handleCameraClick};
 
   const handleCameraClick = () => {
     fileInputRef.current.click();
@@ -829,3 +828,5 @@ export default function VoucherForm() {
         )}
       </div>
     </div>
+  );
+}
