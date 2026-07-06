@@ -28,7 +28,7 @@ router.get('/', authenticateToken, async (req, res) => {
       sql += ' AND type = ?';
       params.push(type);
     }
-    sql += ' ORDER BY type DESC, sort_order ASC, parent_category ASC, child_category ASC';
+    sql += ' ORDER BY type DESC, parent_category ASC, child_category ASC';
     const categories = await query.all(sql, params);
     
     // Ensure the response is always a flat array of rows

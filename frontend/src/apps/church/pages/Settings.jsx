@@ -673,20 +673,21 @@ export default function Settings() {
 
   const fetchCategories = async () => {
     try {
-      const data = await apiClient('/api/church/categories?include_inactive=true');
-      console.log('[Categories GET response]', data);
+      const raw = await apiClient('/api/church/categories?include_inactive=true');
+      console.log('[Settings categories raw]', raw);
       
-      let parsedCategories = [];
-      if (Array.isArray(data)) {
-        parsedCategories = data;
-      } else if (data && Array.isArray(data.categories)) {
-        parsedCategories = data.categories;
-      } else if (data && Array.isArray(data.data)) {
-        parsedCategories = data.data;
-      }
+      const list = Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw?.categories)
+          ? raw.categories
+          : Array.isArray(raw?.data)
+            ? raw.data
+            : [];
+            
+      console.log('[Settings categories list]', list);
+      console.log('[Settings categories length]', list.length);
       
-      setCategories(parsedCategories);
-      console.log('[Categories state length]', parsedCategories.length);
+      setCategories(list);
     } catch (err) {
       console.error(err);
     }
@@ -1953,58 +1954,69 @@ export default function Settings() {
               <FolderTree size={13} className="text-church-400" /> 현재 계정과목 리스트
             </h3>
             <div className="max-h-[300px] overflow-y-auto no-scrollbar space-y-2">
-              {categories.map((c) => (
-                <div key={c.category_id} className={`glass p-3 rounded-2xl flex items-center justify-between border ${c.is_active !== false ? 'border-slate-800/40' : 'border-slate-800/20 opacity-50'}`}>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${
-                        c.type === 'INCOME' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                      }`}>
-                        {c.type === 'INCOME' ? '수입' : '지출'}
-                      </span>
-                      {c.is_active === false && (
-                        <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-slate-500/10 text-slate-400 border border-slate-500/20">
-                          사용안함
-                        </span>
-                      )}
-                    </div>
-                    <h4 className="text-xs font-bold text-white mt-1.5">
-                      [{c.parent_category}] {c.child_category}
-                    </h4>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-[9px] text-slate-500 italic mr-2">{c.description || '-'}</span>
-                    {isAdminUser(user) && (
-                      <div className="flex items-center gap-2 border-l border-slate-800/50 pl-3">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleActiveCategory(c, c.is_active === false ? true : false)}
-                          className="text-slate-400 hover:text-white transition-colors"
-                          title={c.is_active !== false ? "사용안함" : "사용"}
-                        >
-                          {c.is_active !== false ? <ToggleRight size={14} className="text-church-400" /> : <ToggleLeft size={14} />}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setEditingCategory(c)}
-                          className="text-slate-400 hover:text-church-400 transition-colors"
-                          title="수정"
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDeletingCategory(c)}
-                          className="text-slate-400 hover:text-rose-400 transition-colors"
-                          title="삭제"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
+              {categories.length === 0 ? (
+                <div className="p-4 text-center text-xs text-slate-400 glass rounded-2xl border border-slate-800/40">
+                  등록된 계정과목이 없습니다.
                 </div>
-              ))}
+              ) : (
+                categories.map((c) => {
+                  const type = c.type || c.category_type || '';
+                  const parent = c.parent_category || c.major_category || '';
+                  const child = c.child_category || c.minor_category || '';
+                  return (
+                    <div key={c.category_id} className={`glass p-3 rounded-2xl flex items-center justify-between border ${c.is_active !== false ? 'border-slate-800/40' : 'border-slate-800/20 opacity-50'}`}>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${
+                            type === 'INCOME' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                          }`}>
+                            {type === 'INCOME' ? '수입' : '지출'}
+                          </span>
+                          {c.is_active === false && (
+                            <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-slate-500/10 text-slate-400 border border-slate-500/20">
+                              사용안함
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="text-xs font-bold text-white mt-1.5">
+                          [{parent}] {child}
+                        </h4>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[9px] text-slate-500 italic mr-2">{c.description || '-'}</span>
+                        {isAdminUser(user) && (
+                          <div className="flex items-center gap-2 border-l border-slate-800/50 pl-3">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleActiveCategory(c, c.is_active === false ? true : false)}
+                              className="text-slate-400 hover:text-white transition-colors"
+                              title={c.is_active !== false ? "사용안함" : "사용"}
+                            >
+                              {c.is_active !== false ? <ToggleRight size={14} className="text-church-400" /> : <ToggleLeft size={14} />}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingCategory(c)}
+                              className="text-slate-400 hover:text-church-400 transition-colors"
+                              title="수정"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeletingCategory(c)}
+                              className="text-slate-400 hover:text-rose-400 transition-colors"
+                              title="삭제"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
