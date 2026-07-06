@@ -140,7 +140,8 @@ router.post('/action', authenticateToken, async (req, res) => {
     let current_status = 'TEMP';
     let voucherObj = null;
 
-    if (targetType === 'VOUCHER') {
+    if (action === 'APPROVE') {
+      if (targetType === 'VOUCHER') {
         const activeLine = await query.get(
           'SELECT * FROM church_approval_lines WHERE voucher_id = ? AND approver_id = ? AND status = \'PENDING\'',
           [targetId, userId]

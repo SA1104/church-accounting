@@ -250,9 +250,9 @@ router.get('/:id', authenticateToken, enforceContextSecurity, async (req, res) =
     // Fetch designators (dept head & finance managers mapped dynamically from approval lines)
     const designators = await query.all(`
       SELECT approver_id, step_number, status FROM church_approval_lines WHERE voucher_id = ? ORDER BY step_number ASC
-    , [id]);
+    `, [id]);
     
-    const pendingLine = designators.find(d => d.status === \'PENDING\');
+    const pendingLine = designators.find(d => d.status === 'PENDING');
     voucher.current_approver_id = pendingLine ? pendingLine.approver_id : null;
 
     designators.forEach(d => {
