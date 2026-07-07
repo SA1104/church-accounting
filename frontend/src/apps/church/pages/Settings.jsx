@@ -6,6 +6,7 @@ import {
   Loader2, CheckCircle2, AlertTriangle, Clock, RefreshCw, Play, Tag, FileText, Trash2,
   Edit2, Save, X, ToggleLeft, ToggleRight, Fingerprint
 } from 'lucide-react';
+import UserManagementTab from '../components/UserManagementTab';
 
 const isAdminUser = (user) => {
   if (!user) return false;
@@ -403,6 +404,20 @@ export default function Settings() {
       setPasswordChangeError(err.message === '현재 비밀번호가 올바르지 않습니다.' ? '현재 비밀번호가 올바르지 않습니다.' : err.message);
     } finally {
       setPasswordChangeLoading(false);
+    }
+  };
+
+  const handleWithdrawAccount = async () => {
+    if (!window.confirm('정말 탈퇴하시겠습니까? 탈퇴 시 모든 권한이 회수되며 로그인이 차단됩니다.')) return;
+    try {
+      await apiClient(`/api/platform/users/${user?.userId || user?.id || profileData?.user_id}/withdraw`, {
+        method: 'PATCH',
+        body: JSON.stringify({ withdraw_reason: 'User self-withdrawal' })
+      });
+      alert('회원 탈퇴가 완료되었습니다.');
+      window.location.href = '/login';
+    } catch (err) {
+      alert(err.message || '탈퇴 처리 중 오류가 발생했습니다.');
     }
   };
 
@@ -1279,6 +1294,15 @@ export default function Settings() {
                 </div>
               </div>
             )}
+            
+            <div className="pt-4 border-t border-slate-800/60 mt-4 flex justify-end">
+              <button
+                onClick={handleWithdrawAccount}
+                className="text-[10px] text-rose-500/70 hover:text-rose-400 underline underline-offset-2 transition-colors"
+              >
+                회원 탈퇴
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -2022,302 +2046,9 @@ export default function Settings() {
         </div>
       )}
 
-      {/* 2. 사용자 관리 */}
+      {/* 2. 사용자 관리 (신규 구조) */}
       {activeTab === 'users' && isAdminOrAuditor && (
-        <div className="space-y-3">
-          <form onSubmit={handleAddUser} className="glass p-4 rounded-2xl space-y-3 shadow-md border border-slate-800">
-            <h3 className="text-xs font-bold text-white flex items-center gap-1">
-              <Plus size={14} className="text-church-400" /> 신규 사용자 등록
-            </h3>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <span className="text-[9px] text-slate-500 font-semibold">아이디 *</span>
-                <input
-                  type="text"
-                  value={newUserUsername}
-                  onChange={(e) => setNewUserUsername(e.target.value)}
-                  placeholder="ID 입력"
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
-                />
-              </div>
-              <div className="space-y-1">
-                <span className="text-[9px] text-slate-500 font-semibold">비밀번호 *</span>
-                <input
-                  type="password"
-                  value={newUserPassword}
-                  onChange={(e) => setNewUserPassword(e.target.value)}
-                  placeholder="PW 입력"
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
-                />
-              </div>
-            </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <span className="text-[9px] text-slate-500 font-semibold">이름 *</span>
-                <input
-                  type="text"
-                  value={newUserName}
-                  onChange={(e) => setNewUserName(e.target.value)}
-                  placeholder="실명 입력"
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-3 mt-3">
-              <div className="space-y-1">
-                <span className="text-[9px] text-slate-500 font-semibold">소속 위원회</span>
-                <select
-                  value={newUserCommitteeId}
-                  onChange={handleNewUserCommitteeChange}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
-                >
-                  <option value="">위원회 선택</option>
-                  {adminOrgs.map(org => (
-                    <option key={org.department_id} value={org.department_id}>{org.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1">
-                <span className="text-[9px] text-slate-500 font-semibold">소속 찬양팀/그룹</span>
-                <select
-                  value={newUserGroupId}
-                  onChange={(e) => setNewUserGroupId(e.target.value)}
-                  disabled={!newUserCommitteeId}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none disabled:opacity-50"
-                >
-                  <option value="">{newUserCommitteeId ? "그룹 선택 (선택 사항)" : "위원회 선택 전 그룹 비활성화"}</option>
-                  {newUserAvailableGroups.map(g => (
-                    <option key={g.group_id} value={g.group_id}>{g.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-3 mt-3">
-              <div className="space-y-1">
-                <span className="text-[9px] text-slate-500 font-semibold">직책 지정 *</span>
-                <select
-                  value={newUserPositionId}
-                  onChange={(e) => setNewUserPositionId(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
-                >
-                  <option value="">직책 선택</option>
-                  {groupPositions.filter(p => p.is_active).map(p => (
-                    <option key={p.position_id} value={p.position_id}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1">
-                <span className="text-[9px] text-slate-500 font-semibold">권한 역할</span>
-                <select
-                  value={newUserRole}
-                  onChange={(e) => setNewUserRole(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
-                >
-                  <option value="USER">일반 사용자 (USER)</option>
-                  <option value="DEPARTMENT_ACCOUNTANT">부서 회계</option>
-                  <option value="DEPARTMENT_HEAD">위원회/부서장</option>
-                  <option value="FINANCE_MANAGER">재정부장 (회계팀장)</option>
-                  <option value="AUDITOR">감사</option>
-                  <option value="SYSTEM_ADMIN">시스템 관리자</option>
-                </select>
-              </div>
-            </div>
-
-            <button type="submit" className="w-full bg-church-600 hover:bg-church-500 text-white font-bold py-2 rounded-xl text-xs transition-all active:scale-[0.98]">
-              가입 및 계정 생성
-            </button>
-          </form>
-
-          {users.some(u => u.is_active === 0) && (
-            <div className="space-y-2 mb-4">
-              <h3 className="text-xs font-bold text-amber-400 flex items-center gap-1">
-                <Users size={13} /> 가입 승인 대기 사용자 ({users.filter(u => u.is_active === 0).length})
-              </h3>
-              <div className="space-y-2 bg-amber-500/5 p-3 rounded-2xl border border-amber-500/20">
-                {users.filter(u => u.is_active === 0).map((u) => (
-                  <div key={u.user_id} className="glass p-3 rounded-xl flex items-center justify-between border border-slate-800">
-                    <div>
-                      <h4 className="text-xs font-bold text-white">
-                        {u.name} <span className="text-slate-400 text-[10px]">({u.position})</span>
-                      </h4>
-                      <p className="text-[9px] text-slate-500 mt-1">
-                        ID: {u.username} · 소속: [{u.organization_name || (u.custom_department_name ? `요청: ${u.custom_department_name}` : '기타')}] {u.group_name || (u.custom_group_name ? `요청: ${u.custom_group_name}` : '-')}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => handleApproveUser(u.user_id)}
-                      className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-lg text-[9px] shadow-sm transition-all active:scale-95"
-                    >
-                      가입 승인
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <h3 className="text-xs font-bold text-slate-400 flex items-center gap-1">
-              <Users size={13} className="text-church-400" /> 현재 사용자 목록
-            </h3>
-            <div className="max-h-[350px] overflow-y-auto no-scrollbar space-y-2">
-              {users.filter(u => u.is_active === 1).map((u) => {
-                const userAssigns = allAssignments.filter(a => a.user_id === u.user_id);
-                const isExpanded = expandedUserId === u.user_id;
-
-                return (
-                  <div key={u.user_id} className="glass p-3 rounded-2xl border border-slate-800/40 space-y-3">
-                    <div 
-                      className="flex items-center justify-between cursor-pointer"
-                      onClick={() => {
-                        setExpandedUserId(isExpanded ? null : u.user_id);
-                        setNewAssignCommitteeId('');
-                        setNewAssignGroupId('');
-                        setNewAssignPositionId('');
-                        setNewAssignGroupOptions([]);
-                      }}
-                    >
-                      <div>
-                        <h4 className="text-xs font-bold text-white">
-                          {u.name} <span className="text-slate-500 text-[10px] ml-1">({u.username})</span>
-                        </h4>
-                        <div className="flex flex-wrap gap-1 mt-1.5">
-                          {userAssigns.map(a => (
-                            <span 
-                              key={a.id || a.assignment_id} 
-                              className={`text-[8px] font-semibold px-2 py-0.5 rounded-full border flex items-center gap-1 ${
-                                a.is_primary 
-                                  ? 'bg-church-500/10 border-church-500/30 text-church-400' 
-                                  : 'bg-slate-800/50 border-slate-700/40 text-slate-400'
-                              }`}
-                            >
-                              {a.is_primary && <span className="w-1 h-1 rounded-full bg-church-400 mr-0.5"></span>}
-                              {a.assignment_code && <span className="font-mono opacity-60 mr-0.5">{a.assignment_code}</span>}
-                              {a.committee_name}{a.group_name ? ` > ${a.group_name}` : ''} ({a.position_name})
-                            </span>
-                          ))}
-                          {userAssigns.length === 0 && (
-                            <span className="text-[8px] text-slate-500">배정된 소속 없음</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                        <span className="text-[9px] font-bold text-church-400 bg-church-500/10 px-2 py-0.5 rounded border border-church-500/20">
-                          {u.role}
-                        </span>
-                        {u.user_id !== user.userId && (
-                          <button
-                            onClick={() => handleDeleteUser(u.user_id, u.name)}
-                            className="text-rose-400 hover:text-rose-300 p-1 hover:bg-rose-500/10 rounded transition-colors active:scale-90"
-                            title="사용자 삭제"
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {isExpanded && (
-                      <div className="border-t border-slate-800/60 pt-3 space-y-3">
-                        {/* 소속 배정 목록 */}
-                        <div className="space-y-1.5">
-                          <span className="text-[9px] font-bold text-slate-400 block">배정된 소속 목록 ({userAssigns.length})</span>
-                          <div className="space-y-1">
-                            {userAssigns.map(a => (
-                              <div key={a.id || a.assignment_id} className="bg-slate-900/60 border border-slate-800/50 rounded-xl px-3 py-2 flex items-center justify-between text-[11px]">
-                                <div className="flex flex-col gap-1">
-                                  <div className="flex items-center gap-1.5 text-slate-300">
-                                    {a.assignment_code && <span className="font-mono text-[9px] text-slate-500 bg-slate-800/60 px-1 rounded">{a.assignment_code}</span>}
-                                    <span className="font-semibold text-white">{a.committee_name}</span>
-                                    {a.group_name && <span className="text-slate-500 mx-0.5">/</span>}
-                                    {a.group_name && <span className="text-slate-400">{a.group_name}</span>}
-                                    <span className="mx-1 text-slate-500">·</span>
-                                    <span className="text-church-400 font-bold">{a.position_name}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-[9px]">
-                                    <span className="text-slate-500">권한: {a.role_id || a.role_code}</span>
-                                    <span className={`px-1.5 rounded uppercase font-bold tracking-wider ${a.status === 'approved' ? 'text-emerald-400 bg-emerald-400/10' : a.status === 'pending' ? 'text-amber-400 bg-amber-400/10' : 'text-slate-400 bg-slate-800'}`}>
-                                      {a.status === 'approved' ? '승인됨' : a.status === 'pending' ? '대기중' : a.status}
-                                    </span>
-                                    {a.is_primary && (
-                                      <span className="text-church-300 bg-church-500/20 px-1.5 rounded font-bold">대표 소속</span>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="flex flex-col items-end gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeleteAssignment(u.user_id, a.id || a.assignment_id)}
-                                    className="text-[9px] px-2 py-1 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 rounded font-semibold transition-colors"
-                                  >
-                                    배정 취소
-                                  </button>
-                                  <span className="text-[8px] text-slate-600">{new Date(a.assigned_at).toLocaleDateString()}</span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* 신규 소속 추가 폼 */}
-                        <form onSubmit={(e) => handleCreateAssignment(e, u.user_id)} className="bg-slate-900/40 p-2.5 rounded-xl border border-slate-800/40 space-y-2">
-                          <span className="text-[9px] font-bold text-church-400 block">➕ 신규 소속 및 직책 배정</span>
-                          <div className="grid grid-cols-2 gap-2">
-                            <select
-                              value={newAssignCommitteeId}
-                              onChange={(e) => handleAssignCommitteeChange(e.target.value)}
-                              className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-[10px] text-white focus:outline-none"
-                            >
-                              <option value="">위원회 선택</option>
-                              {organizations.map(o => (
-                                <option key={o.department_id} value={o.department_id}>{o.name}</option>
-                              ))}
-                            </select>
-
-                            <select
-                              value={newAssignGroupId}
-                              onChange={(e) => setNewAssignGroupId(e.target.value)}
-                              className="bg-slate-955 border border-slate-800 rounded-lg px-2 py-1 text-[10px] text-white focus:outline-none"
-                              disabled={!newAssignCommitteeId}
-                            >
-                              <option value="">그룹 선택 (전체)</option>
-                              {newAssignGroupOptions.map(g => (
-                                <option key={g.group_id} value={g.group_id}>{g.name}</option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div className="flex gap-2">
-                            <select
-                              value={newAssignPositionId}
-                              onChange={(e) => setNewAssignPositionId(e.target.value)}
-                              className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-[10px] text-white focus:outline-none"
-                            >
-                              <option value="">직책 선택</option>
-                              {groupPositions.filter(p => p.is_active).map(p => (
-                                <option key={p.position_id} value={p.position_id}>{p.name}</option>
-                              ))}
-                            </select>
-                            <button
-                              type="submit"
-                              className="bg-church-600 hover:bg-church-500 text-white font-bold px-3 py-1 rounded-lg text-[9px] transition-all"
-                            >
-                              추가
-                            </button>
-                          </div>
-                        </form>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+        <UserManagementTab isAdminOrAuditor={isAdminOrAuditor} />
       )}
 
       {/* 3. 조직 및 그룹 관리 */}

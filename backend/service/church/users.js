@@ -123,4 +123,118 @@ router.post('/', authenticateToken, requireRole(['SYSTEM_ADMIN']), async (req, r
   }
 });
 
+// GET /api/church/users/:id/assignments
+router.get('/:id/assignments', authenticateToken, async (req, res) => {
+  try {
+    const projectId = await getActiveProjectId(req);
+    const assignments = await query.all(`
+      SELECT a.*, c.name as committee_name, g.name as group_name, p.name as position_name
+      FROM public.church_user_assignments a
+      LEFT JOIN public.church_departments c ON a.committee_id = c.department_id
+      LEFT JOIN public.church_departments g ON a.group_id = g.department_id
+      LEFT JOIN public.church_positions p ON a.position_id = p.position_id
+      WHERE a.user_id = ? AND a.project_id = ?
+      ORDER BY a.is_primary DESC, a.is_active DESC, a.assigned_at DESC
+    `, [req.params.id, projectId]);
+    res.json(assignments || []);
+  } catch (error) {
+    console.error('[ASSIGNMENTS GET]', error);
+    res.status(500).json({ message: 'DB Error' });
+  }
+});
+
+// POST /api/church/users/:id/assignments
+router.post('/:id/assignments', authenticateToken, async (req, res) => {
+  try {
+    const { committee_id, group_id, position_id, role_code } = req.body;
+    const projectId = await getActiveProjectId(req);
+
+    if (!committee_id || !position_id || !role_code) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    // Check if active duplicate exists in the same group/committee
+    const duplicate = await query.get(`
+      SELECT id FROM public.church_user_assignments
+      WHERE user_id = ? AND project_id = ? AND committee_id = ? AND COALESCE(group_id, -1) = COALESCE(?, -1) AND is_active = TRUE
+    `, [req.params.id, projectId, committee_id, group_id]);
+
+    if (duplicate) {
+      // Inactivate existing assignment to preserve history
+      await query.run(`
+        UPDATE public.church_user_assignments
+        SET is_active = FALSE, revoked_at = CURRENT_TIMESTAMP, revoked_by = ?
+        WHERE id = ?
+      `, [req.user.userId, duplicate.id]);
+    }
+
+    // Insert new assignment
+    const result = await query.run(`
+      INSERT INTO public.church_user_assignments (user_id, project_id, committee_id, group_id, position_id, role_code, is_active, created_by, status)
+      VALUES (?, ?, ?, ?, ?, ?, TRUE, ?, 'approved')
+    `, [req.params.id, projectId, committee_id, group_id || null, position_id, role_code, req.user.userId]);
+    
+    await query.run(`
+      INSERT INTO platform_audit_logs (user_id, project_id, action, details, ip_address, result)
+      VALUES (?, ?, 'USER_ASSIGNMENT_CREATE', ?, ?, 'SUCCESS')
+    `, [req.user.userId, projectId, JSON.stringify({ target: req.params.id, committee_id, group_id, role_code }), req.ip || '']);
+    
+    res.status(201).json({ success: true, id: result.id });
+  } catch (err) {
+    console.error('[Add Assignment Error]', err);
+    res.status(500).json({ message: 'DB Error' });
+  }
+});
+
+// PATCH /api/church/users/:id/assignments/:assignmentId/inactive
+router.patch('/:id/assignments/:assignmentId/inactive', authenticateToken, async (req, res) => {
+  try {
+    const projectId = await getActiveProjectId(req);
+    await query.run(`
+      UPDATE public.church_user_assignments 
+      SET is_active = FALSE, revoked_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND user_id = ? AND project_id = ?
+    `, [req.params.assignmentId, req.params.id, projectId]);
+    
+    await query.run(`
+      INSERT INTO platform_audit_logs (user_id, project_id, action, details, ip_address, result)
+      VALUES (?, ?, 'USER_ASSIGNMENT_INACTIVE', ?, ?, 'SUCCESS')
+    `, [req.user.userId, projectId, JSON.stringify({ target: req.params.id, assignment_id: req.params.assignmentId }), req.ip || '']);
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[ASSIGNMENTS INACTIVE]', error);
+    res.status(500).json({ message: 'DB Error' });
+  }
+});
+
+// PATCH /api/church/users/:id/assignments/:assignmentId/primary
+router.patch('/:id/assignments/:assignmentId/primary', authenticateToken, async (req, res) => {
+  try {
+    const projectId = await getActiveProjectId(req);
+    
+    // Unset current primary
+    await query.run(`
+      UPDATE public.church_user_assignments SET is_primary = FALSE 
+      WHERE user_id = ? AND project_id = ?
+    `, [req.params.id, projectId]);
+    
+    // Set new primary
+    await query.run(`
+      UPDATE public.church_user_assignments SET is_primary = TRUE 
+      WHERE id = ? AND user_id = ? AND project_id = ?
+    `, [req.params.assignmentId, req.params.id, projectId]);
+    
+    await query.run(`
+      INSERT INTO platform_audit_logs (user_id, project_id, action, details, ip_address, result)
+      VALUES (?, ?, 'USER_ASSIGNMENT_PRIMARY', ?, ?, 'SUCCESS')
+    `, [req.user.userId, projectId, JSON.stringify({ target: req.params.id, assignment_id: req.params.assignmentId }), req.ip || '']);
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[ASSIGNMENTS PRIMARY]', error);
+    res.status(500).json({ message: 'DB Error' });
+  }
+});
+
 module.exports = router;

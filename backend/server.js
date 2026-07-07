@@ -260,6 +260,7 @@ const requireSystemAdminRole = requireRole(['SYSTEM_ADMIN'], 'accounting');
 
 // Mount Capability Routers (Platform 3.1)
 app.use('/api/platform/preferences', require('./service/platform/preferences'));
+app.use('/api/platform/users', require('./service/platform/users'));
 app.use('/api/church', churchServiceRouter);
 app.use('/api/stock', authenticateToken, stockServiceRouter);
 app.use('/api/estate', authenticateToken, estateServiceRouter);

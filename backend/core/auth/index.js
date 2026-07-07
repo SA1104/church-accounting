@@ -56,7 +56,7 @@ async function authenticateToken(req, res, next) {
 
       // Query database platform_profiles to get the real user ID and profile info
       let profile = await query.get(
-        'SELECT user_id, username, display_name, phone, is_active FROM platform_profiles WHERE username = ? OR user_id = ? LIMIT 1',
+        'SELECT user_id, username, display_name, phone, is_active, user_status FROM platform_profiles WHERE username = ? OR user_id = ? LIMIT 1',
         [mockUsername, mockUsername]
       );
       
@@ -65,8 +65,13 @@ async function authenticateToken(req, res, next) {
           user_id: `${mockUsername}-uuid-placeholder`,
           username: mockUsername,
           display_name: mockUsername === 'admin' ? '관리자' : (mockUsername === 'finance' ? '이재정' : '일반회원'),
-          is_active: true
+          is_active: true,
+          user_status: 'ACTIVE'
         };
+      }
+
+      if (!profile.is_active || ['BLOCKED', 'WITHDRAWN'].includes(profile.user_status)) {
+        return res.status(403).json({ message: 'User account is blocked or withdrawn.' });
       }
 
       // Resolve assignment context and projectId

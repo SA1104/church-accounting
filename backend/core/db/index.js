@@ -254,12 +254,31 @@ async function initPlatformDb() {
     
     // Auto seed default users on startup
     const tSeedStart = Date.now();
+    await runPlatformProfilesMigration();
     await seedDefaultUsers(supabase);
     await seedPlatformRegistries();
     console.log(`[Platform DB] Seeding completed in ${Date.now() - tSeedStart}ms`);
   } catch (err) {
     console.error('Failed to connect to Supabase database:', err);
     throw err;
+  }
+}
+
+async function runPlatformProfilesMigration() {
+  console.log('[DB] Running platform_profiles schema migration...');
+  const sqls = [
+    `ALTER TABLE public.platform_profiles ADD COLUMN IF NOT EXISTS user_status VARCHAR(20) DEFAULT 'ACTIVE'`,
+    `ALTER TABLE public.platform_profiles ADD COLUMN IF NOT EXISTS withdraw_reason TEXT NULL`,
+    `ALTER TABLE public.platform_profiles ADD COLUMN IF NOT EXISTS withdraw_at TIMESTAMP WITH TIME ZONE NULL`,
+    `ALTER TABLE public.platform_profiles ADD COLUMN IF NOT EXISTS blocked_at TIMESTAMP WITH TIME ZONE NULL`,
+    `ALTER TABLE public.platform_profiles ADD COLUMN IF NOT EXISTS blocked_by UUID NULL`
+  ];
+  for (const sql of sqls) {
+    try {
+      await query.exec(sql);
+    } catch (err) {
+      console.warn('[DB] Migration step warning/error:', err.message);
+    }
   }
 }
 
@@ -292,27 +311,36 @@ async function runAssignmentsMigration() {
       updated_by UUID NULL,
       assigned_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       revoked_at TIMESTAMP WITH TIME ZONE NULL,
-      FOREIGN KEY (position_id) REFERENCES public.church_positions(position_id) ON DELETE CASCADE
+      revoked_by UUID NULL
     )`,
-    `CREATE UNIQUE INDEX IF NOT EXISTS unique_primary_assignment_per_user_project
-     ON public.church_user_assignments(user_id, project_id)
-     WHERE is_primary = TRUE AND is_active = TRUE`,
-    `CREATE TABLE IF NOT EXISTS public.church_signup_assignment_requests (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    `CREATE TABLE IF NOT EXISTS public.church_user_assignment_requests (
+      request_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id UUID NOT NULL,
       project_id UUID NOT NULL,
       committee_id INTEGER NOT NULL,
       group_id INTEGER NULL,
       position_id UUID NULL,
       requested_position_name TEXT NULL,
-      status TEXT DEFAULT 'pending',
+      role_code TEXT NULL,
+      status VARCHAR(20) DEFAULT 'pending',
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-      approved_at TIMESTAMP WITH TIME ZONE NULL,
-      approved_by UUID NULL
+      reviewed_at TIMESTAMP WITH TIME ZONE NULL,
+      reviewed_by UUID NULL,
+      reject_reason TEXT NULL
     )`,
-    `CREATE UNIQUE INDEX IF NOT EXISTS unique_active_assignment_per_user 
-     ON public.church_user_assignments(user_id, project_id, committee_id, COALESCE(group_id, -1), position_id, role_code) 
-     WHERE status = 'approved' AND is_active = TRUE`
+    // Ensure user_status only allows specific values
+    `DO $$
+     BEGIN
+       IF NOT EXISTS (
+         SELECT 1
+         FROM pg_constraint
+         WHERE conname = 'chk_user_status'
+       ) THEN
+         ALTER TABLE public.platform_profiles
+         ADD CONSTRAINT chk_user_status
+         CHECK (user_status IN ('ACTIVE', 'BLOCKED', 'WITHDRAWN'));
+       END IF;
+     END $$;`
   ];
 
   for (const sql of sqls) {
@@ -322,6 +350,37 @@ async function runAssignmentsMigration() {
       console.warn('[DB] Migration step warning/error:', err.message);
     }
   }
+
+  // Pre-check for duplicate active assignments before creating unique index
+  try {
+    console.log('[DB] Checking for active assignment duplicates before index creation...');
+    const duplicateCheck = await query.all(`
+      SELECT user_id, project_id, committee_id, group_id, COUNT(*) as active_count
+      FROM public.church_user_assignments
+      WHERE is_active = TRUE
+      GROUP BY user_id, project_id, committee_id, group_id
+      HAVING COUNT(*) > 1
+    `);
+    
+    if (duplicateCheck && duplicateCheck.length > 0) {
+      console.warn('[DB] ABORTING UNIQUE INDEX CREATION: Active duplicates found in church_user_assignments.');
+      console.warn('[DB] Duplicates:', JSON.stringify(duplicateCheck));
+      console.warn('[DB] Please resolve these duplicates manually before attempting to run this migration again.');
+    } else {
+      console.log('[DB] No active duplicates found. Applying partial unique index...');
+      await query.exec(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_church_assignment_unique_active 
+        ON public.church_user_assignments (user_id, project_id, committee_id, COALESCE(group_id, -1)) 
+        WHERE is_active = TRUE
+      `);
+      // Cleanup old index if exists
+      await query.exec(`DROP INDEX IF EXISTS public.idx_church_assignment_unique_active_old`);
+      console.log('[DB] Unique index idx_church_assignment_unique_active successfully applied.');
+    }
+  } catch (err) {
+    console.warn('[DB] Error checking for duplicates or applying unique index:', err.message);
+  }
+
   console.log('[DB] Assignments schema migration completed.');
 }
 
