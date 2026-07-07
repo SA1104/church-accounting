@@ -70,7 +70,8 @@ async function authenticateToken(req, res, next) {
         };
       }
 
-      if (!profile.is_active || ['BLOCKED', 'WITHDRAWN'].includes(profile.user_status)) {
+      const userStatus = profile.user_status || 'ACTIVE';
+      if (!profile.is_active || ['BLOCKED', 'WITHDRAWN'].includes(userStatus)) {
         return res.status(403).json({ message: 'User account is blocked or withdrawn.' });
       }
 
@@ -218,12 +219,13 @@ async function authenticateToken(req, res, next) {
 
     // Resolve user's platform profile
     const profile = await query.get(
-      'SELECT username, display_name, phone, avatar_url, is_active FROM platform_profiles WHERE user_id = ?',
+      'SELECT username, display_name, phone, avatar_url, is_active, user_status FROM platform_profiles WHERE user_id = ?',
       [user.id]
     );
 
-    if (!profile || !profile.is_active) {
-      return res.status(403).json({ message: 'User profile is inactive or not found' });
+    const userStatus = profile?.user_status || 'ACTIVE';
+    if (!profile || !profile.is_active || ['BLOCKED', 'WITHDRAWN'].includes(userStatus)) {
+      return res.status(403).json({ message: 'User profile is inactive, blocked, or not found' });
     }
 
     // Resolve active context and projectId

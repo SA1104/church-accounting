@@ -268,6 +268,8 @@ async function runPlatformProfilesMigration() {
   console.log('[DB] Running platform_profiles schema migration...');
   const sqls = [
     `ALTER TABLE public.platform_profiles ADD COLUMN IF NOT EXISTS user_status VARCHAR(20) DEFAULT 'ACTIVE'`,
+    `UPDATE public.platform_profiles SET user_status = 'ACTIVE' WHERE user_status IS NULL`,
+    `ALTER TABLE public.platform_profiles ALTER COLUMN user_status SET NOT NULL`,
     `ALTER TABLE public.platform_profiles ADD COLUMN IF NOT EXISTS withdraw_reason TEXT NULL`,
     `ALTER TABLE public.platform_profiles ADD COLUMN IF NOT EXISTS withdraw_at TIMESTAMP WITH TIME ZONE NULL`,
     `ALTER TABLE public.platform_profiles ADD COLUMN IF NOT EXISTS blocked_at TIMESTAMP WITH TIME ZONE NULL`,
