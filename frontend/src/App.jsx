@@ -12,6 +12,10 @@ import CommandPalette from './shared/CommandPalette';
 import AICopilotDock from './shared/AICopilotDock';
 import NotificationCenter from './shared/NotificationCenter';
 import DecisionHistory from './shared/DecisionHistory';
+import AdminUsers from './apps/platform/pages/AdminUsers';
+import { isSystemAdmin } from './core/auth/permissions';
+import ForgotPassword from './shared/ForgotPassword';
+import ResetPassword from './shared/ResetPassword';
 
 // Church page imports
 import Dashboard from './apps/church/pages/Dashboard';
@@ -251,6 +255,7 @@ function MobileLayout() {
             {(user?.role === 'AUDITOR' || user?.role === 'SYSTEM_ADMIN') && <Route path="/audit" element={<AuditView />} />}
             <Route path="/settings" element={<Settings />} />
             <Route path="/decisions" element={<DecisionHistory />} />
+            {isSystemAdmin(user) && <Route path="/platform/admin/users" element={<AdminUsers />} />}
 
             {/* Premium Placeholders (TEAM E) */}
             <Route path="/app/stock" element={<StockDashboard />} />
@@ -337,6 +342,8 @@ export default function App() {
                     <Route path="/" element={<PrivateRoute><Portal /></PrivateRoute>} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/signup" element={<Signup />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/invite/:token" element={<InviteLanding />} />
                     <Route 
                       path="/*" 

@@ -33,7 +33,7 @@ if (!SUPABASE_ANON_KEY) {
 }
 
 const { initPlatformDb, query } = require('./core/db');
-const { login, signup, authenticateToken, requireRole, changePassword } = require('./core/auth');
+const { login, signup, authenticateToken, requireRole, changePassword, forgotPassword, resendConfirmation } = require('./core/auth');
 const {
   getRegisterOptions,
   verifyRegister,
@@ -102,6 +102,8 @@ app.use('/uploads', express.static(uploadDir));
 app.post('/api/auth/login', login);
 app.post('/api/auth/signup', signup);
 app.post('/api/auth/change-password', authenticateToken, changePassword);
+app.post('/api/auth/forgot-password', forgotPassword);
+app.post('/api/auth/resend-confirmation', resendConfirmation);
 
 // Passkey/WebAuthn API
 app.post('/api/auth/passkey/register/options', authenticateToken, getRegisterOptions);
@@ -261,6 +263,7 @@ const requireSystemAdminRole = requireRole(['SYSTEM_ADMIN'], 'accounting');
 // Mount Capability Routers (Platform 3.1)
 app.use('/api/platform/preferences', require('./service/platform/preferences'));
 app.use('/api/platform/users', require('./service/platform/users'));
+app.use('/api/platform/admin/users', require('./core/admin/users'));
 app.use('/api/church', churchServiceRouter);
 app.use('/api/stock', authenticateToken, stockServiceRouter);
 app.use('/api/estate', authenticateToken, estateServiceRouter);
@@ -414,7 +417,7 @@ app.get('/api/users', authenticateToken, requireRole(['SYSTEM_ADMIN', 'AUDITOR']
   try {
     const projectId = req.user.projectId || (await query.get("SELECT project_id FROM platform_projects LIMIT 1"))?.project_id;
     const users = await query.all(`
-      SELECT u.user_id, u.username, u.display_name as name, u.phone as email, u.is_active, u.created_at,
+      SELECT u.user_id, u.username, u.display_name as name, u.email, u.phone, u.is_active, u.created_at,
              m.position, m.department_id as group_id, g.name as group_name, o.name as organization_name,
              m.custom_department_name, m.custom_group_name,
              r.role_id as role

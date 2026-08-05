@@ -20,6 +20,11 @@ const supabasePublic = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 });
 
+// --- Email Normalization ---
+function normalizeEmail(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
 async function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   let token = authHeader && authHeader.split(' ')[1];
@@ -428,11 +433,12 @@ async function login(req, res) {
   const { username, password } = req.body;
 
   if (!username || !password) {
-    return res.status(400).json({ message: 'Username and password are required' });
+    return res.status(400).json({ success: false, code: 'INVALID_CREDENTIALS', message: '아이디와 비밀번호를 모두 입력해 주세요.' });
   }
 
   // Determine email format
-  const email = username.includes('@') ? username : `${username}@boozathink.com`;
+  const loginId = String(username).trim();
+  const email = loginId.includes('@') ? normalizeEmail(loginId) : `${normalizeEmail(loginId)}@boozathink.com`;
   console.log('[AUTH LOGIN REQUEST]', { email, bodyKeys: Object.keys(req.body) });
 
   try {
@@ -461,7 +467,7 @@ async function login(req, res) {
           }
         });
       } else {
-        return res.status(400).json({ message: 'Invalid login credentials' });
+        return res.status(400).json({ success: false, code: 'INVALID_CREDENTIALS', message: '이메일 또는 비밀번호가 올바르지 않습니다.' });
       }
     }
 
@@ -476,13 +482,33 @@ async function login(req, res) {
         message: error ? error.message : 'No user returned from Supabase', 
         status: error ? error.status : null 
       });
-      return res.status(400).json({ message: 'Invalid login credentials' });
+      
+      let errorCode = 'INVALID_CREDENTIALS';
+      let errorMessage = '이메일 또는 비밀번호가 올바르지 않습니다.';
+      
+      if (error && error.message) {
+        const msg = error.message.toLowerCase();
+        if (msg.includes('email not confirmed')) {
+          errorCode = 'EMAIL_NOT_CONFIRMED';
+          errorMessage = '이메일 인증이 완료되지 않았습니다.';
+        } else if (msg.includes('invalid login credentials')) {
+          errorCode = 'INVALID_CREDENTIALS';
+        } else if (error.status === 429 || msg.includes('too many requests') || msg.includes('rate limit')) {
+          errorCode = 'TOO_MANY_ATTEMPTS';
+          errorMessage = '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.';
+        }
+      }
+      return res.status(400).json({ success: false, code: errorCode, message: errorMessage });
     }
 
     // Resolve user's profile (including database username) and roles
     const profile = await query.get('SELECT username, display_name, is_active FROM platform_profiles WHERE user_id = ?', [data.user.id]);
-    if (!profile || !profile.is_active) {
-      return res.status(400).json({ message: 'Profile is inactive' });
+    if (!profile) {
+      console.error('[AUTH LOGIN ERROR] Profile not found for user:', data.user.id);
+      return res.status(400).json({ success: false, code: 'PROFILE_NOT_FOUND', message: '프로필 정보가 존재하지 않습니다.' });
+    }
+    if (!profile.is_active) {
+      return res.status(400).json({ success: false, code: 'ACCOUNT_INACTIVE', message: '비활성화된 계정입니다. 관리자에게 문의하세요.' });
     }
 
     const rolesRows = await query.all('SELECT service_id, role_id FROM platform_role_assignments WHERE user_id = ?', [data.user.id]);
@@ -561,46 +587,49 @@ async function login(req, res) {
     res.json(responsePayload);
   } catch (error) {
     console.error('Login proxy error:', error);
-    res.status(500).json({ message: 'Internal server error during login' });
+    res.status(500).json({ success: false, code: 'INTERNAL_AUTH_ERROR', message: '로그인 처리 중 서버 오류가 발생했습니다.' });
   }
 }
-
 
 async function signup(req, res) {
   const { username, password, name, email, phone } = req.body;
 
   if (!username || !password || !name || !email) {
-    return res.status(400).json({ message: '필수 가입 정보(아이디, 비밀번호, 이름, 이메일)가 누락되었습니다.' });
+    return res.status(400).json({ success: false, message: '필수 가입 정보(아이디, 비밀번호, 이름, 이메일)가 누락되었습니다.' });
   }
 
   // Enforce email format for email
   if (!email.includes('@')) {
-    return res.status(400).json({ message: '올바른 이메일 형식을 입력해 주세요.' });
+    return res.status(400).json({ success: false, message: '올바른 이메일 형식을 입력해 주세요.' });
   }
+
+  const normalizedEmail = normalizeEmail(email);
 
   try {
     // 1. Check if email or username already exists in platform_profiles
     const existingUser = await query.get(
-      'SELECT user_id FROM platform_profiles WHERE username = ?',
-      [username]
+      'SELECT user_id FROM platform_profiles WHERE username = ? OR email = ?',
+      [username, normalizedEmail]
     );
     if (existingUser) {
-      return res.status(400).json({ message: '이미 가입된 아이디 또는 이메일 주소입니다.' });
+      return res.status(400).json({ success: false, message: '이미 가입된 아이디 또는 이메일 주소입니다.' });
     }
 
     // 2. Sign up user in Supabase Auth / Mock Auth
     let userId;
+    let needsEmailConfirmation = false;
+    
     const isMockMode = SUPABASE_URL.includes('your-supabase-project') || SUPABASE_URL.includes('booza-think');
     if (isMockMode) {
       userId = `mock-user-uuid-${Math.random().toString(36).substring(7)}`;
       // Insert profile record directly since there is no Supabase trigger in mock mode
       await query.run(`
-        INSERT INTO public.platform_profiles (user_id, username, display_name, phone, signup_status, is_active)
-        VALUES (?, ?, ?, ?, 'approved', TRUE)
-      `, [userId, username, name, phone || '']);
+        INSERT INTO public.platform_profiles (user_id, username, email, display_name, phone, signup_status, is_active)
+        VALUES (?, ?, ?, ?, ?, 'approved', TRUE)
+      `, [userId, username, normalizedEmail, name, phone || '']);
     } else {
       const { data, error } = await supabasePublic.auth.signUp({
-        email: email,
+        email: normalizedEmail,
         password,
         options: {
           data: { name: name, username: username, phone: phone || '' }
@@ -608,38 +637,52 @@ async function signup(req, res) {
       });
 
       if (error || !data.user) {
-        return res.status(400).json({ message: error ? error.message : 'Signup failed' });
+        return res.status(400).json({ success: false, message: error ? error.message : 'Signup failed' });
       }
+      
       userId = data.user.id;
+      
+      // If session is null, email confirmation is required
+      if (!data.session) {
+        needsEmailConfirmation = true;
+      }
 
       // Ensure platform profile is written / active
       try {
         await query.run(`
-        INSERT INTO public.platform_profiles (user_id, username, display_name, phone, signup_status, is_active)
-        VALUES (?, ?, ?, ?, 'approved', TRUE)
+        INSERT INTO public.platform_profiles (user_id, username, email, display_name, phone, signup_status, is_active)
+        VALUES (?, ?, ?, ?, ?, 'approved', TRUE)
         ON CONFLICT (user_id) DO UPDATE SET
           username = EXCLUDED.username,
+          email = EXCLUDED.email,
           display_name = EXCLUDED.display_name,
           phone = EXCLUDED.phone,
           is_active = TRUE
-      `, [userId, username, name, phone || '']);
+      `, [userId, username, normalizedEmail, name, phone || '']);
       } catch (e) {
-        console.warn('Failed to insert platform profile manually (may already exist via trigger):', e.message);
+        console.error('[AUTH SIGNUP ERROR] Failed to insert platform profile:', e);
+        // Rollback Auth user creation
+        await supabaseAdmin.auth.admin.deleteUser(userId);
+        return res.status(500).json({ success: false, message: '프로필 생성 중 오류가 발생하여 회원가입이 취소되었습니다.' });
       }
     }
 
     res.status(201).json({ 
       success: true,
-      message: '회원가입이 완료되었습니다. 로그인 후 교회 가입 또는 생체 지문 등록을 진행해 주세요.',
+      needsEmailConfirmation,
+      message: needsEmailConfirmation 
+        ? '인증 메일이 발송되었습니다. 메일함에서 인증을 완료한 후 로그인해 주세요.'
+        : '회원가입이 완료되었습니다. 로그인 후 교회 가입 또는 생체 지문 등록을 진행해 주세요.',
       user: {
         id: userId,
         username,
-        name
+        name,
+        email: normalizedEmail
       }
     });
   } catch (error) {
     console.error('Signup proxy error:', error);
-    res.status(500).json({ message: error.message || 'Database error during signup.' });
+    res.status(500).json({ success: false, message: error.message || 'Database error during signup.' });
   }
 }
 
@@ -693,10 +736,68 @@ async function changePassword(req, res) {
   }
 }
 
+
+async function forgotPassword(req, res) {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ success: false, message: '이메일을 입력해 주세요.' });
+  }
+
+  const normalizedEmail = normalizeEmail(email);
+
+  try {
+    const { error } = await supabaseAdmin.auth.resetPasswordForEmail(normalizedEmail, {
+      redirectTo: `${req.headers.origin || 'https://boozathink.com'}/reset-password`,
+    });
+    
+    if (error) {
+      console.error('[AUTH FORGOT PASSWORD ERROR]', error);
+      return res.status(400).json({ success: false, message: '비밀번호 재설정 메일 발송에 실패했습니다.' });
+    }
+    
+    res.json({ success: true, message: '비밀번호 재설정 메일이 발송되었습니다.' });
+  } catch (err) {
+    console.error('[AUTH FORGOT PASSWORD EXCEPTION]', err);
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+}
+
+async function resendConfirmation(req, res) {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ success: false, message: '이메일을 입력해 주세요.' });
+  }
+
+  const normalizedEmail = normalizeEmail(email);
+
+  try {
+    const { error } = await supabaseAdmin.auth.resend({
+      type: 'signup',
+      email: normalizedEmail,
+      options: {
+        emailRedirectTo: `${req.headers.origin || 'https://boozathink.com'}/login`
+      }
+    });
+
+    if (error) {
+      console.error('[AUTH RESEND CONFIRMATION ERROR]', error);
+      return res.status(400).json({ success: false, message: '인증 메일 재발송에 실패했습니다.' });
+    }
+
+    res.json({ success: true, message: '인증 메일이 성공적으로 재발송되었습니다.' });
+  } catch (err) {
+    console.error('[AUTH RESEND CONFIRMATION EXCEPTION]', err);
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+}
+
 module.exports = {
   authenticateToken,
   requireRole,
   login,
   signup,
-  changePassword
+  changePassword,
+  forgotPassword,
+  resendConfirmation,
+  normalizeEmail
 };

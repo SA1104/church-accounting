@@ -20,6 +20,8 @@ import {
 import { getChurchNavConfig } from '../apps/church/churchNavConfig';
 import { getStockNavConfig } from '../apps/stock/stockNavConfig';
 import { useChurchContext } from '../apps/church/ChurchContextProvider';
+import { isSystemAdmin } from '../core/auth/permissions';
+import { Shield } from 'lucide-react';
 
 export default function WorkspaceSidebar({ user, token, logout, isOpen, toggleSidebar }) {
   const location = useLocation();
@@ -165,7 +167,8 @@ export default function WorkspaceSidebar({ user, token, logout, isOpen, toggleSi
       ShieldCheck,
       TrendingUp,
       MapPin,
-      Globe
+      Globe,
+      Shield
     };
     const Icon = IconMap[name] || HelpCircle;
     return <Icon className={className} size={size} />;
@@ -187,6 +190,11 @@ export default function WorkspaceSidebar({ user, token, logout, isOpen, toggleSi
           { type: 'section', label: 'Capability Tools' },
           { type: 'placeholder', label: '준비 중인 도구입니다.' }
         ];
+    }
+    
+    if (isSystemAdmin(user)) {
+      navLinks.push({ type: 'section', label: 'Platform Admin' });
+      navLinks.push({ to: '/platform/admin/users', label: '회원 관리', icon: 'Shield', accent: true });
     }
 
     return (

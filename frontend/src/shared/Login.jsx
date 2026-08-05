@@ -138,6 +138,15 @@ export default function Login() {
                   className="w-full bg-slate-900/80 border border-slate-800 rounded-xl py-2 pl-10 pr-4 text-xs text-white focus:outline-none focus:border-indigo-500 transition-colors"
                 />
               </div>
+              <div className="flex justify-end mt-2">
+                <button
+                  type="button"
+                  onClick={() => navigate('/forgot-password')}
+                  className="text-[10px] text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
+                >
+                  비밀번호를 잊으셨나요?
+                </button>
+              </div>
             </div>
 
             <button
