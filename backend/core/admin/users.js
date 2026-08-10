@@ -19,32 +19,33 @@ router.use(requireRole(['SYSTEM_ADMIN']));
 router.get('/', async (req, res) => {
   try {
     const { search, role, status } = req.query;
-    let sql = 
+    let sql = `
       SELECT u.user_id, u.username, u.email, u.display_name, u.phone, u.is_active, u.created_at,
              r.role_id as system_role
       FROM platform_profiles u
       LEFT JOIN platform_role_assignments r ON u.user_id = r.user_id AND r.service_id = 'platform'
       WHERE 1=1
-    ;
+    `;
     const params = [];
 
     if (search) {
-      sql +=  AND (u.display_name LIKE ? OR u.username LIKE ? OR u.email LIKE ?);
-      params.push(%%, %%, %%);
+      const searchPattern = `%${search}%`;
+      sql += ` AND (u.display_name ILIKE ? OR u.username ILIKE ? OR u.email ILIKE ?)`;
+      params.push(searchPattern, searchPattern, searchPattern);
     }
 
     if (status === 'active') {
-      sql +=  AND u.is_active = TRUE;
+      sql += ` AND u.is_active = TRUE`;
     } else if (status === 'inactive') {
-      sql +=  AND u.is_active = FALSE;
+      sql += ` AND u.is_active = FALSE`;
     }
 
     if (role) {
-      sql +=  AND r.role_id = ?;
+      sql += ` AND r.role_id = ?`;
       params.push(role);
     }
 
-    sql +=  ORDER BY u.created_at DESC;
+    sql += ` ORDER BY u.created_at DESC`;
 
     const users = await query.all(sql, params);
     res.json(users);
@@ -80,16 +81,21 @@ router.put('/:id/status', async (req, res) => {
   try {
     const { id } = req.params;
     const { is_active } = req.body;
-    
-    await query.run(UPDATE platform_profiles SET is_active = ? WHERE user_id = ?, [is_active ? 1 : 0, id]);
-    
-    // Log audit
+
     await query.run(
-      INSERT INTO platform_audit_logs (user_id, service_id, project_id, action, details, ip_address, result)
-      VALUES (?, 'platform', 'system', 'UPDATE_USER_STATUS', ?, ?, 'SUCCESS')
-    , [req.user.userId, User  status set to , req.ip]);
-    
-    res.json({ success: true, message: \계정이  되었습니다.\ });
+      `UPDATE platform_profiles SET is_active = ? WHERE user_id = ?`,
+      [is_active, id]
+    );
+
+    // Log audit
+    const statusLabel = is_active ? '활성화' : '비활성화';
+    await query.run(
+      `INSERT INTO platform_audit_logs (user_id, service_id, project_id, action, details, ip_address, result)
+       VALUES (?, 'platform', 'system', 'UPDATE_USER_STATUS', ?, ?, 'SUCCESS')`,
+      [req.user.userId, `User ${id} status set to ${statusLabel}`, req.ip]
+    );
+
+    res.json({ success: true, message: `계정이 ${statusLabel} 되었습니다.` });
   } catch (err) {
     console.error('[ADMIN USER STATUS ERROR]', err);
     res.status(500).json({ message: 'Server error' });
@@ -101,23 +107,27 @@ router.post('/:id/temp-password', async (req, res) => {
   try {
     const { id } = req.params;
     const tempPassword = Math.random().toString(36).slice(-8) + '!';
-    
+
     const { error } = await supabaseAdmin.auth.admin.updateUserById(id, {
       password: tempPassword
     });
-    
+
     if (error) {
       return res.status(400).json({ success: false, message: 'Auth 시스템에서 비밀번호 변경에 실패했습니다.' });
     }
-    
+
     // 강제 비밀번호 변경 플래그 설정
-    await query.run(UPDATE platform_profiles SET must_change_password = 1 WHERE user_id = ?, [id]);
-    
     await query.run(
-      INSERT INTO platform_audit_logs (user_id, service_id, project_id, action, details, ip_address, result)
-      VALUES (?, 'platform', 'system', 'ISSUE_TEMP_PASSWORD', ?, ?, 'SUCCESS')
-    , [req.user.userId, Issued temp password for User , req.ip]);
-    
+      `UPDATE platform_profiles SET must_change_password = 1 WHERE user_id = ?`,
+      [id]
+    );
+
+    await query.run(
+      `INSERT INTO platform_audit_logs (user_id, service_id, project_id, action, details, ip_address, result)
+       VALUES (?, 'platform', 'system', 'ISSUE_TEMP_PASSWORD', ?, ?, 'SUCCESS')`,
+      [req.user.userId, `Issued temp password for user ${id}`, req.ip]
+    );
+
     res.json({ success: true, tempPassword, message: '임시 비밀번호가 발급되었습니다. 즉시 사용자에게 전달하세요.' });
   } catch (err) {
     console.error('[ADMIN TEMP PASSWORD ERROR]', err);
