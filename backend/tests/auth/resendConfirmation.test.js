@@ -33,6 +33,7 @@ async function runTests() {
   await startServer({ EMAIL_CONFIRM_REDIRECT_URL: 'https://boozathink.com/login' });
 
   // 1, 15, 16, 17, 18, 19
+  await fetch('http://localhost:5002/api/test/auth-mock-calls/reset', { method: 'POST' });
   let res = await fetch('http://localhost:5002/api/auth/resend-confirmation', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'masked-test@example.invalid' })
   });
@@ -41,20 +42,36 @@ async function runTests() {
   assert(res.status === 200);
   assert(json.success === true);
   assert(json.message.includes('재발송이 가능한 계정이라면 가입 확인 메일을 보내드렸습니다. 메일함과 스팸함을 확인해 주세요.'));
+  
+  let callsRes = await fetch('http://localhost:5002/api/test/auth-mock-calls');
+  let calls = await callsRes.json();
+  assert(calls.length === 1, 'auth.resend must be called exactly once');
+  assert(calls[0].args.type === 'signup', 'auth.resend type must be signup');
+  assert(calls[0].args.email === 'masked-test@example.invalid', 'auth.resend email must be exact');
+  assert(calls[0].args.options.emailRedirectTo === 'https://boozathink.com/login', 'auth.resend emailRedirectTo must be exactly the server resolved one');
 
   // 2. 앞뒤 공백 제거
+  await fetch('http://localhost:5002/api/test/auth-mock-calls/reset', { method: 'POST' });
   res = await fetch('http://localhost:5002/api/auth/resend-confirmation', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: '  masked-test@example.invalid  ' })
   });
   assert(res.status === 200, 'Whitespace should be trimmed');
+  callsRes = await fetch('http://localhost:5002/api/test/auth-mock-calls');
+  calls = await callsRes.json();
+  assert(calls[0].args.email === 'masked-test@example.invalid', 'Email must be trimmed before passing to Supabase');
 
   // 3. 대소문자 정규화
+  await fetch('http://localhost:5002/api/test/auth-mock-calls/reset', { method: 'POST' });
   res = await fetch('http://localhost:5002/api/auth/resend-confirmation', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'MASKED-TEST@EXAMPLE.INVALID' })
   });
   assert(res.status === 200, 'Uppercase should be normalized to lowercase');
+  callsRes = await fetch('http://localhost:5002/api/test/auth-mock-calls');
+  calls = await callsRes.json();
+  assert(calls[0].args.email === 'masked-test@example.invalid', 'Email must be lowercase before passing to Supabase');
 
   // 4. 잘못된 이메일
+  await fetch('http://localhost:5002/api/test/auth-mock-calls/reset', { method: 'POST' });
   res = await fetch('http://localhost:5002/api/auth/resend-confirmation', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'not-an-email' })
   });
