@@ -19,7 +19,7 @@ export default function LedgerView() {
   // 장부 상태
   const [ledger, setLedger] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [_error, setError] = useState('');
 
   // 이월금 설정 모달 상태
   const [showCarryOverModal, setShowCarryOverModal] = useState(false);

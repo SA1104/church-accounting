@@ -33,7 +33,7 @@ if (!SUPABASE_ANON_KEY) {
 }
 
 const { initPlatformDb, query } = require('./core/db');
-const { login, signup, authenticateToken, requireRole, changePassword, forgotPassword, resendConfirmation } = require('./core/auth');
+const { login, signup, authenticateToken, requireRole, changePassword, forgotPassword, createResendConfirmationHandler, getResendRedirectUrl } = require('./core/auth');
 const {
   getRegisterOptions,
   verifyRegister,
@@ -51,6 +51,25 @@ const churchServiceRouter = require('./service/church');
 const stockServiceRouter = require('./service/stock');
 const estateServiceRouter = require('./service/estate');
 const missionServiceRouter = require('./service/mission');
+
+
+const rateLimit = require('express-rate-limit');
+
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { success: false, message: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const resendConfirmationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { success: false, message: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -102,8 +121,16 @@ app.use('/uploads', express.static(uploadDir));
 app.post('/api/auth/login', login);
 app.post('/api/auth/signup', signup);
 app.post('/api/auth/change-password', authenticateToken, changePassword);
-app.post('/api/auth/forgot-password', forgotPassword);
-app.post('/api/auth/resend-confirmation', resendConfirmation);
+app.post('/api/auth/forgot-password', forgotPasswordLimiter, forgotPassword);
+const authClient = process.env.NODE_ENV === 'test' 
+  ? { resend: async ({ email }) => (email.endsWith('.invalid') ? { data: {} } : { error: { message: 'Real test not allowed' } }) }
+  : require('./core/auth').supabasePublic?.auth;
+
+app.post('/api/auth/resend-confirmation', resendConfirmationLimiter, createResendConfirmationHandler({
+  authClient: authClient,
+  logger: console.log,
+  redirectResolver: getResendRedirectUrl
+}));
 
 // Passkey/WebAuthn API
 app.post('/api/auth/passkey/register/options', authenticateToken, getRegisterOptions);

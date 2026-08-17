@@ -47,7 +47,7 @@ export default function InviteLanding() {
   const handleAccept = async () => {
     try {
       setAccepting(true);
-      const result = await apiClient(`/api/church/invitations/${token}/accept`, {
+      const _result = await apiClient(`/api/church/invitations/${token}/accept`, {
         method: 'POST'
       });
       setAccepted(true);

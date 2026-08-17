@@ -1,10 +1,21 @@
 // frontend/src/apps/stock/stockNavConfig.js
-// Stock Think - Navigation Config for WorkspaceSidebar (Platform 3.1)
-export function getStockNavConfig(user) {
+
+export const navConfig = [
+  { path: '/stock', label: '오늘', mobile: true },
+  { path: '/stock/global', label: '글로벌', mobile: false },
+  { path: '/stock/korea', label: '한국시장', mobile: true },
+  { path: '/stock/stocks', label: '종목', mobile: true },
+  { path: '/stock/analysis', label: '분석', mobile: false },
+  { path: '/stock/glossary', label: '용어', mobile: false },
+  { path: '/stock/community', label: '커뮤니티', mobile: true },
+  { path: '/stock/my', label: 'MY', mobile: true },
+];
+
+export function getStockNavConfig() {
   return [
     {
-      to: '/app/stock',
-      label: '투자 분석',
+      to: '/stock',
+      label: 'Stock Think',
       icon: 'TrendingUp',
       exact: true
     },
@@ -13,22 +24,6 @@ export function getStockNavConfig(user) {
       label: 'Decision History',
       icon: 'ShieldCheck',
       accent: true
-    },
-    { type: 'section', label: 'Research Tools' },
-    {
-      to: '/app/stock',
-      label: 'AI 가치평가',
-      icon: 'Cpu',
-      action: 'openAIDock',
-      accent: true
-    },
-    {
-      type: 'placeholder',
-      label: '포트폴리오 — 준비 중'
-    },
-    {
-      type: 'placeholder',
-      label: '백테스트 — 준비 중'
     }
   ];
 }

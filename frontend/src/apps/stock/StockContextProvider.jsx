@@ -1,7 +1,7 @@
 // frontend/src/apps/stock/StockContextProvider.jsx
 // Stock Think - Capability Context Provider (Platform 3.1)
 // Independent from Church Think — never references church assignments/committees
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../App';
 
 const StockContext = createContext(null);

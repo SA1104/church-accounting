@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../App';
 import { 
-  ShieldAlert, ListFilter, Activity, Calendar, Search, RefreshCw, 
+  X, ShieldAlert, ListFilter, Activity, Calendar, Search, RefreshCw, 
   Grid, FileText, Image as ImageIcon, CheckCircle2, AlertTriangle, Clock, 
   Loader2, Maximize2, Download, User, Tag, ShieldCheck, DollarSign
 } from 'lucide-react';

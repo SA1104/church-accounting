@@ -1,0 +1,81 @@
+{
+  "KRX_OPEN_API": {
+    "provider": "한국거래소",
+    "documentationHost": "openapi.krx.co.kr",
+    "dataHost": "data-dbg.krx.co.kr",
+    "authentication": "AUTH_KEY header",
+    "verifiedAt": "2026-08-17",
+    "services": [
+      {
+        "serviceName": "유가증권 일별매매정보",
+        "apiId": "stk_bydd_trd",
+        "method": "GET",
+        "productionUrl": "https://data-dbg.krx.co.kr/svc/apis/sto/stk_bydd_trd",
+        "sampleUrl": "https://data-dbg.krx.co.kr/svc/sample/apis/sto/stk_bydd_trd",
+        "queryParameters": ["basDd"],
+        "officialDocumentUrl": "http://openapi.krx.co.kr",
+        "documentUpdatedAt": "2026-08-17",
+        "verifiedBy": "System",
+        "checksum": "verified"
+      },
+      {
+        "serviceName": "코스닥 일별매매정보",
+        "apiId": "ksq_bydd_trd",
+        "method": "GET",
+        "productionUrl": "https://data-dbg.krx.co.kr/svc/apis/sto/ksq_bydd_trd",
+        "sampleUrl": "https://data-dbg.krx.co.kr/svc/sample/apis/sto/ksq_bydd_trd",
+        "queryParameters": ["basDd"],
+        "officialDocumentUrl": "http://openapi.krx.co.kr",
+        "documentUpdatedAt": "2026-08-17",
+        "verifiedBy": "System",
+        "checksum": "verified"
+      },
+      {
+        "serviceName": "유가증권 종목기본정보",
+        "apiId": "stk_isu_base_info",
+        "method": "GET",
+        "productionUrl": "https://data-dbg.krx.co.kr/svc/apis/sto/stk_isu_base_info",
+        "sampleUrl": "https://data-dbg.krx.co.kr/svc/sample/apis/sto/stk_isu_base_info",
+        "queryParameters": [],
+        "officialDocumentUrl": "http://openapi.krx.co.kr",
+        "documentUpdatedAt": "2026-08-17",
+        "verifiedBy": "System",
+        "checksum": "verified"
+      },
+      {
+        "serviceName": "코스닥 종목기본정보",
+        "apiId": "ksq_isu_base_info",
+        "method": "GET",
+        "productionUrl": "https://data-dbg.krx.co.kr/svc/apis/sto/ksq_isu_base_info",
+        "sampleUrl": "https://data-dbg.krx.co.kr/svc/sample/apis/sto/ksq_isu_base_info",
+        "queryParameters": [],
+        "officialDocumentUrl": "http://openapi.krx.co.kr",
+        "documentUpdatedAt": "2026-08-17",
+        "verifiedBy": "System",
+        "checksum": "verified"
+      }
+    ]
+  },
+  "FSC_STOCK_PRICE_API": {
+    "provider": "금융위원회",
+    "platform": "공공데이터포털",
+    "dataHost": "apis.data.go.kr",
+    "authentication": "serviceKey query parameter",
+    "verifiedAt": "2026-08-17",
+    "freshness": "T+1 business day after 13:00 KST",
+    "services": [
+      {
+        "serviceName": "주식시세정보",
+        "apiId": "getStockPriceInfo",
+        "method": "GET",
+        "productionUrl": "https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService/getStockPriceInfo",
+        "sampleUrl": "https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService/getStockPriceInfo",
+        "queryParameters": ["serviceKey", "numOfRows", "pageNo", "resultType", "basDt", "itmsNm"],
+        "officialDocumentUrl": "https://www.data.go.kr",
+        "documentUpdatedAt": "2026-08-17",
+        "verifiedBy": "System",
+        "checksum": "verified"
+      }
+    ]
+  }
+}

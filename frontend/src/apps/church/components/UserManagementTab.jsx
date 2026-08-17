@@ -257,11 +257,11 @@ function UserDetailDrawer({ userId, onClose, onUpdated, isAdminOrAuditor }) {
                     </div>
                   ) : (
                     assignments.map(a => (
-                      <div key={a.id} className={\`glass p-3 rounded-2xl border flex flex-col gap-1 \${a.is_active ? 'border-church-500/30' : 'border-slate-800/50 opacity-50'}\`}>
+                      <div key={a.id} className={`glass p-3 rounded-2xl border flex flex-col gap-1 ${a.is_active ? 'border-church-500/30' : 'border-slate-800/50 opacity-50'}`}>
                         <div className="flex justify-between items-start">
                           <div>
                             <p className="text-[11px] font-bold text-white">
-                              {a.committee_name}{a.group_name ? \` > \${a.group_name}\` : ''}
+                              {a.committee_name}{a.group_name ? ` > ${a.group_name}` : ''}
                             </p>
                             <p className="text-[9px] text-slate-400 mt-0.5">
                               {a.position_name} · 권한: {a.role_code}

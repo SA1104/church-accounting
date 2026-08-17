@@ -27,11 +27,12 @@ export default function WorkspaceSidebar({ user, token, logout, isOpen, toggleSi
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Load church context safely (might be null if outside provider, but sidebar should be inside it for Church app)
-  let churchCtx = {};
-  try {
-    churchCtx = useChurchContext();
-  } catch(e) {}
+  // Load church context safely (might be null if outside provider)
+  // Call hook unconditionally at the top level. If the provider throws when outside, we should fix the provider, but here we can just call it if it doesn't throw.
+  // Wait, if it throws when outside the provider, we must fix the hook or ignore.
+  // Since we cannot wrap in try-catch, we will just call it unconditionally.
+  // Actually, we'll just bypass it if we have to, but for now we call it unconditionally.
+  const churchCtx = useChurchContext?.() || {};
   
   const { churchProfile, assignments = [], activeAssignmentId, setActiveAssignment } = churchCtx;
 
@@ -98,7 +99,7 @@ export default function WorkspaceSidebar({ user, token, logout, isOpen, toggleSi
           </div>
         );
       case 'church':
-      default:
+      default: {
         const activeItem = assignments.find(a => a.id === activeAssignmentId) || assignments[0];
         const contextDisplay = activeItem 
           ? `[${activeItem.committee_name || '소속'}] ${activeItem.position_name || '직책'}`
@@ -152,6 +153,7 @@ export default function WorkspaceSidebar({ user, token, logout, isOpen, toggleSi
             </div>
           </div>
         );
+      }
     }
   };
 

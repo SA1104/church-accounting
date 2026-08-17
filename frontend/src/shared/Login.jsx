@@ -83,9 +83,41 @@ export default function Login() {
     }
   };
 
-  const quickLogin = (user, pass) => {
+  const _quickLogin = (user, pass) => {
     setUsername(user);
     setPassword(pass);
+  };
+
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState('');
+
+  const handleResend = async () => {
+    if (!username) {
+      setError('이메일을 입력해주세요.');
+      return;
+    }
+    
+    setResendLoading(true);
+    setError('');
+    setResendSuccess('');
+    
+    try {
+      const res = await fetch('/api/auth/resend-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: username })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || '가입 확인 메일 재발송에 실패했습니다.');
+      }
+      setResendSuccess(data.message);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setResendLoading(false);
+      setTimeout(() => setResendSuccess(''), 5000);
+    }
   };
 
   return (
@@ -105,6 +137,12 @@ export default function Login() {
               <div className="flex items-center gap-2 bg-rose-500/10 border border-rose-500/30 text-rose-400 p-3 rounded-lg text-xs">
                 <AlertCircle size={14} className="shrink-0" />
                 <span>{error}</span>
+              </div>
+            )}
+            {resendSuccess && (
+              <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-3 rounded-lg text-xs">
+                <AlertCircle size={14} className="shrink-0" />
+                <span>{resendSuccess}</span>
               </div>
             )}
 
@@ -138,7 +176,15 @@ export default function Login() {
                   className="w-full bg-slate-900/80 border border-slate-800 rounded-xl py-2 pl-10 pr-4 text-xs text-white focus:outline-none focus:border-indigo-500 transition-colors"
                 />
               </div>
-              <div className="flex justify-end mt-2">
+              <div className="flex justify-between mt-2">
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resendLoading}
+                  className="text-[10px] text-slate-400 hover:text-slate-300 font-medium transition-colors disabled:opacity-50"
+                >
+                  {resendLoading ? '전송 중...' : '확인 메일 재발송'}
+                </button>
                 <button
                   type="button"
                   onClick={() => navigate('/forgot-password')}

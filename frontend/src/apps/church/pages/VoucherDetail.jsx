@@ -409,7 +409,7 @@ export default function VoucherDetail() {
 
   const isVoucherLocked = voucher ? isLocked(voucher.transaction_date) : false;
 
-  const showApproveButtons = voucher.status === 'pending_approval' && voucher.current_approver_id === user.userId && !isVoucherLocked;
+  const showDeptHeadButtons = voucher.status === 'pending_approval' && voucher.current_approver_id === user.userId && !isVoucherLocked;
   const showFinanceButtons = voucher.status === 'DEPT_APPROVED' && voucher.finance_approver_id === user.userId && !isVoucherLocked;
 
   const isWriter = user.userId === voucher.writer_id;

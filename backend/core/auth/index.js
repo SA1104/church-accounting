@@ -3,7 +3,7 @@ const { createClient } = require('@supabase/supabase-js');
 const { query } = require('../db');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://your-supabase-project.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || 'placeholder-anon-key';
+const SUPABASE_PUBLIC_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || 'placeholder-service-role-key';
 
 // Initialize Supabase clients Client to bypass RLS for backend operations
@@ -13,7 +13,7 @@ const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     autoRefreshToken: false
   }
 });
-const supabasePublic = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+const supabasePublic = createClient(SUPABASE_URL, SUPABASE_PUBLIC_KEY || 'placeholder-anon-key', {
   auth: {
     persistSession: false,
     autoRefreshToken: false
@@ -737,67 +737,199 @@ async function changePassword(req, res) {
 }
 
 
-async function forgotPassword(req, res) {
-  const { email } = req.body;
-  if (!email) {
-    return res.status(400).json({ success: false, message: '이메일을 입력해 주세요.' });
-  }
 
-  const normalizedEmail = normalizeEmail(email);
-
+function resolvePasswordResetRedirectUrl() {
   try {
-    const { error } = await supabaseAdmin.auth.resetPasswordForEmail(normalizedEmail, {
-      redirectTo: `${req.headers.origin || 'https://boozathink.com'}/reset-password`,
-    });
-    
-    if (error) {
-      console.error('[AUTH FORGOT PASSWORD ERROR]', error);
-      return res.status(400).json({ success: false, message: '비밀번호 재설정 메일 발송에 실패했습니다.' });
+    const candidate = process.env.PASSWORD_RESET_REDIRECT_URL;
+
+    const url = candidate
+      ? new URL(candidate)
+      : process.env.FRONTEND_URL
+        ? new URL('/reset-password', process.env.FRONTEND_URL)
+        : null;
+
+    if (!url) return null;
+    if (!['http:', 'https:'].includes(url.protocol)) return null;
+    if (url.username || url.password) return null;
+    if (url.pathname !== '/reset-password') return null;
+    if (process.env.NODE_ENV === 'production' && url.protocol !== 'https:') {
+      return null;
     }
-    
-    res.json({ success: true, message: '비밀번호 재설정 메일이 발송되었습니다.' });
-  } catch (err) {
-    console.error('[AUTH FORGOT PASSWORD EXCEPTION]', err);
-    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+
+    url.search = '';
+    url.hash = '';
+    return url.toString();
+  } catch {
+    return null;
   }
 }
 
-async function resendConfirmation(req, res) {
-  const { email } = req.body;
-  if (!email) {
+const BASIC_EMAIL_PATTERN = /^[^s@]+@[^s@.]+(?:.[^s@.]+)+$/;
+async function forgotPassword(req, res) {
+  const email = req.body?.email;
+  
+  if (typeof email !== 'string') {
     return res.status(400).json({ success: false, message: '이메일을 입력해 주세요.' });
   }
 
-  const normalizedEmail = normalizeEmail(email);
+  const cleanEmail = email.trim();
+
+  if (!cleanEmail || cleanEmail.length > 254 || !BASIC_EMAIL_PATTERN.test(cleanEmail)) {
+    return res.status(400).json({ success: false, message: '올바른 이메일 형식을 입력해 주세요.' });
+  }
+
+  if (!supabaseRecovery) {
+    return res.status(500).json({ success: false, message: '서버 인증 설정 오류가 발생했습니다.' });
+  }
+
+  const redirectUrl = resolvePasswordResetRedirectUrl();
+  if (!redirectUrl) {
+    return res.status(500).json({ success: false, message: '서버 리디렉션 설정 오류가 발생했습니다.' });
+  }
+
+  const normalizedEmail = normalizeEmail(cleanEmail);
 
   try {
-    const { error } = await supabaseAdmin.auth.resend({
+    const { error } = await supabaseRecovery.auth.resetPasswordForEmail(normalizedEmail, {
+      redirectTo: redirectUrl,
+    });
+    
+    if (error) {
+      console.warn('[AUTH FORGOT PASSWORD UPSTREAM ERROR]', {
+        code: typeof error.code === 'string' ? error.code : undefined,
+        status: Number.isInteger(error.status) ? error.status : undefined
+      });
+
+      return res.status(503).json({
+        success: false,
+        message: '현재 비밀번호 재설정 메일 요청을 처리할 수 없습니다. 잠시 후 다시 시도해 주세요.'
+      });
+    }
+    
+    return res.status(200).json({
+      success: true,
+      message: '입력하신 이메일로 가입된 계정이 있다면 비밀번호 재설정 안내를 발송했습니다.'
+    });
+  } catch (error) {
+    console.warn('[AUTH FORGOT PASSWORD UPSTREAM EXCEPTION]', {
+      code: typeof error?.code === 'string' ? error.code : undefined,
+      status: Number.isInteger(error?.status) ? error.status : undefined
+    });
+
+    return res.status(503).json({
+      success: false,
+      message: '현재 비밀번호 재설정 메일 요청을 처리할 수 없습니다. 잠시 후 다시 시도해 주세요.'
+    });
+  }
+}
+
+const getResendRedirectUrl = () => {
+  try {
+    const candidate = process.env.EMAIL_CONFIRM_REDIRECT_URL;
+    const url = candidate
+      ? new URL(candidate)
+      : process.env.FRONTEND_URL
+        ? new URL('/login', process.env.FRONTEND_URL)
+        : null;
+
+    if (!url) return null;
+    if (!['http:', 'https:'].includes(url.protocol)) return null;
+    if (url.username || url.password) return null;
+    if (process.env.NODE_ENV === 'production' && url.protocol !== 'https:') {
+      return null;
+    }
+
+    url.search = '';
+    url.hash = '';
+    return url.toString();
+  } catch {
+    return null;
+  }
+};
+
+const createResendConfirmationHandler = ({ authClient, logger, redirectResolver }) => async (req, res) => {
+  const email = req.body?.email;
+  
+  if (typeof email !== 'string') {
+    return res.status(400).json({ success: false, message: '이메일 형식을 확인해 주세요.' });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+
+  if (!cleanEmail || cleanEmail.length > 254 || !BASIC_EMAIL_PATTERN.test(cleanEmail)) {
+    return res.status(400).json({ success: false, message: '이메일 형식을 확인해 주세요.' });
+  }
+
+  const redirectUrl = redirectResolver();
+  if (!redirectUrl) {
+    return res.status(503).json({ success: false, message: '서버 리디렉션 설정 오류가 발생했습니다.' });
+  }
+
+  const normalizedEmail = normalizeEmail(cleanEmail);
+  const maskedEmail = normalizedEmail.replace(/^(.)(.*)(@.*)$/, (_, a, b, c) => a + '*'.repeat(Math.min(b.length, 5)) + c);
+  
+  if (logger) {
+    logger(`[AUTH] Resend confirmation requested for ${maskedEmail}`);
+  }
+
+  if (!authClient) {
+    return res.status(503).json({ success: false, message: '현재 인증 서비스를 이용할 수 없습니다.' });
+  }
+
+  try {
+    const { error } = await authClient.resend({
       type: 'signup',
       email: normalizedEmail,
       options: {
-        emailRedirectTo: `${req.headers.origin || 'https://boozathink.com'}/login`
+        emailRedirectTo: redirectUrl
       }
     });
-
+    
     if (error) {
-      console.error('[AUTH RESEND CONFIRMATION ERROR]', error);
-      return res.status(400).json({ success: false, message: '인증 메일 재발송에 실패했습니다.' });
+      if (error.status === 429) {
+        return res.status(429).json({
+          success: false,
+          message: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.'
+        });
+      }
+      
+      if (logger) {
+        logger('[AUTH RESEND CONFIRMATION UPSTREAM ERROR]', {
+          code: typeof error.code === 'string' ? error.code : undefined,
+          status: Number.isInteger(error.status) ? error.status : undefined
+        });
+      }
+      // We don't return error to user if account not found/already verified, we return 200
+    }
+    
+    return res.status(200).json({
+      success: true,
+      message: '재발송이 가능한 계정이라면 가입 확인 메일을 보내드렸습니다. 메일함과 스팸함을 확인해 주세요.'
+    });
+  } catch (error) {
+    if (logger) {
+      logger('[AUTH RESEND CONFIRMATION UPSTREAM EXCEPTION]', {
+        code: typeof error?.code === 'string' ? error.code : undefined,
+        status: Number.isInteger(error?.status) ? error.status : undefined
+      });
     }
 
-    res.json({ success: true, message: '인증 메일이 성공적으로 재발송되었습니다.' });
-  } catch (err) {
-    console.error('[AUTH RESEND CONFIRMATION EXCEPTION]', err);
-    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+    return res.status(500).json({
+      success: false,
+      message: '서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'
+    });
   }
-}
+};
 
 module.exports = {
+  supabasePublic,
+  getResendRedirectUrl,
   authenticateToken,
   requireRole,
   login,
   signup,
   changePassword,
   forgotPassword,
-  resendConfirmation,
+  createResendConfirmationHandler,
   normalizeEmail
 };

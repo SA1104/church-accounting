@@ -79,9 +79,9 @@ export default function Settings() {
 
   // 리스트 상태
   const [categories, setCategories] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [organizations, setOrganizations] = useState([]);
-  const [groups, setGroups] = useState([]);
+  const [_users, setUsers] = useState([]);
+  const [_organizations, setOrganizations] = useState([]);
+  const [_groups, setGroups] = useState([]);
 
   // OCR 큐 상태
   const [ocrQueue, setOcrQueue] = useState([]);
@@ -112,7 +112,7 @@ export default function Settings() {
   const [newUserPositionId, setNewUserPositionId] = useState('');
   const [newUserCommitteeId, setNewUserCommitteeId] = useState('');
   const [newUserGroupId, setNewUserGroupId] = useState('');
-  const [newUserAvailableGroups, setNewUserAvailableGroups] = useState([]);
+  const [_newUserAvailableGroups, setNewUserAvailableGroups] = useState([]);
 
   // 5. 결산 마감 및 데이터 관리 폼
   const [locks, setLocks] = useState([]);
@@ -123,18 +123,18 @@ export default function Settings() {
   const [backupFile, setBackupFile] = useState(null);
 
   // 직책 설정 상태
-  const [selectedPosGroupId, setSelectedPosGroupId] = useState('');
+  const [_selectedPosGroupId, _setSelectedPosGroupId] = useState('');
   const [groupPositions, setGroupPositions] = useState([]);
   const [newPosName, setNewPosName] = useState('');
   const [newPosRole, setNewPosRole] = useState('USER');
 
   // 다중 소속 관리 상태
-  const [allAssignments, setAllAssignments] = useState([]);
-  const [expandedUserId, setExpandedUserId] = useState(null);
+  const [_allAssignments, setAllAssignments] = useState([]);
+  const [_expandedUserId, _setExpandedUserId] = useState(null);
   const [newAssignCommitteeId, setNewAssignCommitteeId] = useState('');
   const [newAssignGroupId, setNewAssignGroupId] = useState('');
   const [newAssignPositionId, setNewAssignPositionId] = useState('');
-  const [newAssignGroupOptions, setNewAssignGroupOptions] = useState([]);
+  const [_newAssignGroupOptions, setNewAssignGroupOptions] = useState([]);
 
   // 다교회 SaaS 위원회/그룹 관리 상태 및 에디터 폼
   const [adminOrgs, setAdminOrgs] = useState([]);
@@ -773,7 +773,7 @@ export default function Settings() {
     }
   };
 
-  const handleAddOrg = async (e) => {
+  const _handleAddOrg = async (e) => {
     e.preventDefault();
     if (!newOrgName) return;
 
@@ -795,7 +795,7 @@ export default function Settings() {
     }
   };
 
-  const handleAddGroup = async (e) => {
+  const _handleAddGroup = async (e) => {
     e.preventDefault();
     if (!selectedOrgId || !newGroupName) return;
 
@@ -823,7 +823,7 @@ export default function Settings() {
     if (!newOrgName) return;
     const payload = { name: newOrgName, description: newOrgDesc };
     try {
-      const result = await apiClient('/api/church/admin/committees', {
+      const res = await apiClient('/api/church/admin/committees', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
@@ -888,7 +888,7 @@ export default function Settings() {
       sort_order: parseInt(newGroupSort || 0, 10)
     };
     try {
-      const result = await apiClient('/api/church/admin/groups', {
+      const res = await apiClient('/api/church/admin/groups', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
@@ -946,7 +946,7 @@ export default function Settings() {
   };
 
 
-  const handleNewUserCommitteeChange = async (e) => {
+  const _handleNewUserCommitteeChange = async (e) => {
     const commId = e.target.value;
     setNewUserCommitteeId(commId);
     setNewUserGroupId('');
@@ -965,7 +965,7 @@ export default function Settings() {
     }
   };
 
-  const handleAddUser = async (e) => {
+  const _handleAddUser = async (e) => {
     e.preventDefault();
     if (!newUserUsername || !newUserPassword || !newUserName) return;
 
@@ -1005,7 +1005,7 @@ export default function Settings() {
     }
   };
 
-  const handleApproveUser = async (userId) => {
+  const _handleApproveUser = async (userId) => {
     if (!window.confirm('해당 사용자의 가입 신청을 승인하시겠습니까?')) return;
     try {
       await apiClient(`/api/users/${userId}/approve`, {
@@ -1073,7 +1073,7 @@ export default function Settings() {
     }
   };
 
-  const handleDeleteUser = async (userId, name) => {
+  const _handleDeleteUser = async (userId, name) => {
     if (!window.confirm(`⚠️ 경고: 정말 사용자 '${name}' 계정을 영구 삭제하시겠습니까? 관련 데이터가 깨질 수 있습니다.`)) {
       return;
     }
@@ -1089,7 +1089,7 @@ export default function Settings() {
     }
   };
 
-  const handleDeleteAssignment = async (userId, assignmentId) => {
+  const _handleDeleteAssignment = async (userId, assignmentId) => {
     if (!window.confirm('정말 이 소속/직책 배정을 제거하시겠습니까?')) return;
     try {
       await apiClient(`/api/church/assignments/users/${userId}/${assignmentId}`, {
@@ -1102,7 +1102,7 @@ export default function Settings() {
     }
   };
 
-  const handleCreateAssignment = async (e, userId) => {
+  const _handleCreateAssignment = async (e, userId) => {
     e.preventDefault();
     if (!newAssignCommitteeId || !newAssignPositionId) {
       alert('위원회와 직책은 필수 선택 사항입니다.');
@@ -1129,7 +1129,7 @@ export default function Settings() {
     }
   };
 
-  const handleAssignCommitteeChange = async (value) => {
+  const _handleAssignCommitteeChange = async (value) => {
     setNewAssignCommitteeId(value);
     setNewAssignGroupId('');
     setNewAssignGroupOptions([]);
@@ -1145,7 +1145,7 @@ export default function Settings() {
     }
   };
 
-  const handleDeleteOrg = async (orgId, name) => {
+  const _handleDeleteOrg = async (orgId, name) => {
     if (!window.confirm(`⚠️ 경고: 정말 위원회 '${name}'(을)를 삭제하시겠습니까? 산하의 모든 소속 그룹도 함께 삭제됩니다.`)) {
       return;
     }
@@ -1162,7 +1162,7 @@ export default function Settings() {
     }
   };
 
-  const handleDeleteGroup = async (groupId, name) => {
+  const _handleDeleteGroup = async (groupId, name) => {
     if (!window.confirm(`⚠️ 경고: 정말 소속 그룹 '${name}'(을)를 삭제하시겠습니까?`)) {
       return;
     }

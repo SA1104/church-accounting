@@ -29,7 +29,17 @@ import Settings from './apps/church/pages/Settings';
 import InviteLanding from './apps/church/pages/InviteLanding';
 
 // Stock page imports
-import StockDashboard from './apps/stock/pages/StockDashboard';
+import StockTodayPage from './apps/stock/pages/StockTodayPage';
+import GlobalMarketPage from './apps/stock/pages/GlobalMarketPage';
+import KoreaMarketPage from './apps/stock/pages/KoreaMarketPage';
+import StockMyPage from './apps/stock/pages/StockMyPage';
+import StockSearchPage from './apps/stock/pages/StockSearchPage';
+import StockDetailPage from './apps/stock/pages/StockDetailPage';
+import StockAnalysisPage from './apps/stock/pages/StockAnalysisPage';
+import StockGlossaryPage from './apps/stock/pages/StockGlossaryPage';
+import StockCommunityPage from './apps/stock/pages/StockCommunityPage';
+import StockPostDetailPage from './apps/stock/pages/StockPostDetailPage';
+import { StockLayout } from './apps/stock/layouts/StockLayout';
 
 // Platform 3.1 Context Providers
 import { WorkspaceProvider, useWorkspace } from './core/WorkspaceProvider';
@@ -49,7 +59,7 @@ function PrivateRoute({ children }) {
 function MobileLayout() {
   const { user, token, logout, fontScale, setFontScale } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
 
   // Platform 3.1: Capability context consumption
   const { churchProfile } = useChurchContext();
@@ -72,7 +82,7 @@ function MobileLayout() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const [notifications, setNotifications] = useState([]);
+  const [_notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -258,7 +268,7 @@ function MobileLayout() {
             {isSystemAdmin(user) && <Route path="/platform/admin/users" element={<AdminUsers />} />}
 
             {/* Premium Placeholders (TEAM E) */}
-            <Route path="/app/stock" element={<StockDashboard />} />
+            <Route path="/app/stock" element={<Navigate to="/stock" replace />} />
             <Route path="/app/estate" element={<PremiumPlaceholder appId="estate" />} />
             <Route path="/app/mission" element={<PremiumPlaceholder appId="mission" />} />
 
@@ -287,13 +297,13 @@ export default function App() {
   const safeSetItem = (key, value) => {
     try {
       localStorage.setItem(key, value);
-    } catch (e) {}
+    } catch (e) {/* empty */}
   };
 
   const safeRemoveItem = (key) => {
     try {
       localStorage.removeItem(key);
-    } catch (e) {}
+    } catch (e) {/* empty */}
   };
 
   const [token, setToken] = useState(() => safeGetItem('token'));
@@ -345,6 +355,21 @@ export default function App() {
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/invite/:token" element={<InviteLanding />} />
+
+                    {/* Stock Think Routes */}
+                    <Route path="/stock" element={<StockLayout />}>
+                      <Route index element={<StockTodayPage />} />
+                      <Route path="global" element={<GlobalMarketPage />} />
+                      <Route path="korea" element={<KoreaMarketPage />} />
+                      <Route path="stocks" element={<StockSearchPage />} />
+                      <Route path="stocks/:stockCode" element={<StockDetailPage />} />
+                      <Route path="analysis" element={<StockAnalysisPage />} />
+                      <Route path="glossary" element={<StockGlossaryPage />} />
+                      <Route path="community" element={<StockCommunityPage />} />
+                      <Route path="community/:postId" element={<StockPostDetailPage />} />
+                      <Route path="my" element={<PrivateRoute><StockMyPage /></PrivateRoute>} />
+                    </Route>
+
                     <Route 
                       path="/*" 
                       element={
