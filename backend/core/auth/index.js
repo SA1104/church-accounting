@@ -764,7 +764,7 @@ function resolvePasswordResetRedirectUrl() {
   }
 }
 
-const BASIC_EMAIL_PATTERN = /^[^s@]+@[^s@.]+(?:.[^s@.]+)+$/;
+const BASIC_EMAIL_PATTERN = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
 async function forgotPassword(req, res) {
   const email = req.body?.email;
   
@@ -835,8 +835,11 @@ const getResendRedirectUrl = () => {
     if (!url) return null;
     if (!['http:', 'https:'].includes(url.protocol)) return null;
     if (url.username || url.password) return null;
-    if (process.env.NODE_ENV === 'production' && url.protocol !== 'https:') {
-      return null;
+    if (url.pathname !== '/login') return null;
+    
+    if (process.env.NODE_ENV === 'production' || process.env.MOCK_PROD_REDIRECT === '1') {
+      if (url.protocol !== 'https:') return null;
+      if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') return null;
     }
 
     url.search = '';
@@ -866,7 +869,7 @@ const createResendConfirmationHandler = ({ authClient, logger, redirectResolver 
   }
 
   const normalizedEmail = normalizeEmail(cleanEmail);
-  const maskedEmail = normalizedEmail.replace(/^(.)(.*)(@.*)$/, (_, a, b, c) => a + '*'.repeat(Math.min(b.length, 5)) + c);
+  const maskedEmail = normalizedEmail.replace(/^(.)(.*)(@.*)$/, (_, a, b, c) => a + '*'.repeat(Math.max(1, Math.min(b.length, 5))) + c);
   
   if (logger) {
     logger(`[AUTH] Resend confirmation requested for ${maskedEmail}`);
@@ -890,6 +893,12 @@ const createResendConfirmationHandler = ({ authClient, logger, redirectResolver 
         return res.status(429).json({
           success: false,
           message: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.'
+        });
+      }
+      if (error.status >= 500) {
+        return res.status(503).json({
+          success: false,
+          message: '서버 연동 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'
         });
       }
       

@@ -123,7 +123,11 @@ app.post('/api/auth/signup', signup);
 app.post('/api/auth/change-password', authenticateToken, changePassword);
 app.post('/api/auth/forgot-password', forgotPasswordLimiter, forgotPassword);
 const authClient = process.env.NODE_ENV === 'test' 
-  ? { resend: async ({ email }) => (email.endsWith('.invalid') ? { data: {} } : { error: { message: 'Real test not allowed' } }) }
+  ? { resend: async ({ email }) => {
+      if (email === '429@example.invalid') return { error: { status: 429, message: 'Rate limit' } };
+      if (email === '500@example.invalid') return { error: { status: 500, message: 'Server error' } };
+      return email.endsWith('.invalid') ? { data: {} } : { error: { message: 'Real test not allowed' } };
+    }}
   : require('./core/auth').supabasePublic?.auth;
 
 app.post('/api/auth/resend-confirmation', resendConfirmationLimiter, createResendConfirmationHandler({
