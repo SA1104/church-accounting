@@ -12,3 +12,5 @@ uploads/
 dist/
 .DS_Store
 *.log
+
+.task-artifacts/
