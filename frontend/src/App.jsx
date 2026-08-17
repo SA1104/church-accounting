@@ -39,6 +39,7 @@ import StockAnalysisPage from './apps/stock/pages/StockAnalysisPage';
 import StockGlossaryPage from './apps/stock/pages/StockGlossaryPage';
 import StockCommunityPage from './apps/stock/pages/StockCommunityPage';
 import StockPostDetailPage from './apps/stock/pages/StockPostDetailPage';
+import StockAdminPage from './apps/stock/pages/StockAdminPage';
 import { StockLayout } from './apps/stock/layouts/StockLayout';
 
 // Platform 3.1 Context Providers
@@ -367,6 +368,7 @@ export default function App() {
                       <Route path="glossary" element={<StockGlossaryPage />} />
                       <Route path="community" element={<StockCommunityPage />} />
                       <Route path="community/:postId" element={<StockPostDetailPage />} />
+                      <Route path="admin" element={<PrivateRoute><StockAdminPage /></PrivateRoute>} />
                       <Route path="my" element={<PrivateRoute><StockMyPage /></PrivateRoute>} />
                     </Route>
 

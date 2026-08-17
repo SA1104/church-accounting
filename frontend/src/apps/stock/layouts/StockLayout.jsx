@@ -16,7 +16,7 @@ export function StockLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0F19] text-slate-200 font-pretendard flex flex-col">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-pretendard flex flex-col selection:bg-indigo-100 selection:text-indigo-900">
       <StockServiceHeader />
       <StockDesktopNav />
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-6 pb-24 md:pb-10 overflow-x-hidden">

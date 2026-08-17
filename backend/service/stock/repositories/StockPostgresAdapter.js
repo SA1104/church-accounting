@@ -52,18 +52,4 @@ class StockPostgresAdapter {
   }
 }
 
-class StockMockAdapter {
-  constructor() {
-    this.isSimulated = true;
-  }
-
-  async get() {
-    return null;
-  }
-
-  async all() {
-    return [];
-  }
-}
-
-module.exports = { StockPostgresAdapter, StockMockAdapter };
+module.exports = { StockPostgresAdapter };

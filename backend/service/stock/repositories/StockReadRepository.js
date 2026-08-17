@@ -1,5 +1,5 @@
 const { pool } = require('../../../core/db/index');
-const { StockPostgresAdapter, StockMockAdapter } = require('./StockPostgresAdapter');
+const { StockPostgresAdapter } = require('./StockPostgresAdapter');
 
 class StockReadRepository {
   constructor(options = {}) {
@@ -35,7 +35,7 @@ class StockReadRepository {
         snapshotsReady: parseInt(result.has_snapshots) > 0,
         indicesReady: parseInt(result.has_indices) > 0,
         briefsReady: parseInt(result.has_briefs) > 0,
-        isSimulated: this.db.isSimulated || false
+        isSimulated: false
       };
     } catch (e) {
       // If DB_NOT_CONFIGURED or DB_UNAVAILABLE
@@ -46,7 +46,7 @@ class StockReadRepository {
         snapshotsReady: false,
         indicesReady: false,
         briefsReady: false,
-        isSimulated: this.db.isSimulated || false,
+        isSimulated: false,
         dbError: errCode
       };
     }

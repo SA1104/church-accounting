@@ -37,7 +37,7 @@ const getSystemReadiness = async (req) => {
     readinessState = 'PROVIDER_NOT_CONFIGURED';
   }
 
-  const isMockMode = !hasDbConfig || schemaStatus.isSimulated;
+  const isMockMode = !hasDbConfig;
 
   return { schemaStatus, readinessState, dbState, hasDbConfig, hasProviderKey, isMockMode };
 };
@@ -46,12 +46,10 @@ const checkSchema = async (req, res, next) => {
   const { readinessState, schemaStatus } = await getSystemReadiness(req);
   
   if (readinessState !== 'READY' && readinessState !== 'PROVIDER_NOT_CONFIGURED') {
-    if (!schemaStatus.isSimulated) {
-       return res.status(503).json({
-         error: { code: readinessState, message: 'Stock Think 데이터 저장소가 준비 중입니다.' },
-         meta: { status: readinessState }
-       });
-    }
+    return res.status(503).json({
+      error: { code: readinessState, message: 'Stock Think 데이터 저장소가 준비 중입니다.' },
+      meta: { status: readinessState }
+    });
   }
   next();
 };
@@ -83,7 +81,7 @@ const searchInstruments = async (req, res) => {
     if (q && q.length > 50) return res.status(400).json({ error: { code: 'INVALID_QUERY', message: 'Query too long' }, meta: { status: 'ERROR' } });
     
     const { schemaStatus } = await getSystemReadiness(req);
-    if (!schemaStatus.referenceReady && !schemaStatus.isSimulated) {
+    if (!schemaStatus.referenceReady) {
       return res.status(503).json({ error: { code: 'SCHEMA_NOT_APPLIED' }, meta: { status: 'SCHEMA_NOT_APPLIED' } });
     }
 
@@ -112,7 +110,7 @@ const getInstrumentDetail = async (req, res) => {
     if (!/^\d{6}$/.test(stockCode)) return res.status(400).json({ error: { code: 'INVALID_CODE' }, meta: { status: 'ERROR' } });
 
     const { schemaStatus } = await getSystemReadiness(req);
-    if (!schemaStatus.referenceReady && !schemaStatus.isSimulated) {
+    if (!schemaStatus.referenceReady) {
       return res.status(503).json({ error: { code: 'SCHEMA_NOT_APPLIED' }, meta: { status: 'SCHEMA_NOT_APPLIED' } });
     }
 
@@ -121,7 +119,7 @@ const getInstrumentDetail = async (req, res) => {
     if (!instrument) return res.status(404).json({ error: { code: 'NOT_FOUND' }, meta: { status: 'ERROR' } });
 
     let latestBar = null;
-    if (schemaStatus.dailyBarsReady || schemaStatus.isSimulated) {
+    if (schemaStatus.dailyBarsReady) {
        latestBar = await repo.findLatestDailyBar(stockCode, 'KRX');
     }
     
@@ -149,7 +147,7 @@ const getDailyBars = async (req, res) => {
     if (!/^\d{6}$/.test(stockCode)) return res.status(400).json({ error: { code: 'INVALID_CODE' }, meta: { status: 'ERROR' } });
 
     const { schemaStatus } = await getSystemReadiness(req);
-    if (!schemaStatus.dailyBarsReady && !schemaStatus.isSimulated) {
+    if (!schemaStatus.dailyBarsReady) {
       return res.status(503).json({ error: { code: 'SCHEMA_NOT_APPLIED' }, meta: { status: 'SCHEMA_NOT_APPLIED' } });
     }
 
@@ -176,7 +174,7 @@ const getSnapshots = async (req, res) => {
     if (!/^\d{6}$/.test(stockCode)) return res.status(400).json({ error: { code: 'INVALID_CODE' }, meta: { status: 'ERROR' } });
 
     const { schemaStatus } = await getSystemReadiness(req);
-    if (!schemaStatus.snapshotsReady && !schemaStatus.isSimulated) {
+    if (!schemaStatus.snapshotsReady) {
       return res.status(503).json({ error: { code: 'SCHEMA_NOT_APPLIED' }, meta: { status: 'SCHEMA_NOT_APPLIED' } });
     }
 
@@ -195,7 +193,7 @@ const getSnapshots = async (req, res) => {
 const getKoreaMarketLatest = async (req, res) => {
   try {
     const { schemaStatus } = await getSystemReadiness(req);
-    if (!schemaStatus.indicesReady && !schemaStatus.isSimulated) {
+    if (!schemaStatus.indicesReady) {
       return res.status(503).json({ error: { code: 'SCHEMA_NOT_APPLIED' }, meta: { status: 'SCHEMA_NOT_APPLIED' } });
     }
 
