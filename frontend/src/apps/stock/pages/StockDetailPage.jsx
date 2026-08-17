@@ -31,7 +31,7 @@ export default function StockDetailPage() {
           <p className="text-sm text-slate-500">{error || '데이터베이스 갱신이 필요합니다.'}</p>
         </div>
         <div className="flex gap-2 mt-4">
-          <Link to="/stock" className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-semibold transition-colors">
+          <Link to="/stock/stocks" className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-semibold transition-colors">
             이전으로
           </Link>
           <button onClick={refetch} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm">
@@ -62,7 +62,7 @@ export default function StockDetailPage() {
       <div className="flex flex-col items-center justify-center py-20">
         <div className="text-slate-500 mb-2 font-bold">찾을 수 없는 종목코드입니다: {stockCode}</div>
         <p className="text-sm text-slate-500">올바른 종목코드인지 확인해주세요.</p>
-        <Link to="/stock" className="mt-4 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-semibold transition-colors">
+        <Link to="/stock/stocks" className="mt-4 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-semibold transition-colors">
           목록으로 돌아가기
         </Link>
       </div>

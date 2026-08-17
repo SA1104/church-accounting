@@ -2,7 +2,11 @@ const assert = require('assert');
 const request = require('supertest');
 const app = require('../../server');
 const StockReadRepository = require('../../service/stock/repositories/StockReadRepository');
-const { StockMockAdapter } = require('../../service/stock/repositories/StockPostgresAdapter');
+
+class StockMockAdapter {
+  async get(sql, params) { return { has_instruments: 1, has_bars: 1, has_snapshots: 1 }; }
+  async all(sql, params) { return []; }
+}
 
 async function runTests() {
   console.log('Starting Mocked Public API Integration Tests (Supertest)...');

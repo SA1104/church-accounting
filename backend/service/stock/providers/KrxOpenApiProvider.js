@@ -40,22 +40,48 @@ class KrxOpenApiProvider extends BaseProvider {
   }
 
   async httpClient(endpoint, params = {}) {
-    if (this.config.dryRun && !this.apiKey) throw new Error('Missing Key in Dry Run');
+    if (!this.apiKey) {
+      const err = new Error('NOT_CONFIGURED');
+      err.code = 'NOT_CONFIGURED';
+      throw err;
+    }
     let attempt = 0;
     while (attempt < MAX_RETRIES) {
+      let timeoutId;
       try {
         const url = new URL(KRX_BASE_URL + endpoint);
         Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+        timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
         const response = await fetch(url.toString(), { headers: { [KRX_API.authHeader]: this.apiKey }, signal: controller.signal });
         clearTimeout(timeoutId);
-        if (!response.ok) throw new Error('HTTP ' + response.status);
-        if ((response.headers.get('content-type') || '').includes('text/html')) throw new Error('INVALID_RESPONSE: Received HTML');
+        
+        if (!response.ok) {
+          const err = new Error('HTTP ' + response.status);
+          err.status = response.status;
+          throw err;
+        }
+        
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('text/html')) {
+           const err = new Error('INVALID_RESPONSE_HTML');
+           err.status = 502; // Treat as upstream error (retryable)
+           throw err;
+        }
         return await response.json();
       } catch (err) {
+        if (timeoutId) clearTimeout(timeoutId);
+        
+        // Retry logic
+        const isRetryable = err.name === 'AbortError' || 
+                           (err.status === 429) || 
+                           (err.status >= 500 && err.status < 600);
+                           
+        if (!isRetryable || attempt >= MAX_RETRIES - 1) {
+          throw err;
+        }
+        
         attempt++;
-        if (attempt >= MAX_RETRIES) throw err;
         await new Promise(res => setTimeout(res, Math.pow(2, attempt) * 1000 + Math.random() * 500));
       }
     }
@@ -94,15 +120,46 @@ class KrxOpenApiProvider extends BaseProvider {
   }
 
   normalizeInstrumentResponse(rawData, meta, market) {
+    const accepted = [];
+    const rejected = [];
+    
+    for (const i of rawData) {
+      if (!i.ISU_SRT_CD || !i.ISU_ABBRV) {
+        rejected.push({ raw: i, reason: 'Missing required fields (stock_code, instrument_name)' });
+        continue;
+      }
+      
+      const marketPrefix = market === 'KOSDAQ' ? 'KOSDAQ' : 'KOSPI';
+      
+      let listingDate = null;
+      if (i.LIST_DD) {
+        listingDate = i.LIST_DD.replace(/\//g, '-');
+        if (listingDate.length !== 10) listingDate = null;
+      }
+      
+      accepted.push({
+        stock_code: String(i.ISU_SRT_CD).trim(),
+        instrument_name: String(i.ISU_ABBRV).trim(),
+        instrument_name_en: i.ISU_ENG_NM ? String(i.ISU_ENG_NM).trim() : null,
+        primary_market_code: 'KRX_' + marketPrefix,
+        currency_code: 'KRW',
+        listing_date: listingDate,
+        delisting_date: null,
+        is_active: true,
+        source_code: this.providerCode
+      });
+    }
+
     return {
       providerCode: this.providerCode,
       requestedAt: new Date().toISOString(),
       receivedAt: new Date().toISOString(),
       asOfAt: meta.asOfAt,
       isFinal: true,
-      records: rawData.map(i => ({ stockCode: String(i.ISU_SRT_CD), instrumentName: i.ISU_ABBRV, marketCode: 'KRX_' + market, securityType: 'COMMON', currencyCode: 'KRW' })),
+      records: accepted,
+      rejected: rejected,
       warnings: meta.error ? [meta.error] : [],
-      fixtureMeta: {
+      fixtureMeta: meta.fixture ? {
         fixtureSource: this.providerCode,
         apiId: meta.apiId,
         productionUrlPattern: 'https://data-dbg.krx.co.kr/svc/apis/sto/' + meta.apiId,
@@ -111,7 +168,7 @@ class KrxOpenApiProvider extends BaseProvider {
         capturedAt: new Date().toISOString().split('T')[0],
         isSynthetic: true,
         syntheticReason: 'numeric values anonymized'
-      }
+      } : undefined
     };
   }
 

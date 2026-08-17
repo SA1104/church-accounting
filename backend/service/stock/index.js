@@ -4,6 +4,7 @@
 const express = require('express');
 const router = express.Router();
 const { query } = require('../../core/db');
+const { requireRole } = require('../../core/auth');
 
 // In-memory fallback if DB table doesn't have records
 let researchStore = [
@@ -225,6 +226,30 @@ router.post('/research', async (req, res) => {
   } catch (err) {
     console.error('[Stock research save] Error:', err);
     res.status(500).json({ message: 'Error processing research request' });
+  }
+});
+
+// GET /api/stock/admin/status
+router.get('/admin/status', requireRole(['SYSTEM_ADMIN', 'ADMIN', 'super_admin'], 'stock_think'), async (req, res) => {
+  try {
+    const krxKey = process.env.KRX_API_KEY;
+    const isConfigured = !!krxKey && krxKey !== 'your_api_key_here';
+    
+    // Check DB health
+    const dbCheck = await query.get('SELECT 1 as is_alive');
+    const isDbAlive = dbCheck && dbCheck.is_alive === 1;
+    
+    res.json({
+      status: 'SUCCESS',
+      data: {
+        health: isDbAlive ? 'UP' : 'DOWN',
+        config: isConfigured ? 'CONFIGURED' : 'NOT_CONFIGURED',
+        lastRunAt: null
+      }
+    });
+  } catch (err) {
+    console.error('[Admin Status Error]', err);
+    res.status(500).json({ status: 'ERROR', message: 'Internal Server Error' });
   }
 });
 

@@ -49,7 +49,12 @@ export default function StockSearchPage() {
         )}
 
         {status === 'loading' && (
-          <div className="flex justify-center p-8"><span className="text-slate-400">Loading...</span></div>
+          <div className="flex justify-center p-12">
+            <div className="animate-pulse flex flex-col items-center gap-3">
+              <div className="h-8 w-8 border-4 border-slate-200 border-t-slate-500 rounded-full animate-spin"></div>
+              <span className="text-slate-400 text-sm font-semibold">검색 중...</span>
+            </div>
+          </div>
         )}
 
         {status === 'data_not_ready' && (

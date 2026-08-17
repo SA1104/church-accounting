@@ -11,10 +11,15 @@ export default function StockAdminPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/stock/health');
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/stock/admin/status', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setHealth(data);
+      const result = await res.json();
+      setHealth(result);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -63,17 +68,10 @@ export default function StockAdminPage() {
               <Activity size={18} className="text-indigo-600" /> System Status
             </h2>
             <div className="flex justify-between items-center py-2">
-              <span className="text-sm text-slate-600 font-semibold">Overall API</span>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold px-2 py-1 bg-slate-100 rounded text-slate-700">{health.data.api}</span>
-                <StatusIcon status={health.data.api} />
-              </div>
-            </div>
-            <div className="flex justify-between items-center py-2">
               <span className="text-sm text-slate-600 font-semibold">Database Connection</span>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold px-2 py-1 bg-slate-100 rounded text-slate-700">{health.data.database}</span>
-                <StatusIcon status={health.data.database} />
+                <span className="text-xs font-bold px-2 py-1 bg-slate-100 rounded text-slate-700">{health.data.health}</span>
+                <StatusIcon status={health.data.health === 'UP' ? 'READY' : 'DOWN'} />
               </div>
             </div>
           </div>
@@ -83,17 +81,10 @@ export default function StockAdminPage() {
               <LayoutTemplate size={18} className="text-indigo-600" /> Data Pipeline
             </h2>
             <div className="flex justify-between items-center py-2">
-              <span className="text-sm text-slate-600 font-semibold">Schema Applied</span>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold px-2 py-1 bg-slate-100 rounded text-slate-700">{health.data.schema}</span>
-                <StatusIcon status={health.data.schema} />
-              </div>
-            </div>
-            <div className="flex justify-between items-center py-2">
               <span className="text-sm text-slate-600 font-semibold">API Providers Configured</span>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold px-2 py-1 bg-slate-100 rounded text-slate-700">{health.data.provider}</span>
-                <StatusIcon status={health.data.provider} />
+                <span className="text-xs font-bold px-2 py-1 bg-slate-100 rounded text-slate-700">{health.data.config}</span>
+                <StatusIcon status={health.data.config} />
               </div>
             </div>
           </div>
