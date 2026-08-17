@@ -58,7 +58,7 @@ class StockReadRepository {
   }
 
   async searchInstruments(options = {}) {
-    let sql = `SELECT stock_code, instrument_name, market_code 
+    let sql = `SELECT stock_code, instrument_name, primary_market_code as market_code
                FROM stock_instruments 
                WHERE is_active = true`;
     const params = [];
@@ -69,11 +69,11 @@ class StockReadRepository {
     }
     
     if (options.market) {
-      sql += ` AND market_code = ?`;
+      sql += ` AND primary_market_code = ?`;
       params.push(options.market);
     }
     
-    const allowedSort = ['stock_code', 'instrument_name', 'market_code'];
+    const allowedSort = ['stock_code', 'instrument_name', 'primary_market_code'];
     const sort = allowedSort.includes(options.sort) ? options.sort : 'stock_code';
     const order = options.order === 'desc' ? 'DESC' : 'ASC';
     sql += ` ORDER BY ${sort} ${order}`;
@@ -87,7 +87,7 @@ class StockReadRepository {
   }
 
   async findInstrumentByStockCode(stockCode) {
-    const sql = `SELECT stock_code, instrument_name, market_code, security_type, currency_code 
+    const sql = `SELECT stock_code, instrument_name, primary_market_code as market_code, security_type, currency_code
                  FROM stock_instruments 
                  WHERE stock_code = ?`;
     return this.db.get(sql, [stockCode]);

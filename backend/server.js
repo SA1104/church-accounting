@@ -292,6 +292,7 @@ app.use('/api/platform/preferences', require('./service/platform/preferences'));
 app.use('/api/platform/users', require('./service/platform/users'));
 app.use('/api/platform/admin/users', require('./core/admin/users'));
 app.use('/api/church', churchServiceRouter);
+app.use('/api/stock', require('./service/stock/routes/publicStockRoutes'));
 app.use('/api/stock', authenticateToken, stockServiceRouter);
 app.use('/api/estate', authenticateToken, estateServiceRouter);
 app.use('/api/mission', authenticateToken, missionServiceRouter);
