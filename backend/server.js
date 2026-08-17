@@ -72,6 +72,7 @@ const resendConfirmationLimiter = rateLimit({
 });
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
@@ -122,40 +123,18 @@ app.post('/api/auth/login', login);
 app.post('/api/auth/signup', signup);
 app.post('/api/auth/change-password', authenticateToken, changePassword);
 app.post('/api/auth/forgot-password', forgotPasswordLimiter, forgotPassword);
-const authClientCalls = [];
+const authClient = require('./core/auth').supabasePublic?.auth;
 
-const authClient = process.env.NODE_ENV === 'test' 
-  ? { resend: async (args) => {
-      authClientCalls.push({ method: 'resend', args });
-      const { email } = args || {};
-      if (email === '429@example.invalid') return { error: { status: 429, message: 'Rate limit' } };
-      if (email === '500@example.invalid') return { error: { status: 500, message: 'Server error' } };
-      return (email && email.endsWith('.invalid')) ? { data: {} } : { error: { message: 'Real test not allowed' } };
-    }}
-  : require('./core/auth').supabasePublic?.auth;
-
-if (process.env.NODE_ENV === 'test') {
-  app.get('/api/test/auth-mock-calls', (req, res) => res.json(authClientCalls));
-  app.post('/api/test/auth-mock-calls/reset', (req, res) => {
-    authClientCalls.length = 0;
-    res.json({ success: true });
+app.post('/api/auth/resend-confirmation', resendConfirmationLimiter, (req, res, next) => {
+  // Use app.locals.authClient if provided (e.g., in integration tests), fallback to real authClient
+  const clientToUse = req.app.locals.authClient || authClient;
+  const handler = createResendConfirmationHandler({
+    authClient: clientToUse,
+    logger: console.log,
+    redirectResolver: getResendRedirectUrl
   });
-  
-  app.get('/api/test/stock-mock-calls', (req, res) => {
-    const calls = global.stockMockCalls || [];
-    res.json(calls);
-  });
-  app.post('/api/test/stock-mock-calls/reset', (req, res) => {
-    global.stockMockCalls = [];
-    res.json({ success: true });
-  });
-}
-
-app.post('/api/auth/resend-confirmation', resendConfirmationLimiter, createResendConfirmationHandler({
-  authClient: authClient,
-  logger: console.log,
-  redirectResolver: getResendRedirectUrl
-}));
+  return handler(req, res, next);
+});
 
 // Passkey/WebAuthn API
 app.post('/api/auth/passkey/register/options', authenticateToken, getRegisterOptions);
@@ -1515,4 +1494,8 @@ async function startServer() {
   }
 }
 
-startServer();
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = app;

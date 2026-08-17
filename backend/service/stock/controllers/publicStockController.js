@@ -1,8 +1,14 @@
 const StockReadRepository = require('../repositories/StockReadRepository');
 
-const repo = new StockReadRepository();
+const getRepo = (req) => {
+  if (req && req.app && req.app.locals && req.app.locals.stockReadRepo) {
+    return req.app.locals.stockReadRepo;
+  }
+  return new StockReadRepository();
+};
 
-const getSystemReadiness = async () => {
+const getSystemReadiness = async (req) => {
+  const repo = getRepo(req);
   const schemaStatus = await repo.checkSchemaAvailability();
   
   const hasDbConfig = !!process.env.DATABASE_URL;
@@ -37,7 +43,7 @@ const getSystemReadiness = async () => {
 };
 
 const checkSchema = async (req, res, next) => {
-  const { readinessState, schemaStatus } = await getSystemReadiness();
+  const { readinessState, schemaStatus } = await getSystemReadiness(req);
   
   if (readinessState !== 'READY' && readinessState !== 'PROVIDER_NOT_CONFIGURED') {
     if (!schemaStatus.isSimulated) {
@@ -51,7 +57,7 @@ const checkSchema = async (req, res, next) => {
 };
 
 const getHealth = async (req, res) => {
-  const { schemaStatus, readinessState, dbState, hasProviderKey } = await getSystemReadiness();
+  const { schemaStatus, readinessState, dbState, hasProviderKey } = await getSystemReadiness(req);
   
   const isDegraded = readinessState !== 'READY';
   
@@ -76,11 +82,12 @@ const searchInstruments = async (req, res) => {
     const { q, market, sort, order, page, limit } = req.query;
     if (q && q.length > 50) return res.status(400).json({ error: { code: 'INVALID_QUERY', message: 'Query too long' }, meta: { status: 'ERROR' } });
     
-    const { schemaStatus } = await getSystemReadiness();
+    const { schemaStatus } = await getSystemReadiness(req);
     if (!schemaStatus.referenceReady && !schemaStatus.isSimulated) {
       return res.status(503).json({ error: { code: 'SCHEMA_NOT_APPLIED' }, meta: { status: 'SCHEMA_NOT_APPLIED' } });
     }
 
+    const repo = getRepo(req);
     const records = await repo.searchInstruments({ q, market, sort, order, page: parseInt(page) || 1, limit: parseInt(limit) || 20 });
     
     if (!records || records.length === 0) {
@@ -104,11 +111,12 @@ const getInstrumentDetail = async (req, res) => {
     const { stockCode } = req.params;
     if (!/^\d{6}$/.test(stockCode)) return res.status(400).json({ error: { code: 'INVALID_CODE' }, meta: { status: 'ERROR' } });
 
-    const { schemaStatus } = await getSystemReadiness();
+    const { schemaStatus } = await getSystemReadiness(req);
     if (!schemaStatus.referenceReady && !schemaStatus.isSimulated) {
       return res.status(503).json({ error: { code: 'SCHEMA_NOT_APPLIED' }, meta: { status: 'SCHEMA_NOT_APPLIED' } });
     }
 
+    const repo = getRepo(req);
     const instrument = await repo.findInstrumentByStockCode(stockCode);
     if (!instrument) return res.status(404).json({ error: { code: 'NOT_FOUND' }, meta: { status: 'ERROR' } });
 
@@ -140,11 +148,12 @@ const getDailyBars = async (req, res) => {
     
     if (!/^\d{6}$/.test(stockCode)) return res.status(400).json({ error: { code: 'INVALID_CODE' }, meta: { status: 'ERROR' } });
 
-    const { schemaStatus } = await getSystemReadiness();
+    const { schemaStatus } = await getSystemReadiness(req);
     if (!schemaStatus.dailyBarsReady && !schemaStatus.isSimulated) {
       return res.status(503).json({ error: { code: 'SCHEMA_NOT_APPLIED' }, meta: { status: 'SCHEMA_NOT_APPLIED' } });
     }
 
+    const repo = getRepo(req);
     const bars = await repo.findDailyBars(stockCode, { from, to, venue, limit: parseInt(limit) || 100 });
     
     if (!bars || bars.length === 0) {
@@ -166,11 +175,12 @@ const getSnapshots = async (req, res) => {
     const { stockCode } = req.params;
     if (!/^\d{6}$/.test(stockCode)) return res.status(400).json({ error: { code: 'INVALID_CODE' }, meta: { status: 'ERROR' } });
 
-    const { schemaStatus } = await getSystemReadiness();
+    const { schemaStatus } = await getSystemReadiness(req);
     if (!schemaStatus.snapshotsReady && !schemaStatus.isSimulated) {
       return res.status(503).json({ error: { code: 'SCHEMA_NOT_APPLIED' }, meta: { status: 'SCHEMA_NOT_APPLIED' } });
     }
 
+    const repo = getRepo(req);
     const snapshots = await repo.findLatestSessionSnapshots(stockCode);
     res.setHeader('Cache-Control', 'no-store');
     res.json({
@@ -184,11 +194,12 @@ const getSnapshots = async (req, res) => {
 
 const getKoreaMarketLatest = async (req, res) => {
   try {
-    const { schemaStatus } = await getSystemReadiness();
+    const { schemaStatus } = await getSystemReadiness(req);
     if (!schemaStatus.indicesReady && !schemaStatus.isSimulated) {
       return res.status(503).json({ error: { code: 'SCHEMA_NOT_APPLIED' }, meta: { status: 'SCHEMA_NOT_APPLIED' } });
     }
 
+    const repo = getRepo(req);
     const summary = await repo.findLatestKoreaMarketSummary();
     if (!summary || (!summary.kospi && !summary.kosdaq)) {
       return res.json({

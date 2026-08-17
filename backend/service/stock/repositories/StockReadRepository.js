@@ -3,12 +3,7 @@ const { StockPostgresAdapter, StockMockAdapter } = require('./StockPostgresAdapt
 
 class StockReadRepository {
   constructor(options = {}) {
-    // Inject mock if test env, else use Postgres
-    if (process.env.NODE_ENV === 'test') {
-      this.db = options.db || new StockMockAdapter();
-    } else {
-      this.db = new StockPostgresAdapter(pool);
-    }
+    this.db = options.db || new StockPostgresAdapter(pool);
   }
 
   async checkSchemaAvailability() {
