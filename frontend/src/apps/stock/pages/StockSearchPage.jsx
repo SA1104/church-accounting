@@ -34,9 +34,9 @@ export default function StockSearchPage() {
         
         <div className="flex justify-between items-center flex-wrap gap-2 pt-2">
           <StockFilterBar filters={filters} activeFilter={marketFilter} onFilterChange={setMarketFilter} />
-          {meta?.asOfAt && (
+          {meta?.asOfDate && (
             <DataFreshnessBadge 
-              timestamp={meta.asOfAt} 
+              timestamp={meta.asOfDate} 
               status={meta.freshnessStatus || 'UNKNOWN'}
             />
           )}

@@ -95,13 +95,41 @@ const searchInstruments = async (req, res) => {
       });
     }
 
-    const asOfAt = records && records.length > 0 && records[0].base_date 
-      ? records[0].base_date.toISOString() 
-      : new Date().toISOString();
+    const mappedRecords = records.map(r => {
+      // Ensure numeric parsing if they come back as strings or nulls
+      const closePrice = r.close_price != null ? Number(r.close_price) : null;
+      const changeAmount = r.change_amount != null ? Number(r.change_amount) : null;
+      const changeRate = r.change_rate != null ? Number(r.change_rate) : null;
+      const volume = r.volume != null ? Number(r.volume) : null;
+      const marketCap = r.market_cap != null ? Number(r.market_cap) : null;
+      const tradeDate = r.base_date ? r.base_date.toISOString().split('T')[0] : null;
+
+      return {
+        stockCode: r.stock_code,
+        instrumentName: r.instrument_name,
+        marketCode: r.market_code,
+        closePrice,
+        changeAmount,
+        changeRate,
+        volume,
+        marketCap,
+        tradeDate
+      };
+    });
+
+    const asOfDate = mappedRecords.length > 0 && mappedRecords[0].tradeDate 
+      ? mappedRecords[0].tradeDate 
+      : new Date().toISOString().split('T')[0];
 
     res.json({
-      data: records,
-      meta: { status: 'OK', asOfAt, sources: ['KRX_OPEN_API'], evidenceType: 'FACT' }
+      data: mappedRecords,
+      meta: { 
+        status: 'OK', 
+        asOfDate, 
+        dataType: 'END_OF_DAY', 
+        sources: ['KRX_OPEN_API'], 
+        evidenceType: 'FACT' 
+      }
     });
   } catch (e) {
     res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' }, meta: { status: 'ERROR' } });
