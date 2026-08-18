@@ -53,23 +53,41 @@ class StockReadRepository {
   }
 
   async searchInstruments(options = {}) {
-    let sql = `SELECT stock_code, instrument_name, primary_market_code as market_code
-               FROM stock_instruments 
-               WHERE is_active = true`;
+    let sql = `
+      SELECT 
+        i.stock_code, 
+        i.instrument_name, 
+        i.primary_market_code as market_code,
+        db.close_price,
+        db.change_amount,
+        db.change_rate,
+        db.volume,
+        db.market_cap,
+        db.trade_date as base_date
+      FROM stock_instruments i
+      LEFT JOIN LATERAL (
+        SELECT close_price, change_amount, change_rate, volume, market_cap, trade_date
+        FROM stock_daily_bars
+        WHERE instrument_id = i.id
+        ORDER BY trade_date DESC
+        LIMIT 1
+      ) db ON true
+      WHERE i.is_active = true
+    `;
     const params = [];
 
     if (options.q) {
-      sql += ` AND (instrument_name LIKE ? OR stock_code LIKE ?)`;
+      sql += ` AND (i.instrument_name LIKE ? OR i.stock_code LIKE ?)`;
       params.push(`%${options.q}%`, `%${options.q}%`);
     }
     
     if (options.market) {
-      sql += ` AND primary_market_code = ?`;
+      sql += ` AND i.primary_market_code = ?`;
       params.push(options.market);
     }
     
     const allowedSort = ['stock_code', 'instrument_name', 'primary_market_code'];
-    const sort = allowedSort.includes(options.sort) ? options.sort : 'stock_code';
+    const sort = allowedSort.includes(options.sort) ? `i.${options.sort}` : 'i.stock_code';
     const order = options.order === 'desc' ? 'DESC' : 'ASC';
     sql += ` ORDER BY ${sort} ${order}`;
     

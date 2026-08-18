@@ -42,11 +42,7 @@ export default function StockSearchPage() {
           )}
         </div>
 
-        {isMockMode() && (
-          <div className="bg-indigo-50 text-indigo-700 text-xs px-3 py-2 rounded-lg border border-indigo-200 mb-2 font-semibold shadow-sm">
-            UI 예시 · 실제 시장 데이터가 아닙니다
-          </div>
-        )}
+
 
         {status === 'loading' && (
           <div className="flex justify-center p-12">

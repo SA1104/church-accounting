@@ -95,9 +95,13 @@ const searchInstruments = async (req, res) => {
       });
     }
 
+    const asOfAt = records && records.length > 0 && records[0].base_date 
+      ? records[0].base_date.toISOString() 
+      : new Date().toISOString();
+
     res.json({
       data: records,
-      meta: { status: 'OK', asOfAt: new Date().toISOString(), sources: ['KRX_OPEN_API'], evidenceType: 'FACT' }
+      meta: { status: 'OK', asOfAt, sources: ['KRX_OPEN_API'], evidenceType: 'FACT' }
     });
   } catch (e) {
     res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' }, meta: { status: 'ERROR' } });

@@ -13,10 +13,11 @@ export function MarketStatusBadge({ status }) {
 }
 
 export function DataFreshnessBadge({ timestamp }) {
+  const displayDate = timestamp ? new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date(timestamp)) : '';
   return (
     <div className="flex items-center gap-1 text-[10px] text-slate-600 font-semibold bg-white border border-slate-200 px-2 py-1 rounded-full shadow-sm">
       <Activity size={10} className="text-indigo-500" />
-      <span>{timestamp ? new Date(timestamp).toLocaleTimeString() : '데이터 연결 대기'}</span>
+      <span>{timestamp ? `데이터 기준일 ${displayDate}` : '데이터 연결 대기'}</span>
     </div>
   );
 }
