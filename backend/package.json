@@ -14,7 +14,7 @@
     "stock:fsc:sync-master": "node service/stock/cli/syncFsc.js sync-master",
     "stock:fsc:sync-daily": "node service/stock/cli/syncFsc.js sync-daily",
     "test:auth": "node tests/auth/resendConfirmation.test.js",
-    "test:stock": "node tests/stock/postgresAdapter.test.js && node tests/stock/publicApiContracts.test.js && node tests/stock/providerContracts.test.js && node tests/stock/publicApiIntegration.test.js",
+    "test:stock": "node tests/stock/postgresAdapter.test.js && node tests/stock/StockRepository.test.js && node tests/stock/publicApiContracts.test.js && node tests/stock/providerContracts.test.js && node tests/stock/publicApiIntegration.test.js",
     "test:contracts": "node tests/stock/publicApiContracts.test.js && node tests/stock/providerContracts.test.js"
   },
   "dependencies": {

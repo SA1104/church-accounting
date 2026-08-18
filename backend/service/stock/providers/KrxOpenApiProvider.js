@@ -137,11 +137,18 @@ class KrxOpenApiProvider extends BaseProvider {
         if (listingDate.length !== 10) listingDate = null;
       }
       
+      let secType = 'COMMON';
+      if (i.SECUGRP_NM === 'ETF') secType = 'ETF';
+      else if (i.SECUGRP_NM === 'ETN') secType = 'ETN';
+      else if (i.KIND_STKCERT_TP_NM && i.KIND_STKCERT_TP_NM.includes('우선주')) secType = 'PREFERRED';
+      else if (String(i.ISU_SRT_CD).match(/[^0]$/)) secType = 'PREFERRED'; // KRX standard: non-0 ending means preferred
+
       accepted.push({
         stock_code: String(i.ISU_SRT_CD).trim(),
         instrument_name: String(i.ISU_ABBRV).trim(),
         instrument_name_en: i.ISU_ENG_NM ? String(i.ISU_ENG_NM).trim() : null,
         primary_market_code: 'KRX_' + marketPrefix,
+        security_type: secType,
         currency_code: 'KRW',
         listing_date: listingDate,
         delisting_date: null,

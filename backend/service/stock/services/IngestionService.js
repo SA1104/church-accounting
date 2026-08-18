@@ -28,7 +28,8 @@ class IngestionService {
     }
 
     try {
-      const result = await this.provider.fetchInstruments({ fixture: options.fixture, market: 'KOSPI' });
+      const market = options.market || 'KOSPI';
+      const result = await this.provider.fetchInstruments({ fixture: options.fixture, market });
       
       const rawCount = result.records ? result.records.length : 0;
       const rejectedCount = result.rejected ? result.rejected.length : 0;

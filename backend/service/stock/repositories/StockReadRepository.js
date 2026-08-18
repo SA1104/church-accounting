@@ -90,9 +90,10 @@ class StockReadRepository {
 
   async findLatestDailyBar(stockCode, venueCode = 'KRX') {
     const sql = `
-      SELECT trade_date, open_price, high_price, low_price, close_price, volume, trading_value, is_final, source_code 
-      FROM stock_daily_bars 
-      WHERE stock_code = ? AND venue_code = ? 
+      SELECT trade_date, open_price, high_price, low_price, close_price, volume, trading_value, is_final, null as source_code 
+      FROM stock_daily_bars db
+      JOIN stock_instruments i ON db.instrument_id = i.id
+      WHERE i.stock_code = ? AND db.venue_code = ? 
       ORDER BY trade_date DESC, is_final DESC 
       LIMIT 1
     `;
@@ -102,8 +103,9 @@ class StockReadRepository {
   async findDailyBars(stockCode, options = {}) {
     let sql = `
       SELECT trade_date, open_price, high_price, low_price, close_price, volume, trading_value, is_final 
-      FROM stock_daily_bars 
-      WHERE stock_code = ? AND venue_code = ?
+      FROM stock_daily_bars db
+      JOIN stock_instruments i ON db.instrument_id = i.id
+      WHERE i.stock_code = ? AND db.venue_code = ?
     `;
     const params = [stockCode, options.venue || 'KRX'];
 
@@ -135,8 +137,9 @@ class StockReadRepository {
   async findLatestSessionSnapshots(stockCode) {
     const sql = `
       SELECT venue_code, session_code, close_price, snapshot_at, is_final 
-      FROM stock_session_snapshots 
-      WHERE stock_code = ? 
+      FROM stock_session_snapshots ss
+      JOIN stock_instruments i ON ss.instrument_id = i.id
+      WHERE i.stock_code = ? 
       ORDER BY snapshot_at DESC 
       LIMIT 5
     `;
