@@ -43,8 +43,8 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 });
 
 // Auto detect sandboxed mode
-if (SUPABASE_URL.includes('your-supabase-project') || SUPABASE_URL.includes('booza-think')) {
-  console.log('[Platform DB] Dummy Supabase URL detected. Enabling Local Mock Database mode.');
+if (process.env.NODE_ENV === 'test' && !process.env.DATABASE_URL) {
+  console.log('[Platform DB] Test environment detected without DATABASE_URL. Enabling Local Mock Database mode.');
   useMocks = true;
 }
 

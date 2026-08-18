@@ -66,7 +66,7 @@ class StockReadRepository {
         db.trade_date as base_date
       FROM stock_instruments i
       LEFT JOIN LATERAL (
-        SELECT close_price, change_amount, change_rate, volume, market_cap, trade_date
+        SELECT close_price, change_amount, change_rate, volume, market_cap, TO_CHAR(trade_date, 'YYYY-MM-DD') as trade_date
         FROM stock_daily_bars
         WHERE instrument_id = i.id
         ORDER BY trade_date DESC
@@ -108,7 +108,7 @@ class StockReadRepository {
 
   async findLatestDailyBar(stockCode, venueCode = 'KRX') {
     const sql = `
-      SELECT trade_date, open_price, high_price, low_price, close_price, volume, trading_value, is_final, null as source_code 
+      SELECT TO_CHAR(trade_date, 'YYYY-MM-DD') AS trade_date, open_price, high_price, low_price, close_price, volume, trading_value, is_final, null as source_code 
       FROM stock_daily_bars db
       JOIN stock_instruments i ON db.instrument_id = i.id
       WHERE i.stock_code = ? AND db.venue_code = ? 
@@ -120,7 +120,7 @@ class StockReadRepository {
 
   async findDailyBars(stockCode, options = {}) {
     let sql = `
-      SELECT trade_date, open_price, high_price, low_price, close_price, volume, trading_value, is_final 
+      SELECT TO_CHAR(trade_date, 'YYYY-MM-DD') AS trade_date, open_price, high_price, low_price, close_price, volume, trading_value, is_final 
       FROM stock_daily_bars db
       JOIN stock_instruments i ON db.instrument_id = i.id
       WHERE i.stock_code = ? AND db.venue_code = ?
@@ -147,7 +147,7 @@ class StockReadRepository {
       SELECT 
         (SELECT close_index FROM stock_index_daily_bars WHERE index_code = 'KOSPI' ORDER BY trade_date DESC LIMIT 1) as kospi,
         (SELECT close_index FROM stock_index_daily_bars WHERE index_code = 'KOSDAQ' ORDER BY trade_date DESC LIMIT 1) as kosdaq,
-        (SELECT trade_date FROM stock_index_daily_bars WHERE index_code = 'KOSPI' ORDER BY trade_date DESC LIMIT 1) as latest_trade_date
+        (SELECT TO_CHAR(trade_date, 'YYYY-MM-DD') AS trade_date FROM stock_index_daily_bars WHERE index_code = 'KOSPI' ORDER BY trade_date DESC LIMIT 1) as latest_trade_date
     `;
     return this.db.get(sql);
   }

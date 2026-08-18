@@ -102,7 +102,7 @@ const searchInstruments = async (req, res) => {
       const changeRate = r.change_rate != null ? Number(r.change_rate) : null;
       const volume = r.volume != null ? Number(r.volume) : null;
       const marketCap = r.market_cap != null ? Number(r.market_cap) : null;
-      const tradeDate = r.base_date ? r.base_date.toISOString().split('T')[0] : null;
+      const tradeDate = r.base_date || null;
 
       return {
         stockCode: r.stock_code,

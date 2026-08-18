@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: booza-think-staging
+    env: node
+    buildCommand: cd frontend && npm install && npm run build && cd ../backend && npm install
+    startCommand: cd backend && node server.js
+    healthCheckPath: /__platform_health_check__
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_ENV
+        value: staging
+      - key: STOCK_WRITE_TARGET
+        value: disabled
+      - key: ALLOW_STOCK_DATA_WRITE
+        value: false
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: KRX_OPEN_API_AUTH_KEY
+        sync: false

@@ -212,6 +212,26 @@ app.get('/__platform_health_check__', async (req, res) => {
   });
 });
 
+app.get('/api/version', (req, res) => {
+  let commitSha = process.env.RENDER_GIT_COMMIT || 'unknown';
+  let branch = process.env.RENDER_GIT_BRANCH || 'unknown';
+  try {
+    if (commitSha === 'unknown') {
+      commitSha = require('child_process').execSync('git rev-parse HEAD').toString().trim();
+    }
+    if (branch === 'unknown') {
+      branch = require('child_process').execSync('git rev-parse --abbrev-ref HEAD').toString().trim();
+    }
+  } catch (e) {}
+
+  res.status(200).json({
+    appEnv: process.env.APP_ENV || 'development',
+    branch: branch,
+    commitSha: commitSha,
+    stockDbMode: (process.env.NODE_ENV === 'test' && !process.env.DATABASE_URL) ? 'MOCK' : 'CONNECTED'
+  });
+});
+
 // OLD: app.get('/api/churches', ...) — now served under /api/church router
 // For backward compat only, the church service router handles GET /
 app.get('/api/churches', async (req, res) => {
