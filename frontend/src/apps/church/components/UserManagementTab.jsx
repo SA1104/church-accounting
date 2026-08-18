@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, Users, Shield, UserX, Key, RefreshCw, X, ChevronRight, AlertTriangle } from 'lucide-react';
-import apiClient from '../../../../utils/apiClient';
+import { apiClient } from '../../../core/api';
 
 function UserManagementTab({ isAdminOrAuditor }) {
   const [users, setUsers] = useState([]);
