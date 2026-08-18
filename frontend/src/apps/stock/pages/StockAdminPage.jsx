@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ShieldCheck, Database, LayoutTemplate, Key, Activity, RefreshCw } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ShieldCheck, LayoutTemplate, Activity, RefreshCw } from 'lucide-react';
 
 export default function StockAdminPage() {
   const [health, setHealth] = useState(null);
