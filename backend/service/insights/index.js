@@ -9,11 +9,11 @@ initCron();
 
 // DEBUG ROUTE (Temporary)
 router.get('/debug', async (req, res) => {
-  const { supabase } = require('../../core/db');
+  const { query } = require('../../core/db');
   const sql = `SELECT * FROM market_insights ORDER BY created_at DESC LIMIT 5`;
-  const { data, error } = await supabase.rpc('exec_sql', { query_text: sql, params: [] });
-  if (error) {
-    return res.status(500).json({ status: 'error', error: error.message, details: error });
+  const data = await query.all(sql, []);
+  if (!data || data.length === 0) {
+    return res.status(500).json({ status: 'error', message: 'No data returned or query failed' });
   }
   return res.json({ status: 'ok', data });
 });
