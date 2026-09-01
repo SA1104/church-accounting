@@ -2,6 +2,10 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../../core/db');
 const { authenticateToken } = require('../../core/auth');
+const { initCron } = require('./cron');
+
+// Initialize the background cron job for AI insights
+initCron();
 
 // GET /api/services/insights?category=...
 router.get('/', authenticateToken, async (req, res) => {
