@@ -12,7 +12,10 @@ async function initModuleDb() {
     const check = await query.get("SELECT to_regclass('public.market_insights') AS exists");
     if (!check || !check.exists) {
       console.log('[Insights DB] Table does not exist. Executing migration script...');
-      await query.run(sql);
+      const statements = sql.split(';').map(s => s.trim()).filter(s => s.length > 0);
+      for (const stmt of statements) {
+        await query.run(stmt);
+      }
       console.log('[Insights DB] Migration successful.');
     } else {
       console.log('[Insights DB] Schema already exists. Checking for dummy data...');
@@ -29,6 +32,27 @@ async function initModuleDb() {
         `);
       }
     }
+    
+    // Safety check: ensure insight_reactions table exists (if previous run crashed midway)
+    const checkReact = await query.get("SELECT to_regclass('public.insight_reactions') AS exists");
+    if (!checkReact || !checkReact.exists) {
+      console.log('[Insights DB] insight_reactions missing! Executing creation...');
+      await query.run(`
+        CREATE TABLE public.insight_reactions (
+            id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+            insight_id uuid REFERENCES public.market_insights(id) ON DELETE CASCADE,
+            user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+            reaction_type text NOT NULL,
+            created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+            UNIQUE(insight_id, user_id, reaction_type)
+        )
+      `);
+      await query.run(`ALTER TABLE public.insight_reactions ENABLE ROW LEVEL SECURITY`);
+      await query.run(`CREATE POLICY "Public can view reactions" ON public.insight_reactions FOR SELECT USING (true)`);
+      await query.run(`CREATE POLICY "Users can insert reactions" ON public.insight_reactions FOR INSERT WITH CHECK (auth.uid() = user_id)`);
+      await query.run(`CREATE POLICY "Users can delete reactions" ON public.insight_reactions FOR DELETE USING (auth.uid() = user_id)`);
+    }
+
   } catch (err) {
     console.error('[Insights DB] Schema initialization failed:', err.message);
   }
