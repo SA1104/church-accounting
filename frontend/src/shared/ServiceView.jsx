@@ -16,12 +16,12 @@ const SERVICE_META = {
 export default function ServiceView() {
   const { serviceId } = useParams();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('board');
+  const [activeTab, setActiveTab] = useState('today');
   const [isWriteModalOpen, setIsWriteModalOpen] = useState(false);
   const [newPostTitle, setNewPostTitle] = useState('');
   const [newPostContent, setNewPostContent] = useState('');
   const [posts, setPosts] = useState([]);
-  const [newsList, setNewsList] = useState([]);
+  const [insightsList, setInsightsList] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const meta = SERVICE_META[serviceId] || { title: '서비스', desc: '알 수 없는 서비스' };
@@ -29,13 +29,13 @@ export default function ServiceView() {
   const fetchPostsAndNews = async () => {
     try {
       setLoading(true);
-      const [postsRes, newsRes] = await Promise.all([
+      const [postsRes, insightsRes] = await Promise.all([
         apiClient(`/api/services/board/posts?category=${serviceId}`),
-        apiClient(`/api/services/board/news?category=${serviceId}`)
+        apiClient(`/api/services/insights?category=${serviceId}`)
       ]);
       
       if (postsRes) setPosts(postsRes);
-      if (newsRes) setNewsList(newsRes);
+      if (insightsRes) setInsightsList(insightsRes);
     } catch (err) {
       console.error('Failed to load data', err);
     } finally {
@@ -68,6 +68,24 @@ export default function ServiceView() {
     } catch (err) {
       console.error('Failed to create post', err);
       alert('게시글 등록에 실패했습니다.');
+    }
+  };
+
+  const handleInsightClick = async (insight) => {
+    // Track view
+    try {
+      await apiClient(`/api/services/insights/${insight.id}/view`, { method: 'POST' });
+    } catch (e) { console.error(e); }
+  };
+
+  const handleInsightLike = async (e, insightId) => {
+    e.stopPropagation();
+    try {
+      await apiClient(`/api/services/insights/${insightId}/like`, { method: 'POST' });
+      // Update local state to reflect like immediately
+      setInsightsList(prev => prev.map(ins => ins.id === insightId ? { ...ins, like_count: (ins.like_count || 0) + 1 } : ins));
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -110,27 +128,56 @@ export default function ServiceView() {
       </div>
 
       {/* Content Area */}
-      <div className="min-h-[500px] border border-slate-800 bg-slate-900/20 rounded-2xl p-6 relative overflow-hidden">
+      <div className="min-h-[500px] border border-slate-800 bg-slate-900/20 rounded-2xl p-4 md:p-6 relative overflow-hidden">
         {activeTab === 'today' && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <Flame size={18} className="text-rose-500" /> 실시간 핫이슈 (아웃링크 뉴스)
+              <Flame size={18} className="text-indigo-500" /> BoozaThink AI 인사이트
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {newsList.map(news => (
-                <a 
-                  key={news.id} 
-                  href={news.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 transition-colors block group"
+            <div className="grid grid-cols-1 gap-6">
+              {insightsList.length === 0 ? (
+                <div className="text-center py-10 text-slate-500 text-sm">현재 집계된 인사이트가 없습니다.</div>
+              ) : insightsList.map(insight => (
+                <div 
+                  key={insight.id} 
+                  onClick={() => handleInsightClick(insight)}
+                  className="rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 transition-colors p-5 md:p-6 group flex flex-col gap-4 cursor-pointer shadow-lg shadow-black/20"
                 >
-                  <div className="text-xs text-indigo-400 font-bold mb-1">API 수집됨</div>
-                  <div className="text-sm font-bold text-slate-200 group-hover:text-white">{news.title}</div>
-                  <div className="text-xs text-slate-500 mt-2 line-clamp-2">
-                    {news.summary}
+                  <div className="flex items-start justify-between gap-4">
+                    <h3 className="text-lg md:text-xl font-black text-slate-100 group-hover:text-white leading-tight">
+                      {insight.title}
+                    </h3>
+                    <div className="flex gap-1 flex-wrap justify-end">
+                      {insight.keywords && insight.keywords.map(kw => (
+                        <span key={kw} className="px-2.5 py-1 rounded-full bg-slate-800/80 text-xs font-bold text-indigo-300 whitespace-nowrap">#{kw}</span>
+                      ))}
+                    </div>
                   </div>
-                </a>
+                  
+                  <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800/50">
+                    <div className="text-xs font-bold text-slate-500 mb-1">FACT SUMMARY</div>
+                    <div className="text-sm text-slate-300 leading-relaxed">{insight.summary}</div>
+                  </div>
+
+                  <div className="bg-indigo-950/20 rounded-xl p-4 border border-indigo-900/30 relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-500 to-violet-500"></div>
+                    <div className="text-xs font-black text-indigo-400 mb-1 ml-2">BoozaThink IMPACT</div>
+                    <div className="text-sm font-semibold text-indigo-100 leading-relaxed ml-2">{insight.impact_analysis}</div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between mt-2 border-t border-slate-800/60 pt-4">
+                    <div className="flex gap-2">
+                      <button onClick={(e) => handleInsightLike(e, insight.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 transition-colors text-xs font-bold">
+                        <ThumbsUp size={14} /> 공감 {insight.like_count || 0}
+                      </button>
+                    </div>
+                    <div className="text-xs text-slate-500 flex items-center gap-2">
+                      조회수 {insight.view_count || 0}
+                      <span>•</span>
+                      {new Date(insight.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
