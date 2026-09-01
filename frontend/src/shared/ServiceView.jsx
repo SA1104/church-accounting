@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Newspaper, BarChart2, MessageSquare, Flame, Plus, X, User, ThumbsUp, MessageCircle } from 'lucide-react';
 import { useAuth } from '../App';
+import { apiFetch } from '../core/api';
 
 const SERVICE_META = {
   'stock': { title: '주식', desc: '국내/해외 주식 시장 이슈 및 가치 평가' },
@@ -19,34 +20,51 @@ export default function ServiceView() {
   const [isWriteModalOpen, setIsWriteModalOpen] = useState(false);
   const [newPostTitle, setNewPostTitle] = useState('');
   const [newPostContent, setNewPostContent] = useState('');
-  
-  // Dummy data representing what would come from board_posts table
-  const [posts, setPosts] = useState([
-    { id: 1, title: '오늘 금리 발표 어떻게 보시나요?', content: '생각보다 매파적이지 않았던 것 같은데 방향성이 궁금하네요.', author: '투자의신', likes: 12, comments: 3, time: '10분 전' },
-    { id: 2, title: '이번 주 주요 일정 정리해드립니다.', content: '본문 내용...', author: '정보통', likes: 45, comments: 8, time: '1시간 전' },
-    { id: 3, title: '개인적인 포트폴리오 고민 상담 부탁드려요.', content: '본문 내용...', author: '초보자', likes: 2, comments: 1, time: '3시간 전' },
-  ]);
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const meta = SERVICE_META[serviceId] || { title: '서비스', desc: '알 수 없는 서비스' };
 
-  const handlePostSubmit = (e) => {
+  const fetchPosts = async () => {
+    try {
+      setLoading(true);
+      const res = await apiFetch(`/api/services/board/posts?category=${serviceId}`);
+      if (res) {
+        setPosts(res);
+      }
+    } catch (err) {
+      console.error('Failed to load posts', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPosts();
+  }, [serviceId]);
+
+  const handlePostSubmit = async (e) => {
     e.preventDefault();
     if (!newPostTitle.trim() || !newPostContent.trim()) return;
     
-    const newPost = {
-      id: Date.now(),
-      title: newPostTitle,
-      content: newPostContent,
-      author: user?.name || '익명 사용자',
-      likes: 0,
-      comments: 0,
-      time: '방금 전'
-    };
-    
-    setPosts([newPost, ...posts]);
-    setNewPostTitle('');
-    setNewPostContent('');
-    setIsWriteModalOpen(false);
+    try {
+      await apiFetch('/api/services/board/posts', {
+        method: 'POST',
+        body: JSON.stringify({
+          category: serviceId,
+          title: newPostTitle,
+          content: newPostContent
+        })
+      });
+      
+      setNewPostTitle('');
+      setNewPostContent('');
+      setIsWriteModalOpen(false);
+      fetchPosts(); // reload posts
+    } catch (err) {
+      console.error('Failed to create post', err);
+      alert('게시글 등록에 실패했습니다.');
+    }
   };
 
   return (
