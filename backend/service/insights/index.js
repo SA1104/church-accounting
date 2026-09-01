@@ -8,13 +8,21 @@ const { initCron } = require('./cron');
 initCron();
 
 // DEBUG ROUTE (Temporary)
-router.get('/debug', async (req, res) => {
-  const { query } = require('../../core/db');
-  const sql = `SELECT * FROM market_insights ORDER BY created_at DESC LIMIT 5`;
-  const data = await query.all(sql, []);
-  if (!data || data.length === 0) {
-    return res.status(500).json({ status: 'error', message: 'No data returned or query failed' });
-  }
+router.get('/debug1', async (req, res) => {
+  const { createClient } = require('@supabase/supabase-js');
+  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
+  const sql = `SELECT * FROM market_insights WHERE category = $1 LIMIT 1`;
+  const { data, error } = await supabase.rpc('exec_sql', { query_text: sql, params: ['stock'] });
+  if (error) return res.status(500).json({ error: error.message, sql });
+  return res.json({ status: 'ok', data });
+});
+
+router.get('/debug2', async (req, res) => {
+  const { createClient } = require('@supabase/supabase-js');
+  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
+  const sql = `SELECT * FROM market_insights WHERE category = ? LIMIT 1`;
+  const { data, error } = await supabase.rpc('exec_sql', { query_text: sql, params: ['stock'] });
+  if (error) return res.status(500).json({ error: error.message, sql });
   return res.json({ status: 'ok', data });
 });
 
