@@ -72,20 +72,20 @@ export default function ServiceView() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-4 md:space-y-6">
       {/* Header */}
-      <div className="flex items-end justify-between border-b border-slate-800 pb-4">
+      <div className="flex flex-col md:flex-row md:items-end justify-between border-b border-slate-800 pb-4 gap-4">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-white">{meta.title} Think</h1>
-          <p className="text-sm text-slate-400 mt-1">{meta.desc}</p>
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">{meta.title} Think</h1>
+          <p className="text-xs md:text-sm text-slate-400 mt-1">{meta.desc}</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 bg-slate-900/50 p-1.5 rounded-2xl w-fit border border-slate-800">
+      <div className="flex items-center gap-2 bg-slate-900/50 p-1.5 rounded-2xl w-full overflow-x-auto whitespace-nowrap scrollbar-hide border border-slate-800 shrink-0">
         <button
           onClick={() => setActiveTab('today')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all shrink-0 ${
             activeTab === 'today' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'
           }`}
         >
@@ -93,7 +93,7 @@ export default function ServiceView() {
         </button>
         <button
           onClick={() => setActiveTab('analysis')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all shrink-0 ${
             activeTab === 'analysis' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'
           }`}
         >
@@ -101,7 +101,7 @@ export default function ServiceView() {
         </button>
         <button
           onClick={() => setActiveTab('board')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all shrink-0 ${
             activeTab === 'board' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'
           }`}
         >

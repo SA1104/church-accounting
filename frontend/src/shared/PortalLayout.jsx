@@ -17,7 +17,7 @@ export default function PortalLayout() {
   const navigate = useNavigate();
 
   return (
-    <div className="flex h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden">
+    <div className="flex min-h-screen bg-slate-950 text-slate-100 font-sans">
       {/* Side Navigation */}
       <aside className="w-64 border-r border-slate-800 bg-slate-900/50 flex flex-col hidden md:flex">
         <div className="p-4 border-b border-slate-800 flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
@@ -69,8 +69,8 @@ export default function PortalLayout() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between px-4 shrink-0">
+      <main className="flex-1 flex flex-col min-w-0 w-full max-w-full">
+        <header className="sticky top-0 z-40 h-14 border-b border-slate-800 bg-slate-900/80 backdrop-blur-md flex items-center justify-between px-4 shrink-0">
           <div className="flex items-center gap-2">
             <button className="md:hidden p-2 text-slate-400 hover:text-white">
               <Menu size={20} />
@@ -82,13 +82,13 @@ export default function PortalLayout() {
               <input 
                 type="text" 
                 placeholder="검색어 입력..." 
-                className="bg-slate-950 border border-slate-800 rounded-full py-1.5 pl-9 pr-4 text-xs text-white focus:outline-none focus:border-indigo-500 w-64"
+                className="bg-slate-950 border border-slate-800 rounded-full py-1.5 pl-9 pr-4 text-xs text-white focus:outline-none focus:border-indigo-500 w-full max-w-[160px] md:max-w-[250px]"
               />
             </div>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-6 bg-slate-950">
+        <div className="flex-1 p-4 md:p-6 bg-slate-950">
           <Outlet />
         </div>
       </main>
