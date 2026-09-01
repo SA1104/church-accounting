@@ -7,6 +7,17 @@ const { initCron } = require('./cron');
 // Initialize the background cron job for AI insights
 initCron();
 
+// DEBUG ROUTE (Temporary)
+router.get('/debug', async (req, res) => {
+  const { supabase } = require('../../core/db');
+  const sql = `SELECT * FROM market_insights ORDER BY created_at DESC LIMIT 5`;
+  const { data, error } = await supabase.rpc('exec_sql', { query_text: sql, params: [] });
+  if (error) {
+    return res.status(500).json({ status: 'error', error: error.message, details: error });
+  }
+  return res.json({ status: 'ok', data });
+});
+
 // GET /api/services/insights?category=...
 router.get('/', authenticateToken, async (req, res) => {
   const { category } = req.query;
