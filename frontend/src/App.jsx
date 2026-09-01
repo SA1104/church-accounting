@@ -1,53 +1,12 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, Search, Cpu, Bell } from 'lucide-react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Signup from './shared/Signup';
 import Portal from './shared/Portal';
-import PremiumPlaceholder from './shared/PremiumPlaceholder';
 import Login from './shared/Login';
-
-// Import newly created platform layout modules
-import WorkspaceSidebar from './shared/WorkspaceSidebar';
-import CommandPalette from './shared/CommandPalette';
-import AICopilotDock from './shared/AICopilotDock';
-import NotificationCenter from './shared/NotificationCenter';
-import DecisionHistory from './shared/DecisionHistory';
-import AdminUsers from './apps/platform/pages/AdminUsers';
-import { isSystemAdmin } from './core/auth/permissions';
+import PortalLayout from './shared/PortalLayout';
+import ServiceView from './shared/ServiceView';
 import ForgotPassword from './shared/ForgotPassword';
 import ResetPassword from './shared/ResetPassword';
-
-// Church page imports
-import Dashboard from './apps/church/pages/Dashboard';
-import VoucherForm from './apps/church/pages/VoucherForm';
-import VoucherList from './apps/church/pages/VoucherList';
-import VoucherDetail from './apps/church/pages/VoucherDetail';
-import LedgerView from './apps/church/pages/LedgerView';
-import SettlementView from './apps/church/pages/SettlementView';
-import AuditView from './apps/church/pages/AuditView';
-import Settings from './apps/church/pages/Settings';
-import InviteLanding from './apps/church/pages/InviteLanding';
-
-// Stock page imports
-import StockTodayPage from './apps/stock/pages/StockTodayPage';
-import GlobalMarketPage from './apps/stock/pages/GlobalMarketPage';
-import KoreaMarketPage from './apps/stock/pages/KoreaMarketPage';
-import StockMyPage from './apps/stock/pages/StockMyPage';
-import StockSearchPage from './apps/stock/pages/StockSearchPage';
-import StockDetailPage from './apps/stock/pages/StockDetailPage';
-import StockAnalysisPage from './apps/stock/pages/StockAnalysisPage';
-import StockGlossaryPage from './apps/stock/pages/StockGlossaryPage';
-import StockCommunityPage from './apps/stock/pages/StockCommunityPage';
-import StockPostDetailPage from './apps/stock/pages/StockPostDetailPage';
-import StockAdminPage from './apps/stock/pages/StockAdminPage';
-import { StockLayout } from './apps/stock/layouts/StockLayout';
-
-// Platform 3.1 Context Providers
-import { WorkspaceProvider, useWorkspace } from './core/WorkspaceProvider';
-import { ChurchContextProvider, useChurchContext } from './apps/church/ChurchContextProvider';
-import { StockContextProvider, useStockContext } from './apps/stock/StockContextProvider';
-import { EstateContextProvider, useEstateContext } from './apps/estate/EstateContextProvider';
-import { MissionContextProvider, useMissionContext } from './apps/mission/MissionContextProvider';
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -55,235 +14,6 @@ export const useAuth = () => useContext(AuthContext);
 function PrivateRoute({ children }) {
   const { token } = useAuth();
   return token ? children : <Navigate to="/login" replace />;
-}
-
-function MobileLayout() {
-  const { user, token, logout, fontScale, setFontScale } = useAuth();
-  const location = useLocation();
-  const _navigate = useNavigate();
-
-  // Platform 3.1: Capability context consumption
-  const { churchProfile } = useChurchContext();
-
-  // Platform layout UI states
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [aiDockOpen, setAiDockOpen] = useState(false);
-  const [notificationCenterOpen, setNotificationCenterOpen] = useState(false);
-
-  // Global key listener for Ctrl + K (Command Palette)
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setCommandPaletteOpen(prev => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  const [_notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  useEffect(() => {
-    if (!token) return;
-    fetchNotifications();
-    const interval = setInterval(() => {
-      pollNotifications();
-    }, 15000);
-    return () => clearInterval(interval);
-  }, [token]);
-
-  const fetchNotifications = async () => {
-    try {
-      const response = await fetch('/api/notifications', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (response.ok && Array.isArray(data)) {
-        setNotifications(data);
-        setUnreadCount(data.filter(n => n.is_read === 0).length);
-      }
-    } catch (err) {
-      console.error('Fetch notifications error:', err);
-    }
-  };
-
-  const pollNotifications = async () => {
-    try {
-      const response = await fetch('/api/notifications', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (response.ok && Array.isArray(data)) {
-        setNotifications(data);
-        setUnreadCount(data.filter(n => n.is_read === 0).length);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  // Dynamic breadcrumbs generation representing the hierarchy: Platform > Workspace > Capability > Screen
-  const getBreadcrumbs = () => {
-    const path = location.pathname;
-    const baseBreadcrumb = (
-      <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent font-black tracking-widest text-[9px] md:text-xs">
-        BOOZA THINK
-      </span>
-    );
-
-    let workspace = '신길교회';
-    let capability = 'Church Think';
-    let screen = 'Dashboard';
-
-    if (path.startsWith('/app/stock')) {
-      workspace = '내 투자';
-      capability = 'Stock Think';
-      screen = 'AI 분석';
-    } else if (path.startsWith('/app/estate')) {
-      workspace = '서울권';
-      capability = 'Estate Think';
-      screen = '입지분석';
-    } else if (path.startsWith('/app/mission')) {
-      workspace = '선교 협력';
-      capability = 'Mission Think';
-      screen = '안전지수';
-    } else {
-      workspace = churchProfile.church_name;
-      capability = 'Church Think';
-      if (path.startsWith('/vouchers/new')) screen = '전표 등록';
-      else if (path.startsWith('/vouchers/edit')) screen = '전표 수정';
-      else if (path.startsWith('/vouchers/')) screen = '전표 상세';
-      else if (path.startsWith('/vouchers')) screen = '전표 목록';
-      else if (path.startsWith('/reports/settlement')) screen = '결산 마감';
-      else if (path.startsWith('/reports')) screen = '장부 조회';
-      else if (path.startsWith('/audit')) screen = '감사위원회';
-      else if (path.startsWith('/settings')) screen = '환경설정';
-    }
-
-    return (
-      <div className="flex items-center gap-1.5 text-[8.5px] md:text-[10px] font-bold text-slate-500 overflow-hidden truncate">
-        {baseBreadcrumb}
-        <span>&gt;</span>
-        <span className="text-slate-300 truncate">{workspace}</span>
-        <span>&gt;</span>
-        <span className="text-slate-400 truncate">{capability}</span>
-        <span>&gt;</span>
-        <span className="text-indigo-400 truncate font-extrabold">{screen}</span>
-      </div>
-    );
-  };
-
-  return (
-    <div className="flex h-screen bg-slate-950 text-slate-100 overflow-hidden" style={{ '--church-primary': churchProfile.primary_color }}>
-      {/* Workspace Sidebar (Responsive left layout component) */}
-      <WorkspaceSidebar 
-        user={user} 
-        token={token} 
-        logout={logout} 
-        churchProfile={churchProfile} 
-        isOpen={sidebarOpen} 
-        toggleSidebar={() => setSidebarOpen(false)} 
-      />
-
-      {/* Main Viewport Container */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        
-        {/* Global Platform Header */}
-        <header className="glass flex items-center justify-between px-4 py-2.5 z-10 shrink-0 border-b border-slate-900">
-          <div className="flex items-center gap-3 min-w-0">
-            <button 
-              onClick={() => setSidebarOpen(true)} 
-              className="md:hidden text-slate-400 hover:text-white p-1 focus:outline-none shrink-0"
-              title="메뉴 열기"
-            >
-              <Menu size={18} />
-            </button>
-            {getBreadcrumbs()}
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Command Palette Trigger */}
-            <button 
-              onClick={() => setCommandPaletteOpen(true)} 
-              className="text-slate-400 hover:text-white p-1.5 focus:outline-none flex items-center gap-1 bg-slate-900/60 border border-slate-800/80 px-2 py-0.5 rounded-lg text-[9px] font-bold"
-              title="검색"
-            >
-              <Search size={11} />
-              <span>검색</span>
-            </button>
-
-            {/* Font Size Selector */}
-            <select
-              value={fontScale}
-              onChange={(e) => setFontScale(e.target.value)}
-              className="bg-slate-900/60 border border-slate-800/80 text-slate-400 hover:text-white text-[9px] font-bold px-2 py-0.5 rounded-lg focus:outline-none cursor-pointer"
-              title="글씨 크기 조절"
-            >
-              <option value="small">글씨 작게</option>
-              <option value="normal">글씨 보통</option>
-              <option value="large">글씨 크게</option>
-              <option value="xlarge">글씨 아주 크게</option>
-            </select>
-
-            {/* AI Assistant Toggle */}
-            <button 
-              onClick={() => setAiDockOpen(true)} 
-              className="text-slate-400 hover:text-indigo-400 p-1.5 focus:outline-none"
-              title="AI Copilot"
-            >
-              <Cpu size={14} />
-            </button>
-
-            {/* Notification Center Toggle */}
-            <button 
-              onClick={() => setNotificationCenterOpen(true)} 
-              className="text-slate-400 hover:text-white p-1.5 relative focus:outline-none"
-              title="알림 및 활동 피드"
-            >
-              <Bell size={14} />
-              {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-rose-500 rounded-full text-[8px] font-bold flex items-center justify-center text-white scale-90 border border-slate-950 animate-pulse">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-          </div>
-        </header>
-
-        {/* Dynamic Route Pages Container */}
-        <main className="flex-1 overflow-y-auto no-scrollbar pb-6 relative">
-          <Routes>
-            <Route path="/app/church" element={<Dashboard />} />
-            <Route path="/vouchers/new" element={<VoucherForm />} />
-            <Route path="/vouchers/edit/:id" element={<VoucherForm />} />
-            <Route path="/vouchers" element={<VoucherList />} />
-            <Route path="/vouchers/:id" element={<VoucherDetail />} />
-            <Route path="/reports" element={<LedgerView />} />
-            <Route path="/reports/settlement" element={<SettlementView />} />
-            {(user?.role === 'AUDITOR' || user?.role === 'SYSTEM_ADMIN') && <Route path="/audit" element={<AuditView />} />}
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/decisions" element={<DecisionHistory />} />
-            {isSystemAdmin(user) && <Route path="/platform/admin/users" element={<AdminUsers />} />}
-
-            {/* Premium Placeholders (TEAM E) */}
-            <Route path="/app/stock" element={<Navigate to="/stock" replace />} />
-            <Route path="/app/estate" element={<PremiumPlaceholder appId="estate" />} />
-            <Route path="/app/mission" element={<PremiumPlaceholder appId="mission" />} />
-
-            <Route path="*" element={<Navigate to="/app/church" replace />} />
-          </Routes>
-        </main>
-      </div>
-
-      {/* Floating Modals and Panels */}
-      <CommandPalette isOpen={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} />
-      <AICopilotDock isOpen={aiDockOpen} onClose={() => setAiDockOpen(false)} />
-      <NotificationCenter isOpen={notificationCenterOpen} onClose={() => setNotificationCenterOpen(false)} />
-    </div>
-  );
 }
 
 export default function App() {
@@ -316,14 +46,6 @@ export default function App() {
       return null;
     }
   });
-  const [fontScale, setFontScale] = useState(() => safeGetItem('font-scale-level', 'normal'));
-
-  useEffect(() => {
-    const root = document.documentElement;
-    root.classList.remove('font-scale-small', 'font-scale-normal', 'font-scale-large', 'font-scale-xlarge');
-    root.classList.add(`font-scale-${fontScale}`);
-    safeSetItem('font-scale-level', fontScale);
-  }, [fontScale]);
 
   const login = (newToken, newUser) => {
     safeSetItem('token', newToken);
@@ -334,58 +56,30 @@ export default function App() {
 
   const logout = () => {
     safeRemoveItem('token');
-    safeRemoveItem('authToken');
-    safeRemoveItem('accessToken');
     safeRemoveItem('user');
     setToken(null);
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ token, user, login, logout, fontScale, setFontScale }}>
+    <AuthContext.Provider value={{ token, user, login, logout }}>
       <Router>
-        <WorkspaceProvider>
-          <ChurchContextProvider>
-            <StockContextProvider>
-              <EstateContextProvider>
-                <MissionContextProvider>
-                  <Routes>
-                    <Route path="/" element={<PrivateRoute><Portal /></PrivateRoute>} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/signup" element={<Signup />} />
-                    <Route path="/forgot-password" element={<ForgotPassword />} />
-                    <Route path="/reset-password" element={<ResetPassword />} />
-                    <Route path="/invite/:token" element={<InviteLanding />} />
+        <Routes>
+          {/* Public / Entry Routes */}
+          <Route path="/" element={<PrivateRoute><Portal /></PrivateRoute>} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
-                    {/* Stock Think Routes */}
-                    <Route path="/stock" element={<StockLayout />}>
-                      <Route index element={<StockTodayPage />} />
-                      <Route path="global" element={<GlobalMarketPage />} />
-                      <Route path="korea" element={<KoreaMarketPage />} />
-                      <Route path="stocks" element={<StockSearchPage />} />
-                      <Route path="stocks/:stockCode" element={<StockDetailPage />} />
-                      <Route path="analysis" element={<StockAnalysisPage />} />
-                      <Route path="glossary" element={<StockGlossaryPage />} />
-                      <Route path="community" element={<StockCommunityPage />} />
-                      <Route path="community/:postId" element={<StockPostDetailPage />} />
-                      <Route path="admin" element={<PrivateRoute><StockAdminPage /></PrivateRoute>} />
-                      <Route path="my" element={<PrivateRoute><StockMyPage /></PrivateRoute>} />
-                    </Route>
+          {/* Main Portal Routes (Thematic Services) */}
+          <Route path="/service" element={<PrivateRoute><PortalLayout /></PrivateRoute>}>
+            <Route path=":serviceId" element={<ServiceView />} />
+          </Route>
 
-                    <Route 
-                      path="/*" 
-                      element={
-                        <PrivateRoute>
-                          <MobileLayout />
-                        </PrivateRoute>
-                      } 
-                    />
-                  </Routes>
-                </MissionContextProvider>
-              </EstateContextProvider>
-            </StockContextProvider>
-          </ChurchContextProvider>
-        </WorkspaceProvider>
+          {/* Catch-all redirect to Portal */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </Router>
     </AuthContext.Provider>
   );
