@@ -17,7 +17,7 @@ router.get('/', authenticateToken, async (req, res) => {
     const params = [];
     
     if (category) {
-      sql += ` WHERE category = $1`;
+      sql += ` WHERE category = ?`;
       params.push(category);
     }
     
@@ -36,7 +36,7 @@ router.post('/:id/view', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     // Simple view count increment (in production, we'd want to track unique views)
-    await query.run(`UPDATE market_insights SET view_count = view_count + 1 WHERE id = $1`, [id]);
+    await query.run(`UPDATE market_insights SET view_count = view_count + 1 WHERE id = ?`, [id]);
     res.json({ success: true });
   } catch (error) {
     console.error('[Insights API] Failed to update view count:', error);
@@ -63,7 +63,7 @@ router.post('/:id/like', authenticateToken, async (req, res) => {
         [id, userId]
       );
       // Increment counter
-      await query.run(`UPDATE market_insights SET like_count = like_count + 1 WHERE id = $1`, [id]);
+      await query.run(`UPDATE market_insights SET like_count = like_count + 1 WHERE id = ?`, [id]);
     }
     
     res.json({ success: true });

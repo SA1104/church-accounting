@@ -29,7 +29,7 @@ async function runInsightGenerationTask() {
       
       await query.run(`
         INSERT INTO public.market_insights (category, title, keywords, summary, impact_analysis, source_links)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        VALUES (?, ?, ?, ?, ?, ?)
       `, [
         insight.category,
         insight.title,
