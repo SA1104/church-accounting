@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Newspaper, BarChart2, MessageSquare, Flame, Plus, X, User, ThumbsUp, MessageCircle, Send } from 'lucide-react';
 import { useAuth } from '../App';
-import { apiFetch } from '../core/api';
+import { apiClient } from '../core/api';
 
 const SERVICE_META = {
   'stock': { title: '주식', desc: '국내/해외 주식 시장 이슈 및 가치 평가' },
@@ -30,8 +30,8 @@ export default function ServiceView() {
     try {
       setLoading(true);
       const [postsRes, newsRes] = await Promise.all([
-        apiFetch(`/api/services/board/posts?category=${serviceId}`),
-        apiFetch(`/api/services/board/news?category=${serviceId}`)
+        apiClient(`/api/services/board/posts?category=${serviceId}`),
+        apiClient(`/api/services/board/news?category=${serviceId}`)
       ]);
       
       if (postsRes) setPosts(postsRes);
@@ -52,7 +52,7 @@ export default function ServiceView() {
     if (!newPostTitle.trim() || !newPostContent.trim()) return;
     
     try {
-      await apiFetch('/api/services/board/posts', {
+      await apiClient('/api/services/board/posts', {
         method: 'POST',
         body: JSON.stringify({
           category: serviceId,
