@@ -66,4 +66,19 @@ router.post('/posts', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/services/board/news (Mocked for now until Naver API is connected)
+router.get('/news', authenticateToken, async (req, res) => {
+  const { category } = req.query;
+  
+  // Fake news data based on category
+  const news = [
+    { id: 1, title: `[속보] ${category} 관련 글로벌 시장 변동성 확대`, summary: `최근 경제 지표 발표 이후 ${category} 섹터의 투심이 급격히 변화하고 있습니다. 전문가들은 단기적인 리스크 관리가 필요하다고 조언합니다.`, link: 'https://news.naver.com' },
+    { id: 2, title: `전문가들이 꼽은 ${category} 핵심 투자 전략`, summary: `하반기 금리 인하 기대감이 선반영된 가운데, 옥석 가리기가 본격화될 전망입니다. 밸류에이션 매력이 높은 자산에 주목해야 합니다.`, link: 'https://news.naver.com' },
+    { id: 3, title: `기관/외국인 ${category} 대규모 순매수 행진`, summary: `외국인 자금이 연속으로 유입되며 시장을 견인하고 있습니다. 특히 주도주 위주의 포트폴리오 재편이 눈에 띕니다.`, link: 'https://news.naver.com' },
+    { id: 4, title: `정부, ${category} 규제 완화 카드 만지작`, summary: `시장 활성화를 위해 관련 부처가 규제 완화 패키지를 준비 중인 것으로 알려졌습니다. 빠르면 다음 달 구체적인 방안이 발표될 예정입니다.`, link: 'https://news.naver.com' }
+  ];
+  
+  res.json(news);
+});
+
 module.exports = router;

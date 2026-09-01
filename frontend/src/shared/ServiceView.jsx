@@ -21,26 +21,30 @@ export default function ServiceView() {
   const [newPostTitle, setNewPostTitle] = useState('');
   const [newPostContent, setNewPostContent] = useState('');
   const [posts, setPosts] = useState([]);
+  const [newsList, setNewsList] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const meta = SERVICE_META[serviceId] || { title: '서비스', desc: '알 수 없는 서비스' };
 
-  const fetchPosts = async () => {
+  const fetchPostsAndNews = async () => {
     try {
       setLoading(true);
-      const res = await apiFetch(`/api/services/board/posts?category=${serviceId}`);
-      if (res) {
-        setPosts(res);
-      }
+      const [postsRes, newsRes] = await Promise.all([
+        apiFetch(`/api/services/board/posts?category=${serviceId}`),
+        apiFetch(`/api/services/board/news?category=${serviceId}`)
+      ]);
+      
+      if (postsRes) setPosts(postsRes);
+      if (newsRes) setNewsList(newsRes);
     } catch (err) {
-      console.error('Failed to load posts', err);
+      console.error('Failed to load data', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchPosts();
+    fetchPostsAndNews();
   }, [serviceId]);
 
   const handlePostSubmit = async (e) => {
@@ -60,7 +64,7 @@ export default function ServiceView() {
       setNewPostTitle('');
       setNewPostContent('');
       setIsWriteModalOpen(false);
-      fetchPosts(); // reload posts
+      fetchPostsAndNews(); // reload
     } catch (err) {
       console.error('Failed to create post', err);
       alert('게시글 등록에 실패했습니다.');
@@ -113,14 +117,20 @@ export default function ServiceView() {
               <Flame size={18} className="text-rose-500" /> 실시간 핫이슈 (아웃링크 뉴스)
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 cursor-pointer transition-colors">
-                  <div className="text-xs text-indigo-400 font-bold mb-1">네이버 뉴스 API 수집 (테스트)</div>
-                  <div className="text-sm font-bold text-slate-200">{meta.title} 관련 속보 타이틀 {i}</div>
+              {newsList.map(news => (
+                <a 
+                  key={news.id} 
+                  href={news.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 transition-colors block group"
+                >
+                  <div className="text-xs text-indigo-400 font-bold mb-1">API 수집됨</div>
+                  <div className="text-sm font-bold text-slate-200 group-hover:text-white">{news.title}</div>
                   <div className="text-xs text-slate-500 mt-2 line-clamp-2">
-                    여기에 외부 뉴스 API나 RSS를 통해 수집된 요약(2줄 이내) 데이터가 표시됩니다. 클릭 시 언론사 원문으로 이동하여 저작권을 준수합니다.
+                    {news.summary}
                   </div>
-                </div>
+                </a>
               ))}
             </div>
           </div>
