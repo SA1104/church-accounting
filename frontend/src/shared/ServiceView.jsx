@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Newspaper, BarChart2, MessageSquare, Flame, Plus, X, User, ThumbsUp, MessageCircle } from 'lucide-react';
+import { Newspaper, BarChart2, MessageSquare, Flame, Plus, X, User, ThumbsUp, MessageCircle, Send } from 'lucide-react';
 import { useAuth } from '../App';
 import { apiFetch } from '../core/api';
 
