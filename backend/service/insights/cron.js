@@ -14,35 +14,35 @@ async function runInsightGenerationTask() {
   }
 
   const categories = ['stock', 'real_estate', 'economy'];
-  // Pick a random category to update each run
-  const targetCategory = categories[Math.floor(Math.random() * categories.length)];
   
-  try {
-    console.log(`[Cron] Generating insight for category: ${targetCategory}`);
-    const insight = await generateMarketInsight(targetCategory, apiKey);
-    
-    if (insight) {
-      console.log(`[Cron] Successfully generated: ${insight.title}`);
+  for (const targetCategory of categories) {
+    try {
+      console.log(`[Cron] Generating insight for category: ${targetCategory}`);
+      const insight = await generateMarketInsight(targetCategory, apiKey);
       
-      // Convert keywords array to postgres array format: {"A","B"}
-      const keywordsPg = `{${insight.keywords.map(k => `"${k}"`).join(',')}}`;
-      
-      await query.run(`
-        INSERT INTO public.market_insights (category, title, keywords, summary, impact_analysis, source_links)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `, [
-        insight.category,
-        insight.title,
-        keywordsPg,
-        insight.summary,
-        insight.impact_analysis,
-        JSON.stringify(insight.source_links)
-      ]);
-      
-      console.log('[Cron] Insight saved to DB successfully.');
+      if (insight) {
+        console.log(`[Cron] Successfully generated: ${insight.title}`);
+        
+        // Convert keywords array to postgres array format: {"A","B"}
+        const keywordsPg = `{${insight.keywords.map(k => `"${k}"`).join(',')}}`;
+        
+        await query.run(`
+          INSERT INTO public.market_insights (category, title, keywords, summary, impact_analysis, source_links)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `, [
+          insight.category,
+          insight.title,
+          keywordsPg,
+          insight.summary,
+          insight.impact_analysis,
+          JSON.stringify(insight.source_links)
+        ]);
+        
+        console.log(`[Cron] Insight for ${targetCategory} saved to DB successfully.`);
+      }
+    } catch (err) {
+      console.error(`[Cron] Task failed for ${targetCategory}:`, err.message);
     }
-  } catch (err) {
-    console.error('[Cron] Task failed:', err.message);
   }
 }
 
