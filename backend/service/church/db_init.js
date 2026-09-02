@@ -117,15 +117,15 @@ async function runChurchDbMigrations() {
 
   // Try adding status column and other fields if assignments table already exists
   const alters = [
-    "ALTER TABLE public.church_user_assignments ADD COLUMN status TEXT DEFAULT 'pending'",
-    "ALTER TABLE public.church_user_assignments ADD COLUMN effective_from TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP",
-    "ALTER TABLE public.church_user_assignments ADD COLUMN effective_to TIMESTAMP WITH TIME ZONE",
-    "ALTER TABLE public.church_user_assignments ADD COLUMN approved_by UUID",
-    "ALTER TABLE public.church_user_assignments ADD COLUMN approved_at TIMESTAMP WITH TIME ZONE",
-    "ALTER TABLE public.church_user_assignments ADD COLUMN ended_by UUID",
-    "ALTER TABLE public.church_user_assignments ADD COLUMN ended_at TIMESTAMP WITH TIME ZONE",
-    "ALTER TABLE public.church_user_assignments ADD COLUMN end_reason TEXT",
-    "ALTER TABLE public.church_user_assignments ADD COLUMN source TEXT DEFAULT 'manual'"
+    "ALTER TABLE public.church_user_assignments ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending'",
+    "ALTER TABLE public.church_user_assignments ADD COLUMN IF NOT EXISTS effective_from TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP",
+    "ALTER TABLE public.church_user_assignments ADD COLUMN IF NOT EXISTS effective_to TIMESTAMP WITH TIME ZONE",
+    "ALTER TABLE public.church_user_assignments ADD COLUMN IF NOT EXISTS approved_by UUID",
+    "ALTER TABLE public.church_user_assignments ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP WITH TIME ZONE",
+    "ALTER TABLE public.church_user_assignments ADD COLUMN IF NOT EXISTS ended_by UUID",
+    "ALTER TABLE public.church_user_assignments ADD COLUMN IF NOT EXISTS ended_at TIMESTAMP WITH TIME ZONE",
+    "ALTER TABLE public.church_user_assignments ADD COLUMN IF NOT EXISTS end_reason TEXT",
+    "ALTER TABLE public.church_user_assignments ADD COLUMN IF NOT EXISTS source TEXT DEFAULT 'manual'"
   ];
 
   for (const alter of alters) {

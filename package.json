@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "pg": "^8.23.0"
+  },
+  "scripts": {
+    "test:stock": "node test_v4_all.js",
+    "lint": "echo No lint rules && exit 0",
+    "build": "cd frontend && npm install && npm run build"
+  }
+}
