@@ -66,14 +66,14 @@ export default function App() {
       <Router>
         <Routes>
           {/* Public / Entry Routes */}
-          <Route path="/" element={<PrivateRoute><Portal /></PrivateRoute>} />
+          <Route path="/" element={<Portal />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Main Portal Routes (Thematic Services) */}
-          <Route path="/service" element={<PrivateRoute><PortalLayout /></PrivateRoute>}>
+          <Route path="/service" element={<PortalLayout />}>
             <Route path=":serviceId" element={<ServiceView />} />
           </Route>
 

@@ -4,7 +4,7 @@ const { query } = require('../../core/db');
 const { authenticateToken } = require('../../core/auth');
 
 // GET /api/services/board/posts?category=stock
-router.get('/posts', authenticateToken, async (req, res) => {
+router.get('/posts', async (req, res) => {
   const { category } = req.query;
   try {
     let sql = `SELECT p.*, u.raw_user_meta_data->>'name' as author_name, (SELECT count(*) FROM board_comments c WHERE c.post_id = p.id) as comments_count, (SELECT count(*) FROM board_post_likes l WHERE l.post_id = p.id) as likes_count FROM board_posts p LEFT JOIN auth.users u ON p.user_id = u.id`;
@@ -59,7 +59,7 @@ router.post('/posts', authenticateToken, async (req, res) => {
 });
 
 // GET /api/services/board/news (Mocked for now until Naver API is connected)
-router.get('/news', authenticateToken, async (req, res) => {
+router.get('/news', async (req, res) => {
   const { category } = req.query;
   
   // Fake news data based on category

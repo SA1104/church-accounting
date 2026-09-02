@@ -27,7 +27,7 @@ router.get('/debug2', async (req, res) => {
 });
 
 // GET /api/services/insights?category=...
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', async (req, res) => {
   const { category } = req.query;
   try {
     let sql = `SELECT * FROM market_insights`;
