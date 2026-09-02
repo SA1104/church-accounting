@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Newspaper, BarChart2, MessageSquare, Flame, Plus, X, User, ThumbsUp, MessageCircle, Send } from 'lucide-react';
+import { Newspaper, BarChart2, MessageSquare, Flame, Plus, X, User, ThumbsUp, MessageCircle, Send, FileText } from 'lucide-react';
 import { useAuth } from '../App';
 import { apiClient } from '../core/api';
 import StockAnalysisPage from '../apps/stock/pages/StockAnalysisPage';
 import PoliticsAnalysisPage from '../apps/politics/pages/PoliticsAnalysisPage';
+import BillTrackerPage from '../apps/politics/pages/BillTrackerPage';
 
 const SERVICE_META = {
   'stock': { title: '주식', desc: '국내/해외 주식 시장 이슈 및 가치 평가' },
@@ -119,6 +120,16 @@ export default function ServiceView() {
         >
           <BarChart2 size={16} /> {meta.title} 분석
         </button>
+        {serviceId === 'politics' && (
+          <button
+            onClick={() => setActiveTab('tracker')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all shrink-0 ${
+              activeTab === 'tracker' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <FileText size={16} /> 법안 트래커
+          </button>
+        )}
         <button
           onClick={() => setActiveTab('board')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all shrink-0 ${
@@ -203,6 +214,12 @@ export default function ServiceView() {
                   </div>
                 </>
              )}
+          </div>
+        )}
+
+        {activeTab === 'tracker' && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <BillTrackerPage />
           </div>
         )}
 
