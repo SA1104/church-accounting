@@ -71,18 +71,29 @@ router.get('/admin/migrate-party', async (req, res) => {
     
     await pool.query(`UPDATE politics_politicians SET role_type = 'EXTRA_PARLIAMENTARY' WHERE name = '한동훈'`);
     
-    const ohId = await pool.query(`
-      INSERT INTO politics_politicians (id, name, profile_image_url, gender, party_name, namuwiki_url, role_type, created_at, updated_at)
-      VALUES (gen_random_uuid(), '오세훈', 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Oh_Se-hoon_in_2021.jpg/500px-Oh_Se-hoon_in_2021.jpg?utm_source=ko.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled', 'MALE', '국민의힘', 'https://namu.wiki/w/%EC%98%A4%EC%84%B8%ED%9B%88', 'MAYOR', NOW(), NOW())
-      ON CONFLICT (name) DO UPDATE SET role_type = 'MAYOR'
-      RETURNING id
-    `);
+    const checkOh = await pool.query(`SELECT id FROM politics_politicians WHERE name = '오세훈'`);
+    let ohId;
+    if (checkOh.rows.length > 0) {
+      ohId = checkOh.rows[0].id;
+      await pool.query(`UPDATE politics_politicians SET role_type = 'MAYOR' WHERE id = $1`, [ohId]);
+    } else {
+      const ohRes = await pool.query(`
+        INSERT INTO politics_politicians (id, name, profile_image_url, gender, party_name, namuwiki_url, role_type, created_at, updated_at)
+        VALUES (gen_random_uuid(), '오세훈', 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Oh_Se-hoon_in_2021.jpg/500px-Oh_Se-hoon_in_2021.jpg', 'MALE', '국민의힘', 'https://namu.wiki/w/%EC%98%A4%EC%84%B8%ED%9B%88', 'MAYOR', NOW(), NOW())
+        RETURNING id
+      `);
+      ohId = ohRes.rows[0].id;
+    }
     
-    await pool.query(`
-      INSERT INTO politics_annual_stats (politician_id, record_year, declared_wealth, buzz_index, dynamic_metrics)
-      VALUES ($1, 2026, 5900000000, 85, '{"admin_rating": 72, "budget_execution": 95, "presidential_support": 35}')
-      ON CONFLICT (politician_id, record_year) DO UPDATE SET buzz_index = 85
-    `, [ohId.rows[0].id]);
+    const checkStats = await pool.query(`SELECT 1 FROM politics_annual_stats WHERE politician_id = $1 AND record_year = 2026`, [ohId]);
+    if (checkStats.rows.length > 0) {
+      await pool.query(`UPDATE politics_annual_stats SET buzz_index = 85 WHERE politician_id = $1 AND record_year = 2026`, [ohId]);
+    } else {
+      await pool.query(`
+        INSERT INTO politics_annual_stats (politician_id, record_year, declared_wealth, buzz_index, dynamic_metrics)
+        VALUES ($1, 2026, 5900000000, 85, '{"admin_rating": 72, "budget_execution": 95, "presidential_support": 35}')
+      `, [ohId]);
+    }
     
     await pool.query(`
       UPDATE politics_annual_stats 
