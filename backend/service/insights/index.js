@@ -158,4 +158,49 @@ router.get('/admin/dedupe', async (req, res) => {
   }
 });
 
+// GET /api/services/insights/admin/clean-sep2 (Aggressive cleanup for Sep 2nd)
+router.get('/admin/clean-sep2', async (req, res) => {
+  try {
+    const { createClient } = require('@supabase/supabase-js');
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SECRET_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(400).json({ error: 'Missing SUPABASE_URL or SUPABASE_SECRET_KEY' });
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    // Fetch all stock insights from 2026-09-02
+    const { data: insights, error } = await supabase
+      .from('market_insights')
+      .select('id, category, created_at')
+      .eq('category', 'stock')
+      .gte('created_at', '2026-09-02T00:00:00Z')
+      .lt('created_at', '2026-09-03T00:00:00Z')
+      .order('created_at', { ascending: false });
+      
+    if (error) throw error;
+    
+    if (insights.length <= 1) {
+      return res.json({ success: true, message: 'No duplicates to clean.', deletedCount: 0 });
+    }
+    
+    // Keep the first one (most recent), delete all others
+    const toDelete = insights.slice(1).map(i => i.id);
+    
+    const { error: delError } = await supabase
+      .from('market_insights')
+      .delete()
+      .in('id', toDelete);
+      
+    if (delError) throw delError;
+    
+    res.json({ success: true, message: 'Aggressively cleaned Sep 2nd stock duplicates', deletedCount: toDelete.length, toDelete });
+  } catch (error) {
+    console.error('[Admin Clean] Failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
