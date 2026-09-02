@@ -6,6 +6,9 @@ const db = require('../../core/db');
 // Fetch all politicians with their latest stats for the radar chart
 router.get('/politicians', async (req, res) => {
   try {
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    
     const queryText = `
       SELECT 
         p.id, p.name, p.profile_image_url, p.gender, p.namuwiki_url,
@@ -19,10 +22,13 @@ router.get('/politicians', async (req, res) => {
         )
       ORDER BY p.name ASC
     `;
-    const result = await db.query.all(queryText);
+    const result = await pool.query(queryText);
+    await pool.end();
+    
+    const rows = result.rows;
     
     // Format them for the frontend
-    const formatted = result.map(p => ({
+    const formatted = rows.map(p => ({
       id: p.id,
       name: p.name,
       imageUrl: p.profile_image_url,
