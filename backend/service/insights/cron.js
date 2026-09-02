@@ -14,7 +14,7 @@ async function runInsightGenerationTask() {
     return;
   }
 
-  const categories = ['stock', 'real_estate', 'economy'];
+  const categories = ['stock', 'real_estate', 'economy', 'politics'];
   
   for (const targetCategory of categories) {
     try {

@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../../core/db');
+const { initPoliticsCron } = require('./cron');
+
+// Initialize the background cron jobs for politics
+initPoliticsCron();
 
 // GET /api/services/politics/politicians
 // Fetch all politicians with their latest stats for the radar chart
