@@ -475,7 +475,7 @@ export default function PoliticsAnalysisPage() {
               )
             )}
           </div>
-
+        </div>
         
         {/* FULL WIDTH LEADERBOARDS (명예의 전당) */}
         {viewMode === 'party' && (partyA || partyB) && (
@@ -513,8 +513,6 @@ export default function PoliticsAnalysisPage() {
               <p className="mt-3 text-[10px] text-slate-500">* 본 지표는 현재 데이터 파이프라인 연동 테스트 중인 <span className="text-slate-400 border-b border-slate-600">시뮬레이션(더미) 데이터</span>이며, 곧 실시간 공공 데이터로 전환됩니다.</p>
             </div>
           </div>
-        </div>
-
         </div>
       </div>
     </div>

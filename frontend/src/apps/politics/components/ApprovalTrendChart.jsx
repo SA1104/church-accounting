@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { apiClient } from '../../../core/api';
 
 const ApprovalTrendChart = ({ entityA, entityB, colorA, colorB, isSameParty }) => {
@@ -66,17 +66,25 @@ const ApprovalTrendChart = ({ entityA, entityB, colorA, colorB, isSameParty }) =
           <div className="h-full flex items-center justify-center text-slate-500">비교할 대상을 선택해주세요.</div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+            <ComposedChart data={mergedData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
               <XAxis dataKey="month" stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={{ stroke: '#334155' }} />
               <YAxis yAxisId="left" stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 12 }} domain={[0, 100]} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px' }} itemStyle={{ color: '#e2e8f0', fontSize: '13px' }} labelStyle={{ color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }} />
-              <Legend wrapperStyle={{ paddingTop: '20px' }} />
-              {entityA && <Line yAxisId="left" type="monotone" name={nameA + ' 지지율'} dataKey="approvalA" stroke={colorA} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#0f172a' }} activeDot={{ r: 6 }} />}
-              {entityB && <Line yAxisId="left" type="monotone" name={nameB + ' 지지율'} dataKey="approvalB" stroke={colorB} strokeWidth={3} strokeDasharray={isSameParty ? "5 5" : undefined} dot={{ r: 4, strokeWidth: 2, fill: '#0f172a' }} activeDot={{ r: 6 }} />}
-              {entityA && <Line yAxisId="left" type="monotone" name={nameA + ' 화제성'} dataKey="buzzA" stroke={colorA} strokeWidth={1} strokeDasharray="3 3" dot={false} opacity={0.5} />}
-              {entityB && <Line yAxisId="left" type="monotone" name={nameB + ' 화제성'} dataKey="buzzB" stroke={colorB} strokeWidth={1} strokeDasharray="3 3" dot={false} opacity={0.5} />}
-            </LineChart>
+              
+              <Tooltip 
+                contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px' }} 
+                itemStyle={{ color: '#e2e8f0', fontSize: '13px' }} 
+                labelStyle={{ color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }} 
+              />
+              
+              <Legend wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }} iconType="circle" />
+              
+              {entityA && <Bar yAxisId="left" name={nameA + ' 화제성(막대)'} dataKey="buzzA" fill={colorA} fillOpacity={0.4} barSize={20} radius={[4,4,0,0]} />}
+              {entityB && <Bar yAxisId="left" name={nameB + ' 화제성(막대)'} dataKey="buzzB" fill={colorB} fillOpacity={0.4} barSize={20} radius={[4,4,0,0]} />}
+              
+              {entityA && <Line yAxisId="left" type="monotone" name={nameA + ' 지지율(선)'} dataKey="approvalA" stroke={colorA} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#0f172a' }} activeDot={{ r: 6 }} />}
+              {entityB && <Line yAxisId="left" type="monotone" name={nameB + ' 지지율(선)'} dataKey="approvalB" stroke={colorB} strokeWidth={3} strokeDasharray={isSameParty ? "5 5" : undefined} dot={{ r: 4, strokeWidth: 2, fill: '#0f172a' }} activeDot={{ r: 6 }} />}
+            </ComposedChart>
           </ResponsiveContainer>
         )}
       </div>
