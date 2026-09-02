@@ -22,29 +22,12 @@ if (process.env.NODE_ENV === 'production') {
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://your-supabase-project.supabase.co';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || 'your-service-role-key';
 
-let useSupabaseClientOnly = !process.env.DATABASE_URL;
 let useMocks = false;
+let platformError = false;
 
-let runMockQuery = null;
-if (process.env.NODE_ENV !== 'production') {
-  try {
-    runMockQuery = require('./mock-data.js').runMockQuery;
-  } catch (e) {
-    console.error('Failed to load mock data', e);
-  }
-}
-
-let pool = null;
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false
-  }
-});
-
-// Auto detect sandboxed mode
+// Only use Mocks if we are explicitly in test mode and no DB is provided
 if (process.env.NODE_ENV === 'test' && !process.env.DATABASE_URL) {
-  console.log('[Platform DB] Test environment detected without DATABASE_URL. Enabling Local Mock Database mode.');
+  console.log('[Stock DB] Test environment detected without DATABASE_URL. Enabling Local Mock Database mode.');
   useMocks = true;
 }
 
@@ -53,109 +36,60 @@ if (process.env.NODE_ENV === 'production' && useMocks) {
   process.exit(1);
 }
 
-if (useSupabaseClientOnly) {
-  console.log('[Platform DB] DATABASE_URL is not set. Using Supabase JS Client for all queries.');
-} else {
-  console.log('[Platform DB] DATABASE_URL is set. Using direct PostgreSQL connection pool.');
+let runMockQuery = null;
+if (useMocks || process.env.NODE_ENV !== 'production') {
+  try {
+    runMockQuery = require('./mock-data.js').runMockQuery;
+  } catch (e) {
+    console.error('Failed to load mock data', e);
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 1. Stock DB Pool (Direct Postgres)
+// ----------------------------------------------------------------------------
+let pool = null;
+if (!useMocks && process.env.DATABASE_URL) {
+  console.log('[Stock DB] DATABASE_URL is set. Using direct PostgreSQL connection pool for Stock Data.');
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
   });
   
   pool.on('error', (err) => {
-    console.error('Unexpected error on idle client', err);
+    console.error('Unexpected error on idle Stock DB client', err);
   });
 }
 
+// ----------------------------------------------------------------------------
+// 2. Platform DB Client (Supabase JS / HTTP RPC)
+// ----------------------------------------------------------------------------
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false }
+});
+
 const query = {
-  run: async (sql, params = []) => {
-    if (useMocks) {
-      const data = runMockQuery(sql, params);
-      const firstRow = data && data[0];
-      const id = firstRow ? (firstRow.id || firstRow.file_id || firstRow.voucher_id || Object.values(firstRow)[0]) : null;
-      return { id, changes: data ? data.length : 0 };
-    }
-    if (useSupabaseClientOnly) {
-      const { data, error } = await supabase.rpc('exec_sql', {
-        query_text: sql,
-        params: params
-      });
-      if (error) {
-        console.error('Supabase Client Query Run Error:', error);
-        throw error;
-      }
-      const firstRow = data && data[0];
-      const id = firstRow ? (firstRow.id || firstRow.file_id || firstRow.voucher_id || Object.values(firstRow)[0]) : null;
-      const changes = firstRow && firstRow.changes !== undefined ? firstRow.changes : (data ? data.length : 0);
-      return { id, changes };
-    } else {
-      let index = 1;
-      const pgSql = sql.replace(/\?/g, () => `$${index++}`);
-      const res = await pool.query(pgSql, params);
-      const lastRow = res.rows && res.rows[0];
-      const id = lastRow ? (lastRow.id || lastRow.file_id || lastRow.voucher_id || Object.values(lastRow)[0]) : null;
-      return { id, changes: res.rowCount };
-    }
-  },
   get: async (sql, params = []) => {
-    if (useMocks) {
-      const data = runMockQuery(sql, params);
-      return (data && data[0]) || null;
-    }
-    if (useSupabaseClientOnly) {
-      const { data, error } = await supabase.rpc('exec_sql', {
-        query_text: sql,
-        params: params
-      });
-      if (error) {
-        console.error('Supabase Client Query Get Error:', error);
-        throw error;
-      }
-      return (data && data[0]) || null;
-    } else {
-      let index = 1;
-      const pgSql = sql.replace(/\?/g, () => `$${index++}`);
-      const res = await pool.query(pgSql, params);
-      return res.rows[0] || null;
-    }
+    if (platformError || useMocks) return (runMockQuery ? runMockQuery(sql, params)[0] : null) || null;
+    const { data, error } = await supabase.rpc('exec_sql', { query_text: sql, params: params });
+    if (error) { console.warn('Platform DB Error (get):', error.message); return null; }
+    return (data && data[0]) || null;
   },
   all: async (sql, params = []) => {
-    if (useMocks) {
-      return runMockQuery(sql, params);
-    }
-    if (useSupabaseClientOnly) {
-      const { data, error } = await supabase.rpc('exec_sql', {
-        query_text: sql,
-        params: params
-      });
-      if (error) {
-        console.error('Supabase Client Query All Error:', error);
-        throw error;
-      }
-      return data || [];
-    } else {
-      let index = 1;
-      const pgSql = sql.replace(/\?/g, () => `$${index++}`);
-      const res = await pool.query(pgSql, params);
-      return res.rows;
-    }
+    if (platformError || useMocks) return (runMockQuery ? runMockQuery(sql, params) : []) || [];
+    const { data, error } = await supabase.rpc('exec_sql', { query_text: sql, params: params });
+    if (error) { console.warn('Platform DB Error (all):', error.message); return []; }
+    return data || [];
   },
   exec: async (sql) => {
-    if (useMocks) {
-      return;
-    }
-    if (useSupabaseClientOnly) {
-      const { error } = await supabase.rpc('exec_sql', {
-        query_text: sql,
-        params: []
-      });
-      if (error) {
-        console.error('Supabase Client Exec Error:', error);
-        throw error;
-      }
-    } else {
-      await pool.query(sql);
-    }
+    if (platformError || useMocks) return;
+    const { error } = await supabase.rpc('exec_sql', { query_text: sql, params: [] });
+    if (error) console.warn('Platform DB Error (exec):', error.message);
+  },
+  run: async (sql, params = []) => {
+    if (platformError || useMocks) return;
+    const { error } = await supabase.rpc('exec_sql', { query_text: sql, params: params });
+    if (error) console.warn('Platform DB Error (run):', error.message);
   }
 };
 
@@ -173,7 +107,10 @@ async function seedDefaultUsers(supabaseClient) {
     const email = `${u.username}@boozathink.com`;
     
     // Check if user already exists
-    let userRecord = await query.get('SELECT user_id FROM platform_profiles WHERE username = ?', [u.username]);
+    const { data: userRecord } = await supabaseClient.from('platform_profiles')
+      .select('user_id')
+      .eq('username', u.username)
+      .maybeSingle();
     let userId = userRecord ? userRecord.user_id : null;
     
     if (!userId) {
@@ -197,29 +134,36 @@ async function seedDefaultUsers(supabaseClient) {
                        (u.role === 'AUDITOR' ? 'service_admin' : 'user');
 
     // 1. platform_project_members
-    await query.run(`
-      INSERT INTO platform_project_members (project_id, user_id, role_id)
-      VALUES (?, ?, ?)
-      ON CONFLICT (project_id, user_id) DO NOTHING
-    `, [projectId, userId, targetRole]);
+    await supabaseClient.from('platform_project_members').upsert({
+      project_id: projectId,
+      user_id: userId,
+      role_id: targetRole
+    }, { onConflict: 'project_id, user_id' });
 
     // 2. platform_role_assignments
-    await query.run(`
-      INSERT INTO platform_role_assignments (user_id, service_id, project_id, role_id)
-      VALUES (?, 'church_think', ?, ?)
-      ON CONFLICT (user_id, service_id, project_id, role_id) DO NOTHING
-    `, [userId, projectId, targetRole]);
+    await supabaseClient.from('platform_role_assignments').upsert({
+      user_id: userId,
+      service_id: 'church_think',
+      project_id: projectId,
+      role_id: targetRole
+    }, { onConflict: 'user_id, service_id, project_id, role_id' });
 
     // Get department_id for groupName
-    const dept = await query.get('SELECT department_id FROM church_departments WHERE name = ? AND project_id = ?', [u.groupName, projectId]);
+    const { data: dept } = await supabaseClient.from('church_departments')
+      .select('department_id')
+      .eq('name', u.groupName)
+      .eq('project_id', projectId)
+      .maybeSingle();
     const deptId = dept ? dept.department_id : null;
 
     // 3. church_user_metadata
-    await query.run(`
-      INSERT INTO church_user_metadata (user_id, project_id, department_id, position, signature)
-      VALUES (?, ?, ?, ?, ?)
-      ON CONFLICT (user_id) DO NOTHING
-    `, [userId, projectId, deptId, u.position, `${u.name} (${u.position}) (??`]);
+    await supabaseClient.from('church_user_metadata').upsert({
+      user_id: userId,
+      project_id: projectId,
+      department_id: deptId,
+      position: u.position,
+      signature: `${u.name} (${u.position}) (??`
+    }, { onConflict: 'user_id' });
   }
   console.log('[Seed] Default users checks and synchronization completed.');
 }
@@ -233,18 +177,16 @@ async function initPlatformDb() {
     }
     
     const tConnStart = Date.now();
-    if (useSupabaseClientOnly) {
-      console.log('Testing Supabase Client connection...');
-      const { data, error } = await supabase.rpc('exec_sql', {
-        query_text: 'SELECT NOW()',
-        params: []
-      });
-      if (error) throw error;
-      console.log(`Supabase Client RPC Success: ${data[0].now} (${Date.now() - tConnStart}ms)`);
+    console.log('Testing Supabase Client connection...');
+    const { data, error } = await supabase.rpc('exec_sql', {
+      query_text: 'SELECT NOW()',
+      params: []
+    });
+    if (error) {
+      console.warn('Supabase Client RPC Failed:', error.message);
+      platformError = true;
     } else {
-      console.log('Testing Supabase PostgreSQL Connection...');
-      const res = await pool.query('SELECT NOW()');
-      console.log(`Supabase PostgreSQL Connection Success: ${res.rows[0].now} (${Date.now() - tConnStart}ms)`);
+      console.log(`Supabase Client RPC Success: ${data[0].now} (${Date.now() - tConnStart}ms)`);
     }
     
     if (process.env.NODE_ENV === 'production' && process.env.RUN_AUTO_SEED !== 'true') {

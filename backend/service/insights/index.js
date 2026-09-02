@@ -40,6 +40,19 @@ router.get('/debug2', async (req, res) => {
   return res.json({ count: data });
 });
 
+// GET /api/services/insights/admin/debug-index
+router.get('/admin/debug-index', async (req, res) => {
+  const fs = require('fs');
+  const path = require('path');
+  try {
+    const indexPath = path.join(__dirname, '../../../frontend/dist/index.html');
+    const content = fs.readFileSync(indexPath, 'utf-8');
+    res.send(content);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/services/insights?category=...
 router.get('/', async (req, res) => {
   const { category } = req.query;

@@ -7,7 +7,8 @@ async function runTests() {
     query: async (sql, params) => {
       queries.push({ sql, params });
       if (sql.includes('stock_data_sources')) return { rows: [{id: 1}] };
-      return { rowCount: params.length > 0 ? 1 : 0 };
+      if (sql.includes('INSERT INTO stock_instruments')) return { rows: [{id: 1, primary_market_code: 'KRX_KOSPI', stock_code: '000001', source_id: 1}, {id: 2, primary_market_code: 'KRX_KOSDAQ', stock_code: '000002', source_id: 1}] };
+      return { rowCount: params && params.length > 0 ? 1 : 0 };
     }
   };
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useStockSearch } from '../hooks/useStockSearch';
-import { isMockMode } from '../api/stockApi';
+
 import StockSearchBar from '../components/StockSearchBar';
 import StockFilterBar from '../components/StockFilterBar';
 import StockResultTable from '../components/StockResultTable';
