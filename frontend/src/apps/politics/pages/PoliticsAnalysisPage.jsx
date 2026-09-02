@@ -421,20 +421,7 @@ export default function PoliticsAnalysisPage() {
               </ResponsiveContainer>
             </div>
             
-            {/* Metric Descriptions */}
-            <div className="p-4 border-t border-slate-800 bg-slate-900/50 text-xs text-slate-400 mt-2 rounded-b-xl">
-              <h4 className="font-bold text-slate-300 mb-2 flex items-center gap-1">
-                <span className="text-[10px]">📊</span> 지표 산출 기준 및 출처 (Beta)
-              </h4>
-              <ul className="space-y-1.5 pl-1">
-                <li><strong className="text-slate-300">도덕성/청렴:</strong> 선관위 전과기록, 세금 체납액, 재산 축소 신고 의혹 등을 감점 요소로 산출한 자체 지수.</li>
-                <li><strong className="text-slate-300">화제성(SNS):</strong> 네이버 데이터랩 검색어 트렌드, 언론 보도량, 유튜브/인스타 해시태그 언급량 종합.</li>
-                <li><strong className="text-slate-300">대권/당내 잠재력:</strong> 리얼미터, 갤럽 등 주요 여론조사 기관의 차기 지도자 선호도 및 당대표 지지도 환산.</li>
-                <li><strong className="text-slate-300">입법/행정 성실도:</strong> 열려라 국회(참여연대) 본회의 출석률 및 지자체 공약 이행률 평가 리포트 기반.</li>
-                <li><strong className="text-slate-300">세대별 소구력:</strong> 연령별 지지율 편차를 분석하여 스윙보터(중도층) 확장 가능성을 측정한 AI 평가 지수.</li>
-              </ul>
-              <p className="mt-3 text-[10px] text-slate-500">* 본 지표는 현재 데이터 파이프라인 연동 테스트 중인 <span className="text-slate-400 border-b border-slate-600">시뮬레이션(더미) 데이터</span>이며, 곧 실시간 공공 데이터로 전환됩니다.</p>
-            </div>
+            
           </div>
 
           {/* PROFILE B */}
@@ -481,6 +468,25 @@ export default function PoliticsAnalysisPage() {
               )
             )}
           </div>
+
+        {/* FULL WIDTH METRIC DESCRIPTIONS */}
+        <div className="mt-8">
+          <div className="p-6 bg-slate-900/50 border border-slate-800 text-xs text-slate-400 rounded-xl">
+<div className="text-slate-400">
+              <h4 className="font-bold text-slate-300 mb-2 flex items-center gap-1">
+                <span className="text-[10px]">📊</span> 지표 산출 기준 및 출처 (Beta)
+              </h4>
+              <ul className="space-y-1.5 pl-1">
+                <li><strong className="text-slate-300">도덕성/청렴:</strong> 선관위 전과기록, 세금 체납액, 재산 축소 신고 의혹 등을 감점 요소로 산출한 자체 지수.</li>
+                <li><strong className="text-slate-300">화제성(SNS):</strong> 네이버 데이터랩 검색어 트렌드, 언론 보도량, 유튜브/인스타 해시태그 언급량 종합.</li>
+                <li><strong className="text-slate-300">대권/당내 잠재력:</strong> 리얼미터, 갤럽 등 주요 여론조사 기관의 차기 지도자 선호도 및 당대표 지지도 환산.</li>
+                <li><strong className="text-slate-300">입법/행정 성실도:</strong> 열려라 국회(참여연대) 본회의 출석률 및 지자체 공약 이행률 평가 리포트 기반.</li>
+                <li><strong className="text-slate-300">세대별 소구력:</strong> 연령별 지지율 편차를 분석하여 스윙보터(중도층) 확장 가능성을 측정한 AI 평가 지수.</li>
+              </ul>
+              <p className="mt-3 text-[10px] text-slate-500">* 본 지표는 현재 데이터 파이프라인 연동 테스트 중인 <span className="text-slate-400 border-b border-slate-600">시뮬레이션(더미) 데이터</span>이며, 곧 실시간 공공 데이터로 전환됩니다.</p>
+            </div>
+          </div>
+        </div>
 
         </div>
       </div>
