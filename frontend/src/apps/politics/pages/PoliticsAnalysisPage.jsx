@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import ApprovalTrendChart from '../components/ApprovalTrendChart';
+import CommentsPanel from '../components/CommentsPanel';
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, 
   ResponsiveContainer, Tooltip, Legend 
@@ -383,6 +384,7 @@ export default function PoliticsAnalysisPage() {
                     {polA.role_type === 'ASSEMBLY_MEMBER' && (<div className="flex justify-between"><span>출석률:</span> <span>{polA.stats?.attendance}%</span></div>)}
                     <div className="flex justify-between"><span>화제성:</span> <span>{polA.stats?.buzz}</span></div>
                   </div>
+                    <CommentsPanel entity={polA} entityType="politician" color={colorA} />
                 </div>
               ) : (
                 <div className="h-64 flex items-center justify-center text-slate-500">선택된 인물이 없습니다.</div>
@@ -399,6 +401,7 @@ export default function PoliticsAnalysisPage() {
                   </div>
                   {/* Leaderboard */}
                   <PartyLeaderboard party={partyA} color={colorA} />
+                  <CommentsPanel entity={partyA} entityType="party" color={colorA} />
                 </div>
               ) : (
                 <div className="h-64 flex items-center justify-center text-slate-500">선택된 정당이 없습니다.</div>
@@ -447,6 +450,7 @@ export default function PoliticsAnalysisPage() {
                     {polB.role_type === 'ASSEMBLY_MEMBER' && (<div className="flex justify-between"><span>출석률:</span> <span>{polB.stats?.attendance}%</span></div>)}
                     <div className="flex justify-between"><span>화제성:</span> <span>{polB.stats?.buzz}</span></div>
                   </div>
+                    <CommentsPanel entity={polB} entityType="politician" color={colorB} />
                 </div>
               ) : (
                 <div className="h-64 flex items-center justify-center text-slate-500">선택된 인물이 없습니다.</div>
@@ -463,6 +467,7 @@ export default function PoliticsAnalysisPage() {
                   </div>
                   {/* Leaderboard */}
                   <PartyLeaderboard party={partyB} color={colorB} />
+                  <CommentsPanel entity={partyB} entityType="party" color={colorB} />
                 </div>
               ) : (
                 <div className="h-64 flex items-center justify-center text-slate-500">선택된 정당이 없습니다.</div>
