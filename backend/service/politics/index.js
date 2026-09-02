@@ -11,7 +11,7 @@ router.get('/politicians', async (req, res) => {
     
     const queryText = `
       SELECT 
-        p.id, p.name, p.profile_image_url, p.gender, p.namuwiki_url,
+        p.id, p.name, p.profile_image_url, p.gender, p.namuwiki_url, p.party_name,
         s.record_year, s.declared_wealth, s.pledge_fulfillment_rate, 
         s.attendance_rate, s.buzz_index, s.approval_rating
       FROM politics_politicians p
@@ -31,6 +31,7 @@ router.get('/politicians', async (req, res) => {
     const formatted = rows.map(p => ({
       id: p.id,
       name: p.name,
+      party: p.party_name,
       imageUrl: p.profile_image_url,
       namuwikiUrl: p.namuwiki_url,
       stats: {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, 
   ResponsiveContainer, Tooltip, Legend 
@@ -8,6 +8,89 @@ import { apiClient } from '../../../core/api';
 const normalizeScore = (value, max) => {
   if (!value) return 0;
   return Math.min(100, Math.max(0, (value / max) * 100));
+};
+
+const PARTY_COLORS = {
+  '더불어민주당': { primary: '#1D4ED8', lighter: '#60A5FA' }, // Blue
+  '국민의힘': { primary: '#E11D48', lighter: '#FB7185' }, // Red
+  '조국혁신당': { primary: '#1E3A8A', lighter: '#3B82F6' }, // Deep Blue
+  '개혁신당': { primary: '#F97316', lighter: '#FDBA74' }, // Orange
+  'default': { primary: '#64748B', lighter: '#94A3B8' }
+};
+
+const getPartyColor = (partyName, isSecondary = false) => {
+  const scheme = PARTY_COLORS[partyName] || PARTY_COLORS['default'];
+  return isSecondary ? scheme.lighter : scheme.primary;
+};
+
+const SearchableSelect = ({ options, value, onChange, placeholder, outlineColor }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const wrapperRef = useRef(null);
+  
+  const selectedOption = options.find(o => o.id === value);
+  
+  const filtered = options.filter(o => 
+    o.name.includes(search) || (o.party && o.party.includes(search))
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative w-full mb-4" ref={wrapperRef}>
+      <div 
+        className="bg-slate-950 border text-white rounded px-3 py-2 w-full cursor-pointer flex justify-between items-center transition-colors"
+        style={{ borderColor: isOpen ? outlineColor : '#334155' }}
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span>{selectedOption ? `${selectedOption.name} (${selectedOption.party || '무소속'})` : placeholder}</span>
+        <span className="text-slate-400 text-xs">▼</span>
+      </div>
+      
+      {isOpen && (
+        <div className="absolute z-10 w-full mt-1 bg-slate-900 border border-slate-700 rounded shadow-xl max-h-60 flex flex-col overflow-hidden">
+          <div className="p-2 bg-slate-900 border-b border-slate-700 shrink-0">
+            <input
+              type="text"
+              className="w-full bg-slate-950 text-white px-2 py-1.5 rounded outline-none border border-slate-800 text-sm focus:border-slate-600 transition-colors"
+              placeholder="이름 또는 정당 검색..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              onClick={e => e.stopPropagation()}
+              autoFocus
+            />
+          </div>
+          <div className="overflow-y-auto flex-1">
+            {filtered.map(opt => (
+              <div
+                key={opt.id}
+                className="px-3 py-2 hover:bg-slate-800 cursor-pointer flex justify-between items-center text-sm border-b border-slate-800/50 last:border-0"
+                onClick={() => {
+                  onChange(opt.id);
+                  setIsOpen(false);
+                  setSearch('');
+                }}
+              >
+                <span className="font-bold text-slate-100">{opt.name}</span>
+                <span className="text-slate-400 text-xs">{opt.party || '무소속'}</span>
+              </div>
+            ))}
+            {filtered.length === 0 && (
+              <div className="px-3 py-6 text-center text-slate-500 text-sm">검색 결과가 없습니다.</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default function PoliticsAnalysisPage() {
@@ -41,8 +124,7 @@ export default function PoliticsAnalysisPage() {
   const polA = politicians.find(p => p.id === selectedA);
   const polB = politicians.find(p => p.id === selectedB);
 
-  // Normalize stats for radar chart (mock normalization for now)
-  // Max wealth: 5,000,000,000 (50억)
+  // Normalize stats for radar chart
   const chartData = [
     {
       subject: '입법 성실도',
@@ -82,8 +164,17 @@ export default function PoliticsAnalysisPage() {
     }
   ];
 
+  let colorA = getPartyColor(polA?.party);
+  let colorB = getPartyColor(polB?.party);
+  let isSameParty = false;
+
+  if (polA && polB && polA.party === polB.party) {
+    isSameParty = true;
+    colorB = getPartyColor(polB?.party, true);
+  }
+
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-6 max-w-7xl mx-auto space-y-6 select-none">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white tracking-tight">정치인 비교 분석</h1>
@@ -96,23 +187,33 @@ export default function PoliticsAnalysisPage() {
           
           {/* Politician A Profile */}
           <div className="flex flex-col items-center p-4 bg-slate-800/50 rounded-xl border border-slate-700">
-            <select 
-              className="mb-4 bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 w-full outline-none focus:border-indigo-500"
-              value={selectedA}
-              onChange={(e) => setSelectedA(e.target.value)}
-            >
-              {politicians.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-            {polA && (
+            <SearchableSelect 
+              options={politicians} 
+              value={selectedA} 
+              onChange={setSelectedA} 
+              placeholder="정치인 선택..." 
+              outlineColor={colorA}
+            />
+            {polA ? (
               <>
-                <img src={polA.imageUrl} alt={polA.name} className="w-32 h-32 rounded-full object-cover border-4 border-indigo-500 mb-4 bg-white" />
+                <img 
+                  src={polA.imageUrl} 
+                  alt={polA.name} 
+                  className="w-32 h-32 rounded-full object-cover border-4 mb-4 bg-white" 
+                  style={{ borderColor: colorA }}
+                />
                 <h3 className="text-xl font-bold text-white">{polA.name}</h3>
+                <span className="text-xs font-medium px-2 py-1 rounded-full mt-2" style={{ backgroundColor: `${colorA}33`, color: colorA }}>
+                  {polA.party || '무소속'}
+                </span>
                 <div className="mt-4 w-full space-y-2 text-sm text-slate-300">
                   <div className="flex justify-between"><span>추정 재산:</span> <span>{polA.stats?.wealth ? (polA.stats.wealth / 100000000).toFixed(0) + '억' : 'N/A'}</span></div>
                   <div className="flex justify-between"><span>출석률:</span> <span>{polA.stats?.attendance}%</span></div>
                   <div className="flex justify-between"><span>화제성:</span> <span>{polA.stats?.buzz}</span></div>
                 </div>
               </>
+            ) : (
+              <div className="h-64 flex items-center justify-center text-slate-500">선택된 정치인이 없습니다.</div>
             )}
           </div>
 
@@ -128,31 +229,54 @@ export default function PoliticsAnalysisPage() {
                   itemStyle={{ color: '#e2e8f0' }}
                 />
                 <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                <Radar name={polA?.name || 'A'} dataKey="A" stroke="#6366f1" fill="#6366f1" fillOpacity={0.5} />
-                <Radar name={polB?.name || 'B'} dataKey="B" stroke="#ec4899" fill="#ec4899" fillOpacity={0.5} />
+                <Radar 
+                  name={polA?.name || 'A'} 
+                  dataKey="A" 
+                  stroke={colorA} 
+                  fill={colorA} 
+                  fillOpacity={0.5} 
+                />
+                <Radar 
+                  name={polB?.name || 'B'} 
+                  dataKey="B" 
+                  stroke={colorB} 
+                  fill={colorB} 
+                  fillOpacity={0.5} 
+                  strokeDasharray={isSameParty ? "5 5" : undefined}
+                />
               </RadarChart>
             </ResponsiveContainer>
           </div>
 
           {/* Politician B Profile */}
           <div className="flex flex-col items-center p-4 bg-slate-800/50 rounded-xl border border-slate-700">
-            <select 
-              className="mb-4 bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 w-full outline-none focus:border-pink-500"
-              value={selectedB}
-              onChange={(e) => setSelectedB(e.target.value)}
-            >
-              {politicians.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-            {polB && (
+            <SearchableSelect 
+              options={politicians} 
+              value={selectedB} 
+              onChange={setSelectedB} 
+              placeholder="정치인 선택..." 
+              outlineColor={colorB}
+            />
+            {polB ? (
               <>
-                <img src={polB.imageUrl} alt={polB.name} className="w-32 h-32 rounded-full object-cover border-4 border-pink-500 mb-4 bg-white" />
+                <img 
+                  src={polB.imageUrl} 
+                  alt={polB.name} 
+                  className="w-32 h-32 rounded-full object-cover border-4 mb-4 bg-white" 
+                  style={{ borderColor: colorB, borderStyle: isSameParty ? 'dashed' : 'solid' }}
+                />
                 <h3 className="text-xl font-bold text-white">{polB.name}</h3>
+                <span className="text-xs font-medium px-2 py-1 rounded-full mt-2" style={{ backgroundColor: `${colorB}33`, color: colorB }}>
+                  {polB.party || '무소속'}
+                </span>
                 <div className="mt-4 w-full space-y-2 text-sm text-slate-300">
                   <div className="flex justify-between"><span>추정 재산:</span> <span>{polB.stats?.wealth ? (polB.stats.wealth / 100000000).toFixed(0) + '억' : 'N/A'}</span></div>
                   <div className="flex justify-between"><span>출석률:</span> <span>{polB.stats?.attendance}%</span></div>
                   <div className="flex justify-between"><span>화제성:</span> <span>{polB.stats?.buzz}</span></div>
                 </div>
               </>
+            ) : (
+              <div className="h-64 flex items-center justify-center text-slate-500">선택된 정치인이 없습니다.</div>
             )}
           </div>
 
