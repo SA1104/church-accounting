@@ -125,44 +125,47 @@ export default function PoliticsAnalysisPage() {
   const polB = politicians.find(p => p.id === selectedB);
 
   // Normalize stats for radar chart
-  const chartData = [
-    {
-      subject: '입법 성실도',
-      A: polA ? normalizeScore(polA.stats?.attendance, 100) : 0,
-      B: polB ? normalizeScore(polB.stats?.attendance, 100) : 0,
-      fullMark: 100,
-    },
-    {
-      subject: '공약 이행률',
-      A: polA ? normalizeScore(polA.stats?.pledge, 100) : 0,
-      B: polB ? normalizeScore(polB.stats?.pledge, 100) : 0,
-      fullMark: 100,
-    },
-    {
-      subject: '화제성(검색량)',
-      A: polA ? normalizeScore(polA.stats?.buzz, 100) : 0,
-      B: polB ? normalizeScore(polB.stats?.buzz, 100) : 0,
-      fullMark: 100,
-    },
-    {
-      subject: '재력 지수',
-      A: polA ? normalizeScore(polA.stats?.wealth, 5000000000) : 0,
-      B: polB ? normalizeScore(polB.stats?.wealth, 5000000000) : 0,
-      fullMark: 100,
-    },
-    {
-      subject: '긍정 평가',
-      A: polA ? normalizeScore(polA.stats?.approval, 100) : 0,
-      B: polB ? normalizeScore(polB.stats?.approval, 100) : 0,
-      fullMark: 100,
-    },
-    {
-      subject: '당내 영향력',
-      A: polA ? 85 : 0, // Mock for now
-      B: polB ? 80 : 0,
-      fullMark: 100,
+  const getDynamicChartData = (pA, pB) => {
+    // Determine the chart mode based on roles
+    // If both are ASSEMBLY_MEMBER, use the standard legislative chart
+    const roleA = pA?.role_type || 'ASSEMBLY_MEMBER';
+    const roleB = pB?.role_type || 'ASSEMBLY_MEMBER';
+    
+    const isBothAssembly = roleA === 'ASSEMBLY_MEMBER' && roleB === 'ASSEMBLY_MEMBER';
+    const isBothMayor = roleA === 'MAYOR' && roleB === 'MAYOR';
+    
+    if (isBothAssembly) {
+      return [
+        { subject: '입법 성실도', A: pA ? normalizeScore(pA.stats?.attendance, 100) : 0, B: pB ? normalizeScore(pB.stats?.attendance, 100) : 0, fullMark: 100 },
+        { subject: '공약 이행률', A: pA ? normalizeScore(pA.stats?.pledge, 100) : 0, B: pB ? normalizeScore(pB.stats?.pledge, 100) : 0, fullMark: 100 },
+        { subject: '화제성(검색량)', A: pA ? normalizeScore(pA.stats?.buzz, 100) : 0, B: pB ? normalizeScore(pB.stats?.buzz, 100) : 0, fullMark: 100 },
+        { subject: '재력 지수', A: pA ? normalizeScore(pA.stats?.wealth, 5000000000) : 0, B: pB ? normalizeScore(pB.stats?.wealth, 5000000000) : 0, fullMark: 100 },
+        { subject: '긍정 평가', A: pA ? normalizeScore(pA.stats?.approval, 100) : 0, B: pB ? normalizeScore(pB.stats?.approval, 100) : 0, fullMark: 100 },
+        { subject: '당내 영향력', A: pA ? 85 : 0, B: pB ? 80 : 0, fullMark: 100 }
+      ];
     }
-  ];
+    
+    if (isBothMayor) {
+      return [
+        { subject: '행정 평가', A: pA ? (pA.dynamic_metrics?.admin_rating || 0) : 0, B: pB ? (pB.dynamic_metrics?.admin_rating || 0) : 0, fullMark: 100 },
+        { subject: '예산 집행률', A: pA ? (pA.dynamic_metrics?.budget_execution || 0) : 0, B: pB ? (pB.dynamic_metrics?.budget_execution || 0) : 0, fullMark: 100 },
+        { subject: '화제성(검색량)', A: pA ? normalizeScore(pA.stats?.buzz, 100) : 0, B: pB ? normalizeScore(pB.stats?.buzz, 100) : 0, fullMark: 100 },
+        { subject: '대권 지지율', A: pA ? (pA.dynamic_metrics?.presidential_support || 0) : 0, B: pB ? (pB.dynamic_metrics?.presidential_support || 0) : 0, fullMark: 100 },
+        { subject: '호감도', A: pA ? normalizeScore(pA.stats?.approval, 100) : 0, B: pB ? normalizeScore(pB.stats?.approval, 100) : 0, fullMark: 100 }
+      ];
+    }
+    
+    // Cross-role or Extra-parliamentary comparison (Common Metrics)
+    return [
+      { subject: '정치적 체급', A: pA ? (pA.role_type === 'EXTRA_PARLIAMENTARY' || pA.role_type === 'MAYOR' ? 90 : 70) : 0, B: pB ? (pB.role_type === 'EXTRA_PARLIAMENTARY' || pB.role_type === 'MAYOR' ? 90 : 70) : 0, fullMark: 100 },
+      { subject: '대권 잠재력', A: pA ? (pA.dynamic_metrics?.presidential_support || 40) : 0, B: pB ? (pB.dynamic_metrics?.presidential_support || 40) : 0, fullMark: 100 },
+      { subject: '화제성(검색량)', A: pA ? normalizeScore(pA.stats?.buzz, 100) : 0, B: pB ? normalizeScore(pB.stats?.buzz, 100) : 0, fullMark: 100 },
+      { subject: '당내 장악력', A: pA ? (pA.dynamic_metrics?.party_control || 75) : 0, B: pB ? (pB.dynamic_metrics?.party_control || 75) : 0, fullMark: 100 },
+      { subject: '호감도', A: pA ? normalizeScore(pA.stats?.approval, 100) : 0, B: pB ? normalizeScore(pB.stats?.approval, 100) : 0, fullMark: 100 }
+    ];
+  };
+
+  const chartData = getDynamicChartData(polA, polB);
 
   let colorA = getPartyColor(polA?.party);
   let colorB = getPartyColor(polB?.party);
@@ -203,12 +206,19 @@ export default function PoliticsAnalysisPage() {
                   style={{ borderColor: colorA }}
                 />
                 <h3 className="text-xl font-bold text-white">{polA.name}</h3>
-                <span className="text-xs font-medium px-2 py-1 rounded-full mt-2" style={{ backgroundColor: `${colorA}33`, color: colorA }}>
-                  {polA.party || '무소속'}
-                </span>
+                <div className="flex gap-2 mt-2">
+                  <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ backgroundColor: `${colorA}33`, color: colorA }}>
+                    {polA.party || '무소속'}
+                  </span>
+                  <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-600">
+                    {polA.role_type === 'MAYOR' ? '지자체장' : polA.role_type === 'EXTRA_PARLIAMENTARY' ? '원외인사' : '국회의원'}
+                  </span>
+                </div>
                 <div className="mt-4 w-full space-y-2 text-sm text-slate-300">
                   <div className="flex justify-between"><span>추정 재산:</span> <span>{polA.stats?.wealth ? (polA.stats.wealth / 100000000).toFixed(0) + '억' : 'N/A'}</span></div>
-                  <div className="flex justify-between"><span>출석률:</span> <span>{polA.stats?.attendance}%</span></div>
+                  {polA.role_type === 'ASSEMBLY_MEMBER' && (
+                    <div className="flex justify-between"><span>출석률:</span> <span>{polA.stats?.attendance}%</span></div>
+                  )}
                   <div className="flex justify-between"><span>화제성:</span> <span>{polA.stats?.buzz}</span></div>
                 </div>
               </>
@@ -266,12 +276,19 @@ export default function PoliticsAnalysisPage() {
                   style={{ borderColor: colorB, borderStyle: isSameParty ? 'dashed' : 'solid' }}
                 />
                 <h3 className="text-xl font-bold text-white">{polB.name}</h3>
-                <span className="text-xs font-medium px-2 py-1 rounded-full mt-2" style={{ backgroundColor: `${colorB}33`, color: colorB }}>
-                  {polB.party || '무소속'}
-                </span>
+                <div className="flex gap-2 mt-2">
+                  <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ backgroundColor: `${colorB}33`, color: colorB }}>
+                    {polB.party || '무소속'}
+                  </span>
+                  <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-600">
+                    {polB.role_type === 'MAYOR' ? '지자체장' : polB.role_type === 'EXTRA_PARLIAMENTARY' ? '원외인사' : '국회의원'}
+                  </span>
+                </div>
                 <div className="mt-4 w-full space-y-2 text-sm text-slate-300">
                   <div className="flex justify-between"><span>추정 재산:</span> <span>{polB.stats?.wealth ? (polB.stats.wealth / 100000000).toFixed(0) + '억' : 'N/A'}</span></div>
-                  <div className="flex justify-between"><span>출석률:</span> <span>{polB.stats?.attendance}%</span></div>
+                  {polB.role_type === 'ASSEMBLY_MEMBER' && (
+                    <div className="flex justify-between"><span>출석률:</span> <span>{polB.stats?.attendance}%</span></div>
+                  )}
                   <div className="flex justify-between"><span>화제성:</span> <span>{polB.stats?.buzz}</span></div>
                 </div>
               </>
