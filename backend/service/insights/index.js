@@ -122,37 +122,26 @@ router.get('/admin/dedupe', async (req, res) => {
   try {
     const { createClient } = require('@supabase/supabase-js');
     const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SECRET_KEY;
+    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
     
-    if (!supabaseUrl || !supabaseKey) {
-      return res.status(400).json({ error: 'Missing SUPABASE_URL or SUPABASE_SECRET_KEY' });
-    }
-    
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    
-    // 1. Fetch all insights from 2026-09-02
     const { data: insights, error } = await supabase
       .from('market_insights')
-      .select('id, category, title, created_at')
-      .gte('created_at', '2026-09-02T00:00:00Z')
-      .lt('created_at', '2026-09-03T00:00:00Z')
-      .order('created_at', { ascending: true });
+      .select('id, category, created_at')
+      .order('created_at', { ascending: false });
       
     if (error) throw error;
     
-    // 2. Identify duplicates by title
-    const seenTitles = new Set();
+    const byCat = {};
     const toDelete = [];
     
-    for (const insight of insights) {
-      if (seenTitles.has(insight.title)) {
-        toDelete.push(insight.id);
+    for (const i of insights) {
+      if (!byCat[i.category]) {
+        byCat[i.category] = i.id;
       } else {
-        seenTitles.add(insight.title);
+        toDelete.push(i.id);
       }
     }
     
-    // 3. Delete duplicates
     let deletedCount = 0;
     if (toDelete.length > 0) {
       const { error: delError } = await supabase
