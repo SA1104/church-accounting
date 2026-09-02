@@ -1,6 +1,6 @@
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args)).catch(() => global.fetch(...args));
 
-async function generateMarketInsight(category, apiKey) {
+async function generateMarketInsight(category, apiKey, previousInsight = null) {
   if (!apiKey) {
     console.error('[AI] Cannot generate insight: OPENAI_API_KEY is missing.');
     return null;
@@ -9,7 +9,8 @@ async function generateMarketInsight(category, apiKey) {
   const systemPrompt = `You are 'BoozaThink AI', an elite market analyst and strategist. Your job is to analyze current market trends and provide concise, highly actionable insights.
 Respond ONLY with a valid raw JSON object. Do not include markdown code blocks like \`\`\`json.`;
 
-  const userPrompt = `Generate a high-quality, realistic daily market insight for the category "${category}" focusing on current real-world South Korean or Global economic trends (e.g., AI semiconductors, Fed rate cuts, real estate policies).
+  let userPrompt = `Generate a high-quality, realistic daily market insight for the category "${category}" focusing on current real-world South Korean or Global economic trends (e.g., AI semiconductors, Fed rate cuts, real estate policies).
+
 The output must be a single JSON object with the following exact keys:
 {
   "category": "${category}",
@@ -20,6 +21,21 @@ The output must be a single JSON object with the following exact keys:
   "source_links": [{"title": "관련 기사 검색", "url": "https://search.naver.com/search.naver?query=시장동향"}]
 }
 Ensure the text is written in professional, natural Korean (한국어).`;
+
+  if (previousInsight) {
+    userPrompt += `
+
+[CRITICAL INSTRUCTION FOR DEDUPLICATION]
+The previous insight generated for this category was:
+Title: ${previousInsight.title}
+Summary: ${previousInsight.summary}
+
+Since market situations do not change drastically multiple times a day, there is a high probability that the news is identical or very similar to the previous insight.
+Simulate whether a significant new market event has occurred.
+If the current news or situation is very similar to the previous insight, or if you have nothing significantly new to report, you MUST skip generation to prevent user fatigue.
+If you decide to skip, return EXACTLY this JSON and nothing else:
+{ "skip": true }`;
+  }
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {

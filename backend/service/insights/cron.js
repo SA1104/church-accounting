@@ -1,7 +1,8 @@
 const { query } = require('../../core/db');
 const { generateMarketInsight } = require('./aiService');
+const cron = require('node-cron');
 
-let cronTimer = null;
+let scheduledTasks = [];
 
 async function runInsightGenerationTask() {
   console.log('[Cron] Starting AI Insight Generation Task...');
@@ -18,9 +19,21 @@ async function runInsightGenerationTask() {
   for (const targetCategory of categories) {
     try {
       console.log(`[Cron] Generating insight for category: ${targetCategory}`);
-      const insight = await generateMarketInsight(targetCategory, apiKey);
+      
+      // Fetch the latest insight to check for similarity/deduplication
+      const previousInsight = await query.get(
+        `SELECT title, summary FROM market_insights WHERE category = ? ORDER BY created_at DESC LIMIT 1`,
+        [targetCategory]
+      );
+
+      const insight = await generateMarketInsight(targetCategory, apiKey, previousInsight);
       
       if (insight) {
+        if (insight.skip) {
+          console.log(`[Cron] 🚫 AI determined no significant changes for ${targetCategory}. Skipped to prevent fatigue.`);
+          continue; // Skip DB insertion
+        }
+
         console.log(`[Cron] Successfully generated: ${insight.title}`);
         
         // Convert keywords array to postgres array format: {"A","B"}
@@ -47,21 +60,37 @@ async function runInsightGenerationTask() {
 }
 
 function initCron() {
-  // Run once immediately on boot after a short delay to let DB initialize
+  // 1. Run once immediately on boot after a short delay to let DB initialize
   setTimeout(() => {
     runInsightGenerationTask();
   }, 10000);
 
-  // Run every 2 hours (1000 * 60 * 60 * 2)
-  const intervalMs = 1000 * 60 * 60 * 2;
-  cronTimer = setInterval(runInsightGenerationTask, intervalMs);
-  console.log(`[Insights DB] AI Cron registered. Will run every ${intervalMs / 1000 / 60} minutes.`);
+  // 2. Register node-cron schedule: 06:00, 11:00, 15:00, 19:00 KST
+  // (Assuming server runs on UTC, KST is UTC+9. 
+  // 06:00 KST = 21:00 UTC (previous day)
+  // 11:00 KST = 02:00 UTC
+  // 15:00 KST = 06:00 UTC
+  // 19:00 KST = 10:00 UTC
+  // Alternatively, just specify timezone in node-cron).
+  
+  const scheduleString = '0 6,11,15,19 * * *';
+  
+  const task = cron.schedule(scheduleString, () => {
+    runInsightGenerationTask();
+  }, {
+    scheduled: true,
+    timezone: "Asia/Seoul"
+  });
+  
+  scheduledTasks.push(task);
+  console.log(`[Insights DB] AI Cron registered. Will run at 06:00, 11:00, 15:00, 19:00 (KST).`);
 }
 
 function stopCron() {
-  if (cronTimer) {
-    clearInterval(cronTimer);
+  for (const task of scheduledTasks) {
+    task.stop();
   }
+  scheduledTasks = [];
 }
 
 module.exports = {
