@@ -27,7 +27,7 @@ router.get('/debug2', async (req, res) => {
 });
 
 // GET /api/services/insights?category=...
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', async (req, res) => {
   const { category } = req.query;
   try {
     let sql = `
@@ -42,8 +42,15 @@ router.get('/', authenticateToken, async (req, res) => {
     
     sql += ` ORDER BY created_at DESC LIMIT 20`;
     
-    const insights = await query.all(sql, params);
-    res.json(insights);
+    const { createClient } = require('@supabase/supabase-js');
+    const dbClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
+    
+    const { data, error } = await dbClient.rpc('exec_sql', { query_text: sql, params });
+    if (error) {
+      console.error('[Insights API] DB Error:', error.message);
+      return res.status(500).json({ error: error.message });
+    }
+    res.json(data || []);
   } catch (error) {
     console.error('[Insights API] Failed to fetch insights:', error);
     res.status(500).json({ error: 'Internal Server Error' });
