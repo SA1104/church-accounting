@@ -6,6 +6,6 @@
   "scripts": {
     "test:stock": "node test_v4_all.js",
     "lint": "echo No lint rules && exit 0",
-    "build": "cd frontend && npm install && npm run build"
+    "build": "echo 'Skipping frontend build since dist is tracked in git' && exit 0"
   }
 }
