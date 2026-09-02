@@ -11,10 +11,24 @@ initCron();
 router.get('/debug1', async (req, res) => {
   const { createClient } = require('@supabase/supabase-js');
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
-  const sql = `SELECT p.*, u.raw_user_meta_data->>'name' as author_name, (SELECT count(*) FROM board_comments c WHERE c.post_id = p.id) as comments_count, (SELECT count(*) FROM board_post_likes l WHERE l.post_id = p.id) as likes_count FROM board_posts p LEFT JOIN auth.users u ON p.user_id = u.id WHERE p.category = ? ORDER BY p.created_at DESC LIMIT 50`;
-  const { data, error } = await supabase.rpc('exec_sql', { query_text: sql, params: ['real_estate'] });
-  if (error) return res.status(500).json({ error: error.message, sql });
-  return res.json({ status: 'ok', data });
+  
+  const fs = require('fs');
+  const path = require('path');
+  try {
+    const sqlPath1 = path.join(__dirname, '../../../database/migrations/2026_09_01_universal_board.sql');
+    const sqlPath2 = path.join(__dirname, '../../../database/migrations/2026_09_02_market_insights.sql');
+    
+    let sql1 = fs.readFileSync(sqlPath1, 'utf8').replace(/BEGIN;/g, '').replace(/COMMIT;/g, '');
+    let sql2 = fs.readFileSync(sqlPath2, 'utf8').replace(/BEGIN;/g, '').replace(/COMMIT;/g, '');
+    
+    // Just run them consecutively
+    const res1 = await supabase.rpc('exec_sql', { query_text: sql1, params: [] });
+    const res2 = await supabase.rpc('exec_sql', { query_text: sql2, params: [] });
+    
+    return res.json({ status: 'ok', res1, res2 });
+  } catch (err) {
+    return res.status(500).json({ error: err.message, stack: err.stack });
+  }
 });
 
 router.get('/debug2', async (req, res) => {
