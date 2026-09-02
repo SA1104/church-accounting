@@ -20,10 +20,7 @@ const PARTY_COLORS = {
 
 const getPartyColor = (partyName, isAlt = false) => {
   const baseColor = PARTY_COLORS[partyName] || PARTY_COLORS['무소속'];
-  if (isAlt) {
-    // If same party, return a slightly different shade or we handle it via strokeDasharray
-    return baseColor;
-  }
+  if (isAlt) return baseColor;
   return baseColor;
 };
 
@@ -99,8 +96,91 @@ const SearchableSelect = ({ options, value, onChange, placeholder, outlineColor 
   );
 };
 
+// NEW: Party Leaderboard Component
+const PartyLeaderboard = ({ party, color }) => {
+  if (!party || !party.members || party.members.length === 0) return null;
+
+  // 1. Calculate Party Average Base Score
+  let totalScore = 0;
+  party.members.forEach(m => {
+    const score = ((m.stats?.approval || 50) + (m.dynamic_metrics?.morality_index || 70) + (m.dynamic_metrics?.sns_power || 50)) / 3;
+    totalScore += score;
+  });
+  const partyAverage = totalScore / party.members.length;
+
+  // 2. Calculate Deviation for each member
+  const rankedMembers = party.members.map(m => {
+    const personalScore = ((m.stats?.approval || 50) + (m.dynamic_metrics?.morality_index || 70) + (m.dynamic_metrics?.sns_power || 50)) / 3;
+    const deviation = personalScore - partyAverage;
+    
+    // Mock AI reason generation based on stats
+    let reason = "당 평균 수준의 기여를 하고 있습니다.";
+    if (deviation > 5) {
+      if (m.dynamic_metrics?.morality_index > 85) reason = "압도적인 청렴함과 도덕성으로 당의 쇄신 이미지를 견인 중";
+      else if (m.dynamic_metrics?.sns_power > 85) reason = "강력한 팬덤과 소셜 파급력으로 지지층을 결집시킴";
+      else reason = "안정적인 대국민 호감도로 스윙보터를 흡수 중";
+    } else if (deviation < -5) {
+      if (m.dynamic_metrics?.morality_index < 60) reason = "연이은 논란과 도덕성 리스크로 중도층 이탈의 핵심 원인";
+      else if (m.stats?.approval < 45) reason = "대국민 비호감도가 너무 높아 당의 이미지에 치명적 타격";
+      else reason = "화제성 부족 및 존재감 미미로 평균치 하락 주도";
+    }
+
+    return { ...m, deviation, reason };
+  }).sort((a, b) => b.deviation - a.deviation); // Sort descending
+
+  const mvps = rankedMembers.filter(m => m.deviation >= 0).slice(0, 3);
+  const risks = rankedMembers.filter(m => m.deviation < 0).reverse().slice(0, 3); // bottom up to 3
+
+  return (
+    <div className="mt-6 space-y-4">
+      {mvps.length > 0 && (
+        <div className="bg-slate-800/80 rounded-lg p-4 border border-blue-900/50">
+          <h4 className="text-sm font-bold text-blue-400 mb-3 flex items-center gap-2">
+            🏆 명예의 전당 <span className="text-xs font-normal text-slate-400">(기여도 TOP)</span>
+          </h4>
+          <div className="space-y-3">
+            {mvps.map((m, i) => (
+              <div key={m.id} className="flex gap-3 items-start">
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-xs font-bold border border-blue-500/30">
+                  {i + 1}
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-white">{m.name} <span className="text-xs font-normal text-green-400 ml-1">+{m.deviation.toFixed(1)}점</span></div>
+                  <div className="text-xs text-slate-400 leading-tight mt-1">{m.reason}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {risks.length > 0 && (
+        <div className="bg-slate-800/80 rounded-lg p-4 border border-red-900/50">
+          <h4 className="text-sm font-bold text-red-400 mb-3 flex items-center gap-2">
+            🚨 리스크 주의보 <span className="text-xs font-normal text-slate-400">(훼손도 WORST)</span>
+          </h4>
+          <div className="space-y-3">
+            {risks.map((m, i) => (
+              <div key={m.id} className="flex gap-3 items-start">
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center text-xs font-bold border border-red-500/30">
+                  {i + 1}
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-white">{m.name} <span className="text-xs font-normal text-red-400 ml-1">{m.deviation.toFixed(1)}점</span></div>
+                  <div className="text-xs text-slate-400 leading-tight mt-1">{m.reason}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
 export default function PoliticsAnalysisPage() {
-  const [viewMode, setViewMode] = useState('politician'); // 'politician' | 'party'
+  const [viewMode, setViewMode] = useState('party'); // 'politician' | 'party', defaulting to party for this demo
   const [politicians, setPoliticians] = useState([]);
   const [parties, setParties] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -133,7 +213,15 @@ export default function PoliticsAnalysisPage() {
         
         const partyArray = Array.from(partyMap.values());
         setParties(partyArray);
-        if (partyArray.length >= 2) {
+        
+        // Try to default to Minjoo and PPP if available
+        const minjoo = partyArray.find(p => p.name === '더불어민주당');
+        const ppp = partyArray.find(p => p.name === '국민의힘');
+        
+        if (minjoo && ppp) {
+          setSelectedPartyA(minjoo.id);
+          setSelectedPartyB(ppp.id);
+        } else if (partyArray.length >= 2) {
           setSelectedPartyA(partyArray[0].id);
           setSelectedPartyB(partyArray[1].id);
         } else if (partyArray.length === 1) {
@@ -164,7 +252,6 @@ export default function PoliticsAnalysisPage() {
     const isBothAssembly = roleA === 'ASSEMBLY_MEMBER' && roleB === 'ASSEMBLY_MEMBER';
     const isBothMayor = roleA === 'MAYOR' && roleB === 'MAYOR';
     
-    // Default metrics with new fallback properties if not set
     if (isBothAssembly) {
       return [
         { subject: '입법 성실도', A: pA ? normalizeScore(pA.stats?.attendance, 100) : 0, B: pB ? normalizeScore(pB.stats?.attendance, 100) : 0, fullMark: 100 },
@@ -186,7 +273,6 @@ export default function PoliticsAnalysisPage() {
       ];
     }
     
-    // Cross-role or Extra-parliamentary comparison (Common Metrics)
     return [
       { subject: '정치적 체급', A: pA ? (pA.role_type === 'EXTRA_PARLIAMENTARY' || pA.role_type === 'MAYOR' ? 90 : 70) : 0, B: pB ? (pB.role_type === 'EXTRA_PARLIAMENTARY' || pB.role_type === 'MAYOR' ? 90 : 70) : 0, fullMark: 100 },
       { subject: '대권 잠재력', A: pA ? (pA.dynamic_metrics?.presidential_support || 40) : 0, B: pB ? (pB.dynamic_metrics?.presidential_support || 40) : 0, fullMark: 100 },
@@ -207,7 +293,6 @@ export default function PoliticsAnalysisPage() {
     let count = 0;
     
     partyObj.members.forEach(m => {
-      // Use weight 1.5 for extra parliamentary/mayors as they are heavyweights
       const weight = (m.role_type === 'EXTRA_PARLIAMENTARY' || m.role_type === 'MAYOR') ? 1.5 : 1.0;
       
       let val = 0;
@@ -258,13 +343,13 @@ export default function PoliticsAnalysisPage() {
         {/* VIEW MODE TOGGLE */}
         <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700 w-max">
           <button 
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'politician' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
+            className={\`px-4 py-2 rounded-md text-sm font-medium transition-colors \${viewMode === 'politician' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}\`}
             onClick={() => setViewMode('politician')}
           >
             👤 인물 비교
           </button>
           <button 
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'party' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
+            className={\`px-4 py-2 rounded-md text-sm font-medium transition-colors \${viewMode === 'party' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}\`}
             onClick={() => setViewMode('party')}
           >
             🏛️ 정당 비교
@@ -273,75 +358,47 @@ export default function PoliticsAnalysisPage() {
       </div>
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
           
           {/* PROFILE A */}
-          <div className="flex flex-col items-center p-4 bg-slate-800/50 rounded-xl border border-slate-700 h-full">
+          <div className="flex flex-col p-4 bg-slate-800/50 rounded-xl border border-slate-700 h-full">
             {viewMode === 'politician' ? (
-              <SearchableSelect 
-                options={politicians} 
-                value={selectedPolA} 
-                onChange={setSelectedPolA} 
-                placeholder="정치인 선택..." 
-                outlineColor={colorA}
-              />
+              <SearchableSelect options={politicians} value={selectedPolA} onChange={setSelectedPolA} placeholder="정치인 선택..." outlineColor={colorA} />
             ) : (
-              <SearchableSelect 
-                options={parties} 
-                value={selectedPartyA} 
-                onChange={setSelectedPartyA} 
-                placeholder="정당 선택..." 
-                outlineColor={colorA}
-              />
+              <SearchableSelect options={parties} value={selectedPartyA} onChange={setSelectedPartyA} placeholder="정당 선택..." outlineColor={colorA} />
             )}
             
             {viewMode === 'politician' ? (
               polA ? (
-                <>
-                  <img 
-                    src={polA.imageUrl} 
-                    alt={polA.name} 
-                    className="w-32 h-32 rounded-full object-cover border-4 mb-4 bg-white" 
-                    style={{ borderColor: colorA }}
-                  />
+                <div className="flex flex-col items-center">
+                  <img src={polA.imageUrl} alt={polA.name} className="w-32 h-32 rounded-full object-cover border-4 mb-4 bg-white" style={{ borderColor: colorA }} />
                   <h3 className="text-xl font-bold text-white">{polA.name}</h3>
                   <div className="flex gap-2 mt-2">
-                    <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ backgroundColor: `${colorA}33`, color: colorA }}>
-                      {polA.party || '무소속'}
-                    </span>
-                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-600">
-                      {polA.role_type === 'MAYOR' ? '지자체장' : polA.role_type === 'EXTRA_PARLIAMENTARY' ? '원외인사' : '국회의원'}
-                    </span>
+                    <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ backgroundColor: \`\${colorA}33\`, color: colorA }}>{polA.party || '무소속'}</span>
+                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-600">{polA.role_type === 'MAYOR' ? '지자체장' : polA.role_type === 'EXTRA_PARLIAMENTARY' ? '원외인사' : '국회의원'}</span>
                   </div>
                   <div className="mt-4 w-full space-y-2 text-sm text-slate-300">
                     <div className="flex justify-between"><span>도덕성 지수:</span> <span>{polA.dynamic_metrics?.morality_index || 70}점</span></div>
-                    {polA.role_type === 'ASSEMBLY_MEMBER' && (
-                      <div className="flex justify-between"><span>출석률:</span> <span>{polA.stats?.attendance}%</span></div>
-                    )}
+                    {polA.role_type === 'ASSEMBLY_MEMBER' && (<div className="flex justify-between"><span>출석률:</span> <span>{polA.stats?.attendance}%</span></div>)}
                     <div className="flex justify-between"><span>화제성:</span> <span>{polA.stats?.buzz}</span></div>
                   </div>
-                </>
+                </div>
               ) : (
                 <div className="h-64 flex items-center justify-center text-slate-500">선택된 인물이 없습니다.</div>
               )
             ) : (
               partyA ? (
-                <>
-                  <div 
-                    className="w-32 h-32 rounded-full border-4 mb-4 flex items-center justify-center text-4xl font-black text-white" 
-                    style={{ borderColor: colorA, backgroundColor: colorA }}
-                  >
-                    {partyA.name.substring(0, 1)}
+                <div className="flex flex-col w-full">
+                  <div className="flex flex-col items-center">
+                    <div className="w-24 h-24 rounded-full border-4 mb-3 flex items-center justify-center text-3xl font-black text-white" style={{ borderColor: colorA, backgroundColor: colorA }}>
+                      {partyA.name.substring(0, 1)}
+                    </div>
+                    <h3 className="text-xl font-bold text-white">{partyA.name}</h3>
+                    <span className="text-xs font-medium px-2 py-1 rounded-full mt-2 bg-slate-800 text-slate-300 border border-slate-600">소속 인물 {partyA.members.length}명</span>
                   </div>
-                  <h3 className="text-xl font-bold text-white">{partyA.name}</h3>
-                  <span className="text-xs font-medium px-2 py-1 rounded-full mt-2 bg-slate-800 text-slate-300 border border-slate-600">
-                    소속 인물 {partyA.members.length}명
-                  </span>
-                  <div className="mt-4 w-full space-y-2 text-sm text-slate-300">
-                    <div className="flex justify-between"><span>당내 최고 호감도:</span> <span>{Math.max(...partyA.members.map(m => m.stats?.approval || 0)).toFixed(0)}점</span></div>
-                    <div className="flex justify-between"><span>당내 최고 화제성:</span> <span>{Math.max(...partyA.members.map(m => m.stats?.buzz || 0)).toFixed(0)}</span></div>
-                  </div>
-                </>
+                  {/* Leaderboard */}
+                  <PartyLeaderboard party={partyA} color={colorA} />
+                </div>
               ) : (
                 <div className="h-64 flex items-center justify-center text-slate-500">선택된 정당이 없습니다.</div>
               )
@@ -349,103 +406,59 @@ export default function PoliticsAnalysisPage() {
           </div>
 
           {/* Radar Chart Middle */}
-          <div className="h-[400px] w-full flex justify-center items-center bg-slate-950/30 rounded-xl">
+          <div className="h-[400px] w-full flex justify-center items-center bg-slate-950/30 rounded-xl sticky top-6">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chartData}>
                 <PolarGrid stroke="#334155" />
                 <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 12 }} />
                 <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px' }}
-                  itemStyle={{ color: '#e2e8f0' }}
-                />
+                <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px' }} itemStyle={{ color: '#e2e8f0' }} />
                 <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                <Radar 
-                  name={viewMode === 'politician' ? (polA?.name || 'A') : (partyA?.name || 'Party A')} 
-                  dataKey="A" 
-                  stroke={colorA} 
-                  fill={colorA} 
-                  fillOpacity={0.5} 
-                />
-                <Radar 
-                  name={viewMode === 'politician' ? (polB?.name || 'B') : (partyB?.name || 'Party B')} 
-                  dataKey="B" 
-                  stroke={colorB} 
-                  fill={colorB} 
-                  fillOpacity={0.5} 
-                  strokeDasharray={isSameParty ? "5 5" : undefined}
-                />
+                <Radar name={viewMode === 'politician' ? (polA?.name || 'A') : (partyA?.name || 'Party A')} dataKey="A" stroke={colorA} fill={colorA} fillOpacity={0.5} />
+                <Radar name={viewMode === 'politician' ? (polB?.name || 'B') : (partyB?.name || 'Party B')} dataKey="B" stroke={colorB} fill={colorB} fillOpacity={0.5} strokeDasharray={isSameParty ? "5 5" : undefined} />
               </RadarChart>
             </ResponsiveContainer>
           </div>
 
           {/* PROFILE B */}
-          <div className="flex flex-col items-center p-4 bg-slate-800/50 rounded-xl border border-slate-700 h-full">
+          <div className="flex flex-col p-4 bg-slate-800/50 rounded-xl border border-slate-700 h-full">
             {viewMode === 'politician' ? (
-              <SearchableSelect 
-                options={politicians} 
-                value={selectedPolB} 
-                onChange={setSelectedPolB} 
-                placeholder="정치인 선택..." 
-                outlineColor={colorB}
-              />
+              <SearchableSelect options={politicians} value={selectedPolB} onChange={setSelectedPolB} placeholder="정치인 선택..." outlineColor={colorB} />
             ) : (
-              <SearchableSelect 
-                options={parties} 
-                value={selectedPartyB} 
-                onChange={setSelectedPartyB} 
-                placeholder="정당 선택..." 
-                outlineColor={colorB}
-              />
+              <SearchableSelect options={parties} value={selectedPartyB} onChange={setSelectedPartyB} placeholder="정당 선택..." outlineColor={colorB} />
             )}
             
             {viewMode === 'politician' ? (
               polB ? (
-                <>
-                  <img 
-                    src={polB.imageUrl} 
-                    alt={polB.name} 
-                    className="w-32 h-32 rounded-full object-cover border-4 mb-4 bg-white" 
-                    style={{ borderColor: colorB, borderStyle: isSameParty ? 'dashed' : 'solid' }}
-                  />
+                <div className="flex flex-col items-center">
+                  <img src={polB.imageUrl} alt={polB.name} className="w-32 h-32 rounded-full object-cover border-4 mb-4 bg-white" style={{ borderColor: colorB, borderStyle: isSameParty ? 'dashed' : 'solid' }} />
                   <h3 className="text-xl font-bold text-white">{polB.name}</h3>
                   <div className="flex gap-2 mt-2">
-                    <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ backgroundColor: `${colorB}33`, color: colorB }}>
-                      {polB.party || '무소속'}
-                    </span>
-                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-600">
-                      {polB.role_type === 'MAYOR' ? '지자체장' : polB.role_type === 'EXTRA_PARLIAMENTARY' ? '원외인사' : '국회의원'}
-                    </span>
+                    <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ backgroundColor: \`\${colorB}33\`, color: colorB }}>{polB.party || '무소속'}</span>
+                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-600">{polB.role_type === 'MAYOR' ? '지자체장' : polB.role_type === 'EXTRA_PARLIAMENTARY' ? '원외인사' : '국회의원'}</span>
                   </div>
                   <div className="mt-4 w-full space-y-2 text-sm text-slate-300">
                     <div className="flex justify-between"><span>도덕성 지수:</span> <span>{polB.dynamic_metrics?.morality_index || 70}점</span></div>
-                    {polB.role_type === 'ASSEMBLY_MEMBER' && (
-                      <div className="flex justify-between"><span>출석률:</span> <span>{polB.stats?.attendance}%</span></div>
-                    )}
+                    {polB.role_type === 'ASSEMBLY_MEMBER' && (<div className="flex justify-between"><span>출석률:</span> <span>{polB.stats?.attendance}%</span></div>)}
                     <div className="flex justify-between"><span>화제성:</span> <span>{polB.stats?.buzz}</span></div>
                   </div>
-                </>
+                </div>
               ) : (
                 <div className="h-64 flex items-center justify-center text-slate-500">선택된 인물이 없습니다.</div>
               )
             ) : (
               partyB ? (
-                <>
-                  <div 
-                    className="w-32 h-32 rounded-full border-4 mb-4 flex items-center justify-center text-4xl font-black text-white" 
-                    style={{ borderColor: colorB, backgroundColor: colorB, borderStyle: isSameParty ? 'dashed' : 'solid' }}
-                  >
-                    {partyB.name.substring(0, 1)}
+                <div className="flex flex-col w-full">
+                  <div className="flex flex-col items-center">
+                    <div className="w-24 h-24 rounded-full border-4 mb-3 flex items-center justify-center text-3xl font-black text-white" style={{ borderColor: colorB, backgroundColor: colorB, borderStyle: isSameParty ? 'dashed' : 'solid' }}>
+                      {partyB.name.substring(0, 1)}
+                    </div>
+                    <h3 className="text-xl font-bold text-white">{partyB.name}</h3>
+                    <span className="text-xs font-medium px-2 py-1 rounded-full mt-2 bg-slate-800 text-slate-300 border border-slate-600">소속 인물 {partyB.members.length}명</span>
                   </div>
-                  <h3 className="text-xl font-bold text-white">{partyB.name}</h3>
-                  <span className="text-xs font-medium px-2 py-1 rounded-full mt-2 bg-slate-800 text-slate-300 border border-slate-600">
-                    소속 인물 {partyB.members.length}명
-                  </span>
-                  <div className="mt-4 w-full space-y-2 text-sm text-slate-300">
-                    <div className="flex justify-between"><span>당내 최고 호감도:</span> <span>{Math.max(...partyB.members.map(m => m.stats?.approval || 0)).toFixed(0)}점</span></div>
-                    <div className="flex justify-between"><span>당내 최고 화제성:</span> <span>{Math.max(...partyB.members.map(m => m.stats?.buzz || 0)).toFixed(0)}</span></div>
-                  </div>
-                </>
+                  {/* Leaderboard */}
+                  <PartyLeaderboard party={partyB} color={colorB} />
+                </div>
               ) : (
                 <div className="h-64 flex items-center justify-center text-slate-500">선택된 정당이 없습니다.</div>
               )
