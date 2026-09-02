@@ -253,4 +253,36 @@ router.get('/admin/status', requireRole(['SYSTEM_ADMIN', 'ADMIN', 'super_admin']
   }
 });
 
+// GET /api/services/stock/dashboard
+router.get('/dashboard', async (req, res) => {
+  try {
+    const kospi = await query.all(`
+      SELECT b.trade_date, b.close_price
+      FROM stock_index_daily_bars b
+      JOIN stock_indices i ON b.index_id = i.id
+      WHERE i.index_code = 'KRX_KOSPI_IDX'
+      ORDER BY b.trade_date ASC
+    `);
+
+    const kosdaq = await query.all(`
+      SELECT b.trade_date, b.close_price
+      FROM stock_index_daily_bars b
+      JOIN stock_indices i ON b.index_id = i.id
+      WHERE i.index_code = 'KRX_KOSDAQ_IDX'
+      ORDER BY b.trade_date ASC
+    `);
+    
+    res.json({
+      status: 'SUCCESS',
+      data: {
+        kospi: kospi || [],
+        kosdaq: kosdaq || []
+      }
+    });
+  } catch (err) {
+    console.error('[Stock Dashboard Error]', err);
+    res.status(500).json({ status: 'ERROR', message: 'Internal Server Error' });
+  }
+});
+
 module.exports = router;

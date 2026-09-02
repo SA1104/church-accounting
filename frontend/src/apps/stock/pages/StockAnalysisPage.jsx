@@ -1,8 +1,9 @@
 import { DataFreshnessBadge } from "../components/StockBadges";
+import StockAnalysis from "../../../components/services/StockAnalysis";
 
 export default function StockAnalysisPage() {
   const analysisModules = [
-    { title: '한국시장 흐름', desc: '코스피/코스닥 지수 흐름 및 시장 자금 동향 분석', dataReq: 'KRX 지수, 시장 거래대금', status: '개발 예정' },
+    { title: '한국시장 흐름', desc: '코스피/코스닥 지수 흐름 및 시장 자금 동향 분석', dataReq: 'KRX 지수, 시장 거래대금', status: '제공 중' },
     { title: '업종별 비교', desc: '주요 섹터별 수익률 및 수급 변화 비교', dataReq: 'KRX 섹터 지수, 업종별 외국인/기관 순매수', status: '개발 예정' },
     { title: '단일 종목 비교', desc: '특정 종목과 경쟁사, 지수 간의 상관관계 분석', dataReq: '종목 주가 시계열 데이터', status: '개발 예정' },
     { title: '가격·거래량 흐름', desc: 'VPA(Volume Price Analysis) 기반 수급 분석', dataReq: '일봉/주봉 거래량 및 가격', status: '개발 예정' },
@@ -31,13 +32,19 @@ export default function StockAnalysisPage() {
           </p>
         </div>
 
+        {/* New Real-time Chart */}
+        <div className="mb-8">
+          <StockAnalysis />
+        </div>
+
+        <h2 className="text-lg font-bold text-white mb-4 mt-8">분석 모듈 현황</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {analysisModules.map((mod, idx) => (
             <div key={idx} className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 flex flex-col gap-3 relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="flex justify-between items-start z-10">
                 <h3 className="font-bold text-white text-sm">{mod.title}</h3>
-                <span className="text-[9px] px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded font-semibold border border-slate-700">{mod.status}</span>
+                <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold border ${mod.status === '제공 중' ? 'bg-blue-900/50 text-blue-400 border-blue-800' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>{mod.status}</span>
               </div>
               <p className="text-xs text-slate-400 z-10 leading-relaxed">{mod.desc}</p>
               <div className="mt-auto pt-3 border-t border-slate-800/50 z-10">
