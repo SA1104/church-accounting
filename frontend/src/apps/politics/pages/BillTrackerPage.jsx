@@ -78,7 +78,7 @@ const BillProgressBar = ({ currentStatus, durationDays }) => {
         {/* Active Line */}
         <div 
           className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-indigo-500 rounded-full transition-all duration-1000"
-          style={{ width: \`\${(currentIndex / (STAGES.length - 1)) * 100}%\` }}
+          style={{ width: `${(currentIndex / (STAGES.length - 1)) * 100}%` }}
         ></div>
 
         {/* Nodes */}
@@ -89,19 +89,19 @@ const BillProgressBar = ({ currentStatus, durationDays }) => {
           return (
             <div key={stage.id} className="relative z-10 flex flex-col items-center gap-2">
               <div 
-                className={\`w-4 h-4 rounded-full border-2 transition-all duration-500 \${
+                className={`w-4 h-4 rounded-full border-2 transition-all duration-500 ${
                   isActive 
                     ? 'bg-indigo-500 border-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.5)]' 
                     : 'bg-slate-900 border-slate-700'
-                }\`}
+                }`}
               >
                 {isCurrent && (
                   <div className="absolute -top-1 -left-1 w-6 h-6 rounded-full bg-indigo-500/30 animate-ping"></div>
                 )}
               </div>
-              <span className={\`text-[10px] md:text-xs font-bold absolute top-6 whitespace-nowrap \${
+              <span className={`text-[10px] md:text-xs font-bold absolute top-6 whitespace-nowrap ${
                 isActive ? 'text-white' : 'text-slate-500'
-              }\`}>
+              }`}>
                 {stage.label}
               </span>
             </div>
@@ -208,11 +208,11 @@ export default function BillTrackerPage() {
                       <Activity size={14} /> AI 투자 영향도 분석
                     </h4>
                     
-                    <div className={\`flex items-center gap-1 px-2 py-1 rounded text-xs font-bold \${
+                    <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-bold ${
                       bill.impact.type === 'POSITIVE' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
                       bill.impact.type === 'NEGATIVE' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
                       'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                    }\`}>
+                    }`}>
                       {bill.impact.type === 'POSITIVE' && <TrendingUp size={14} />}
                       {bill.impact.type === 'NEGATIVE' && <TrendingDown size={14} />}
                       {bill.impact.type === 'NEUTRAL' && <ChevronRight size={14} />}

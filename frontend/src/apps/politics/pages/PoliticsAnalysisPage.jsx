@@ -343,13 +343,13 @@ export default function PoliticsAnalysisPage() {
         {/* VIEW MODE TOGGLE */}
         <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700 w-max">
           <button 
-            className={\`px-4 py-2 rounded-md text-sm font-medium transition-colors \${viewMode === 'politician' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}\`}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'politician' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
             onClick={() => setViewMode('politician')}
           >
             👤 인물 비교
           </button>
           <button 
-            className={\`px-4 py-2 rounded-md text-sm font-medium transition-colors \${viewMode === 'party' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}\`}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'party' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
             onClick={() => setViewMode('party')}
           >
             🏛️ 정당 비교
@@ -374,7 +374,7 @@ export default function PoliticsAnalysisPage() {
                   <img src={polA.imageUrl} alt={polA.name} className="w-32 h-32 rounded-full object-cover border-4 mb-4 bg-white" style={{ borderColor: colorA }} />
                   <h3 className="text-xl font-bold text-white">{polA.name}</h3>
                   <div className="flex gap-2 mt-2">
-                    <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ backgroundColor: \`\${colorA}33\`, color: colorA }}>{polA.party || '무소속'}</span>
+                    <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ backgroundColor: `${colorA}33`, color: colorA }}>{polA.party || '무소속'}</span>
                     <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-600">{polA.role_type === 'MAYOR' ? '지자체장' : polA.role_type === 'EXTRA_PARLIAMENTARY' ? '원외인사' : '국회의원'}</span>
                   </div>
                   <div className="mt-4 w-full space-y-2 text-sm text-slate-300">
@@ -451,7 +451,7 @@ export default function PoliticsAnalysisPage() {
                   <img src={polB.imageUrl} alt={polB.name} className="w-32 h-32 rounded-full object-cover border-4 mb-4 bg-white" style={{ borderColor: colorB, borderStyle: isSameParty ? 'dashed' : 'solid' }} />
                   <h3 className="text-xl font-bold text-white">{polB.name}</h3>
                   <div className="flex gap-2 mt-2">
-                    <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ backgroundColor: \`\${colorB}33\`, color: colorB }}>{polB.party || '무소속'}</span>
+                    <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ backgroundColor: `${colorB}33`, color: colorB }}>{polB.party || '무소속'}</span>
                     <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-600">{polB.role_type === 'MAYOR' ? '지자체장' : polB.role_type === 'EXTRA_PARLIAMENTARY' ? '원외인사' : '국회의원'}</span>
                   </div>
                   <div className="mt-4 w-full space-y-2 text-sm text-slate-300">
