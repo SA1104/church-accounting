@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
-import apiClient from '../../core/api';
+import { apiClient } from '../../core/api';
 
 const StockAnalysis = () => {
   const [data, setData] = useState(null);

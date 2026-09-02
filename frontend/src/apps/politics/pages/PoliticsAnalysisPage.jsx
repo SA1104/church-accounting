@@ -1,9 +1,9 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, 
   ResponsiveContainer, Tooltip, Legend 
 } from 'recharts';
-import api from '../../../core/api';
+import { apiClient } from '../../../core/api';
 
 const normalizeScore = (value, max) => {
   if (!value) return 0;
@@ -19,7 +19,7 @@ export default function PoliticsAnalysisPage() {
   useEffect(() => {
     const fetchPoliticians = async () => {
       try {
-        const res = await api.get('/services/politics/politicians');
+        const res = await apiClient.get('/services/politics/politicians');
         setPoliticians(res.data);
         if (res.data.length >= 2) {
           setSelectedA(res.data[0].id);
