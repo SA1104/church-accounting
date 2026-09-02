@@ -11,8 +11,8 @@ initCron();
 router.get('/debug1', async (req, res) => {
   const { createClient } = require('@supabase/supabase-js');
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
-  const sql = `SELECT * FROM market_insights WHERE category = $1 LIMIT 1`;
-  const { data, error } = await supabase.rpc('exec_sql', { query_text: sql, params: ['stock'] });
+  const sql = `SELECT prosrc FROM pg_proc WHERE proname = 'exec_sql' LIMIT 1`;
+  const { data, error } = await supabase.rpc('exec_sql', { query_text: sql, params: [] });
   if (error) return res.status(500).json({ error: error.message, sql });
   return res.json({ status: 'ok', data });
 });
