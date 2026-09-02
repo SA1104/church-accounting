@@ -34,10 +34,10 @@ router.get('/debug1', async (req, res) => {
 router.get('/debug2', async (req, res) => {
   const { createClient } = require('@supabase/supabase-js');
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
-  const sql = `SELECT * FROM market_insights WHERE category = ? LIMIT 1`;
-  const { data, error } = await supabase.rpc('exec_sql', { query_text: sql, params: ['stock'] });
-  if (error) return res.status(500).json({ error: error.message, sql });
-  return res.json({ status: 'ok', data });
+  const sql = `SELECT COUNT(*) FROM stock_daily_bars`;
+  const { data, error } = await supabase.rpc('exec_sql', { query_text: sql, params: [] });
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ count: data });
 });
 
 // GET /api/services/insights?category=...
