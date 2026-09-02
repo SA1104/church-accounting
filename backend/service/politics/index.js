@@ -132,4 +132,72 @@ router.get('/ratings/:id', async (req, res) => {
   }
 });
 
+// GET /api/services/politics/comments
+// query: ?politician_id=UUID or ?party_name=String
+router.get('/comments', async (req, res) => {
+  try {
+    const { politician_id, party_name } = req.query;
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    
+    let query = 'SELECT * FROM politics_comments WHERE is_toxic = false ';
+    const params = [];
+    
+    if (politician_id) {
+      query += 'AND politician_id = $1 ';
+      params.push(politician_id);
+    } else if (party_name) {
+      query += 'AND party_name = $1 ';
+      params.push(party_name);
+    }
+    
+    query += 'ORDER BY created_at DESC LIMIT 50';
+    
+    const result = await pool.query(query, params);
+    await pool.end();
+    
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/services/politics/comments
+router.post('/comments', async (req, res) => {
+  try {
+    const { politician_id, party_name, content, user_name, is_toxic, toxicity_reason } = req.body;
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    
+    // Simulate AI toxicity filter check if frontend didn't do it
+    let toxic = is_toxic || false;
+    let reason = toxicity_reason || null;
+    
+    if (!toxic && content) {
+      const badWords = ['욕설', '비방', '개새', '병신', '지랄'];
+      for (const w of badWords) {
+        if (content.includes(w)) {
+          toxic = true;
+          reason = `자동 필터링: 금지어 포함 ('${w}')`;
+          break;
+        }
+      }
+    }
+    
+    const query = `
+      INSERT INTO politics_comments (politician_id, party_name, user_name, content, is_toxic, toxicity_reason)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *
+    `;
+    const params = [politician_id || null, party_name || null, user_name || '익명 유권자', content, toxic, reason];
+    
+    const result = await pool.query(query, params);
+    await pool.end();
+    
+    res.json({ success: true, data: result.rows[0], message: toxic ? '관리자 검토 대상으로 분류되었습니다.' : '등록되었습니다.' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
