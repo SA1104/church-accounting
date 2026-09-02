@@ -32,7 +32,7 @@ router.get('/posts', async (req, res) => {
     res.json(formatted);
   } catch (error) {
     console.error('[Board API] Failed to fetch posts:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: error.message || 'Internal Server Error', stack: error.stack });
   }
 });
 
