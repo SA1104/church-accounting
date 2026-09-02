@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import ApprovalTrendChart from '../components/ApprovalTrendChart';
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, 
   ResponsiveContainer, Tooltip, Legend 
@@ -468,6 +469,17 @@ export default function PoliticsAnalysisPage() {
               )
             )}
           </div>
+
+        {/* TREND CHART */}
+        <div className="mt-8 h-[400px]">
+          <ApprovalTrendChart 
+            entityA={viewMode === 'politician' ? polA : partyA}
+            entityB={viewMode === 'politician' ? polB : partyB}
+            colorA={colorA}
+            colorB={colorB}
+            isSameParty={isSameParty}
+          />
+        </div>
 
         {/* FULL WIDTH METRIC DESCRIPTIONS */}
         <div className="mt-8">

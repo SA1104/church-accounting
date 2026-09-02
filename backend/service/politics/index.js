@@ -108,4 +108,28 @@ router.get('/admin/migrate-party', async (req, res) => {
   }
 });
 
+// GET /api/services/politics/ratings/:id
+// Returns mock historical trend data (approval & buzz) for the last 6 months
+router.get('/ratings/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Generate deterministic mock data based on ID so it looks stable
+    const baseApproval = 20 + (id.charCodeAt(0) % 40); 
+    const baseBuzz = 30 + (id.charCodeAt(1) % 50);
+    
+    const months = ['3월', '4월', '5월', '6월', '7월', '8월'];
+    const data = months.map((month, index) => {
+      return {
+        month,
+        approval: Math.min(100, Math.max(0, baseApproval + (Math.sin(index) * 15) + (index * 2))),
+        buzz: Math.min(100, Math.max(0, baseBuzz + (Math.cos(index) * 20) - (index * 1)))
+      };
+    });
+    
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
