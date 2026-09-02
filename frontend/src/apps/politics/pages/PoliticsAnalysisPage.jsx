@@ -298,11 +298,14 @@ export default function PoliticsAnalysisPage() {
       const weight = (m.role_type === 'EXTRA_PARLIAMENTARY' || m.role_type === 'MAYOR') ? 1.5 : 1.0;
       
       let val = 0;
-      if (metricKey === 'approval') val = m.stats?.approval || 50;
-      if (metricKey === 'morality') val = m.dynamic_metrics?.morality_index || 70;
-      if (metricKey === 'sns_power') val = m.dynamic_metrics?.sns_power || 50;
-      if (metricKey === 'demographic') val = m.dynamic_metrics?.demographic_appeal || 50;
-      if (metricKey === 'presidential') val = m.dynamic_metrics?.presidential_support || 10;
+      if (metricKey === 'approval') val = m.stats?.approval ?? 50;
+      if (metricKey === 'morality') val = m.dynamic_metrics?.morality_index ?? 70;
+      if (metricKey === 'sns_power') val = m.dynamic_metrics?.sns_power ?? 50;
+      if (metricKey === 'demographic') val = m.dynamic_metrics?.demographic_appeal ?? 50;
+      if (metricKey === 'presidential') val = m.dynamic_metrics?.presidential_support ?? 10;
+      
+      // Protect against NaN from bad API data
+      if (isNaN(val) || val === null) val = 50;
       
       sum += (val * weight);
       count += weight;
@@ -400,8 +403,7 @@ export default function PoliticsAnalysisPage() {
                     <span className="text-xs font-medium px-2 py-1 rounded-full mt-2 bg-slate-800 text-slate-300 border border-slate-600">소속 인물 {partyA.members.length}명</span>
                   </div>
                   {/* Leaderboard */}
-                  <PartyLeaderboard party={partyA} color={colorA} />
-                  <CommentsPanel entity={partyA} entityType="party" color={colorA} />
+                                    <CommentsPanel entity={partyA} entityType="party" color={colorA} />
                 </div>
               ) : (
                 <div className="h-64 flex items-center justify-center text-slate-500">선택된 정당이 없습니다.</div>
@@ -466,14 +468,22 @@ export default function PoliticsAnalysisPage() {
                     <span className="text-xs font-medium px-2 py-1 rounded-full mt-2 bg-slate-800 text-slate-300 border border-slate-600">소속 인물 {partyB.members.length}명</span>
                   </div>
                   {/* Leaderboard */}
-                  <PartyLeaderboard party={partyB} color={colorB} />
-                  <CommentsPanel entity={partyB} entityType="party" color={colorB} />
+                                    <CommentsPanel entity={partyB} entityType="party" color={colorB} />
                 </div>
               ) : (
                 <div className="h-64 flex items-center justify-center text-slate-500">선택된 정당이 없습니다.</div>
               )
             )}
           </div>
+
+        
+        {/* FULL WIDTH LEADERBOARDS (명예의 전당) */}
+        {viewMode === 'party' && (partyA || partyB) && (
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+            {partyA && <PartyLeaderboard party={partyA} color={colorA} />}
+            {partyB && <PartyLeaderboard party={partyB} color={colorB} />}
+          </div>
+        )}
 
         {/* TREND CHART */}
         <div className="mt-8 h-[400px]">
