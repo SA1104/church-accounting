@@ -165,18 +165,18 @@ export default function ServiceView() {
                     <div className="text-sm font-semibold text-indigo-100 leading-relaxed ml-2">{insight.impact_analysis}</div>
                   </div>
                   
-                  <div className="flex items-center justify-between mt-2 border-t border-slate-800/60 pt-4">
-                    <div className="flex gap-2">
-                      <button onClick={(e) => handleInsightLike(e, insight.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 transition-colors text-xs font-bold">
-                        <ThumbsUp size={14} /> 공감 {insight.like_count || 0}
-                      </button>
+                    <div className="flex items-center justify-between mt-2 border-t border-slate-800/60 pt-4">
+                      <div className="flex gap-2">
+                        <button onClick={(e) => handleInsightLike(e, insight.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 transition-colors text-xs font-bold">
+                          <ThumbsUp size={14} /> 공감 {insight.like_count || 0}
+                        </button>
+                      </div>
+                      <div className="text-xs text-slate-500 flex items-center gap-2">
+                        조회수 {insight.view_count || 0}
+                        <span>•</span>
+                        {new Date(insight.created_at).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      </div>
                     </div>
-                    <div className="text-xs text-slate-500 flex items-center gap-2">
-                      조회수 {insight.view_count || 0}
-                      <span>•</span>
-                      {new Date(insight.created_at).toLocaleDateString()}
-                    </div>
-                  </div>
                 </div>
               ))}
             </div>
