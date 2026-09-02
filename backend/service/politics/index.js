@@ -46,7 +46,23 @@ router.get('/politicians', async (req, res) => {
     res.json(formatted);
   } catch (error) {
     console.error('[Politics API] Failed to fetch politicians:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: 'Internal Server Error', message: error.message });
+  }
+});
+
+router.get('/admin/migrate-party', async (req, res) => {
+  try {
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    
+    await pool.query('ALTER TABLE politics_politicians ADD COLUMN IF NOT EXISTS party_name VARCHAR(100)');
+    await pool.query(`UPDATE politics_politicians SET party_name = '더불어민주당' WHERE name = '이재명'`);
+    await pool.query(`UPDATE politics_politicians SET party_name = '국민의힘' WHERE name IN ('한동훈', '안철수')`);
+    
+    await pool.end();
+    res.json({ success: true, message: 'party_name migrated on production DB' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
