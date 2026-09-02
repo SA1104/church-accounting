@@ -19,10 +19,10 @@ router.get('/politicians', async (req, res) => {
         )
       ORDER BY p.name ASC
     `;
-    const result = await db.query(queryText);
+    const result = await db.query.all(queryText);
     
     // Format them for the frontend
-    const formatted = result.rows.map(p => ({
+    const formatted = result.map(p => ({
       id: p.id,
       name: p.name,
       imageUrl: p.profile_image_url,
