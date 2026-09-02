@@ -19,11 +19,11 @@ export default function PoliticsAnalysisPage() {
   useEffect(() => {
     const fetchPoliticians = async () => {
       try {
-        const res = await apiClient.get('/services/politics/politicians');
-        setPoliticians(res.data);
-        if (res.data.length >= 2) {
-          setSelectedA(res.data[0].id);
-          setSelectedB(res.data[1].id);
+        const res = await apiClient('/api/services/politics/politicians');
+        setPoliticians(res);
+        if (res.length >= 2) {
+          setSelectedA(res[0].id);
+          setSelectedB(res[1].id);
         }
       } catch (err) {
         console.error('Failed to fetch politicians:', err);

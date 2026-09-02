@@ -12,15 +12,15 @@ const StockAnalysis = () => {
     const fetchDashboard = async () => {
       try {
         setLoading(true);
-        const res = await apiClient.get('/services/stock/dashboard');
+        const res = await apiClient('/api/services/stock/dashboard');
         
         // Merge KOSPI and KOSDAQ by date for chart
         const kospiMap = {};
-        res.data.data.kospi.forEach(item => {
+        res.data.kospi.forEach(item => {
           kospiMap[item.trade_date] = { date: item.trade_date, kospi: parseFloat(item.close_price) };
         });
         
-        res.data.data.kosdaq.forEach(item => {
+        res.data.kosdaq.forEach(item => {
           if (kospiMap[item.trade_date]) {
             kospiMap[item.trade_date].kosdaq = parseFloat(item.close_price);
           } else {
