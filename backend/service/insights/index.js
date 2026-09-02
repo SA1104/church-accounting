@@ -11,8 +11,8 @@ initCron();
 router.get('/debug1', async (req, res) => {
   const { createClient } = require('@supabase/supabase-js');
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
-  const sql = `SELECT prosrc FROM pg_proc WHERE proname = 'exec_sql' LIMIT 1`;
-  const { data, error } = await supabase.rpc('exec_sql', { query_text: sql, params: [] });
+  const sql = `SELECT p.*, u.raw_user_meta_data->>'name' as author_name, (SELECT count(*) FROM board_comments c WHERE c.post_id = p.id) as comments_count, (SELECT count(*) FROM board_post_likes l WHERE l.post_id = p.id) as likes_count FROM board_posts p LEFT JOIN auth.users u ON p.user_id = u.id WHERE p.category = ? ORDER BY p.created_at DESC LIMIT 50`;
+  const { data, error } = await supabase.rpc('exec_sql', { query_text: sql, params: ['real_estate'] });
   if (error) return res.status(500).json({ error: error.message, sql });
   return res.json({ status: 'ok', data });
 });
