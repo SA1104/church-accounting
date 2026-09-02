@@ -171,23 +171,32 @@ router.get('/admin/clean-sep2', async (req, res) => {
     
     const supabase = createClient(supabaseUrl, supabaseKey);
     
-    // Fetch all stock insights from 2026-09-02
+    // Fetch all stock and real_estate insights from 2026-09-02
     const { data: insights, error } = await supabase
       .from('market_insights')
       .select('id, category, created_at')
-      .eq('category', 'stock')
+      .in('category', ['stock', 'real_estate'])
       .gte('created_at', '2026-09-02T00:00:00Z')
       .lt('created_at', '2026-09-03T00:00:00Z')
       .order('created_at', { ascending: false });
       
     if (error) throw error;
     
-    if (insights.length <= 1) {
-      return res.json({ success: true, message: 'No duplicates to clean.', deletedCount: 0 });
+    // Group by category
+    const byCategory = { stock: [], real_estate: [] };
+    insights.forEach(i => byCategory[i.category].push(i.id));
+    
+    const toDelete = [];
+    if (byCategory.stock.length > 1) {
+      toDelete.push(...byCategory.stock.slice(1));
+    }
+    if (byCategory.real_estate.length > 1) {
+      toDelete.push(...byCategory.real_estate.slice(1));
     }
     
-    // Keep the first one (most recent), delete all others
-    const toDelete = insights.slice(1).map(i => i.id);
+    if (toDelete.length === 0) {
+      return res.json({ success: true, message: 'No duplicates to clean.', deletedCount: 0 });
+    }
     
     const { error: delError } = await supabase
       .from('market_insights')
@@ -196,9 +205,73 @@ router.get('/admin/clean-sep2', async (req, res) => {
       
     if (delError) throw delError;
     
-    res.json({ success: true, message: 'Aggressively cleaned Sep 2nd stock duplicates', deletedCount: toDelete.length, toDelete });
+    res.json({ success: true, message: 'Aggressively cleaned Sep 2nd duplicates', deletedCount: toDelete.length, toDelete });
   } catch (error) {
     console.error('[Admin Clean] Failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/services/insights/admin/setup-politics
+router.get('/admin/setup-politics', async (req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const { Pool } = require('pg');
+    // Connect directly to the Render-injected DATABASE_URL
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    
+    // 1. Run migration
+    const sqlPath = path.join(__dirname, '../../../database/migrations/2026_09_02_politics_schema.sql');
+    let sql = fs.readFileSync(sqlPath, 'utf8');
+    if (sql.charCodeAt(0) === 0xFEFF) sql = sql.slice(1);
+    await pool.query(sql);
+    
+    // 2. Fetch and Insert Wikipedia Data
+    async function fetchWikiSummary(title) {
+      const url = `https://ko.wikipedia.org/w/api.php?action=query&prop=extracts|pageimages&exintro&titles=${encodeURIComponent(title)}&format=json&pithumbsize=500`;
+      const wikiRes = await fetch(url);
+      const data = await wikiRes.json();
+      const pages = data.query.pages;
+      const pageId = Object.keys(pages)[0];
+      if (pageId === '-1') return null;
+      return {
+        imageUrl: pages[pageId].thumbnail ? pages[pageId].thumbnail.source : null,
+        namuwikiUrl: `https://namu.wiki/w/${encodeURIComponent(title)}`
+      };
+    }
+
+    const politicians = ['이재명', '한동훈', '안철수'];
+    for (const name of politicians) {
+      const wikiData = await fetchWikiSummary(name);
+      if (wikiData) {
+        const insertQ = `
+          INSERT INTO politics_politicians (name, gender, profile_image_url, namuwiki_url) 
+          VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING RETURNING id;
+        `;
+        let pRes = await pool.query(insertQ, [name, 'M', wikiData.imageUrl, wikiData.namuwikiUrl]);
+        let pId = pRes.rows.length > 0 ? pRes.rows[0].id : null;
+        if (!pId) {
+          pRes = await pool.query(`SELECT id FROM politics_politicians WHERE name = $1`, [name]);
+          pId = pRes.rows[0].id;
+        }
+        
+        const buzz = Math.floor(Math.random() * 30) + 70; 
+        const wealth = Math.floor(Math.random() * 5000000000) + 1000000000;
+        const fulfill = Math.floor(Math.random() * 40) + 50;
+        
+        await pool.query(`
+          INSERT INTO politics_annual_stats (politician_id, record_year, declared_wealth, pledge_fulfillment_rate, attendance_rate, buzz_index, approval_rating)
+          VALUES ($1, 2026, $2, $3, 95.0, $4, 40.0)
+          ON CONFLICT (politician_id, record_year) DO NOTHING;
+        `, [pId, wealth, fulfill, buzz]);
+      }
+    }
+    
+    pool.end();
+    res.json({ success: true, message: 'Politics DB initialized on production' });
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ error: error.message });
   }
 });
