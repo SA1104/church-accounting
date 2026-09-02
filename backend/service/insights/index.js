@@ -171,13 +171,11 @@ router.get('/admin/clean-sep2', async (req, res) => {
     
     const supabase = createClient(supabaseUrl, supabaseKey);
     
-    // Fetch all stock and real_estate insights from 2026-09-02
+    // Fetch all stock and real_estate insights
     const { data: insights, error } = await supabase
       .from('market_insights')
       .select('id, category, created_at')
       .in('category', ['stock', 'real_estate'])
-      .gte('created_at', '2026-09-02T00:00:00Z')
-      .lt('created_at', '2026-09-03T00:00:00Z')
       .order('created_at', { ascending: false });
       
     if (error) throw error;
