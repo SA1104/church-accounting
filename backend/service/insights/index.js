@@ -27,12 +27,10 @@ router.get('/debug2', async (req, res) => {
 });
 
 // GET /api/services/insights?category=...
-router.get('/', async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   const { category } = req.query;
   try {
-    let sql = `
-      SELECT * FROM market_insights
-    `;
+    let sql = `SELECT * FROM market_insights`;
     const params = [];
     
     if (category) {
@@ -42,15 +40,8 @@ router.get('/', async (req, res) => {
     
     sql += ` ORDER BY created_at DESC LIMIT 20`;
     
-    const { createClient } = require('@supabase/supabase-js');
-    const dbClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
-    
-    const { data, error } = await dbClient.rpc('exec_sql', { query_text: sql, params });
-    if (error) {
-      console.error('[Insights API] DB Error:', error.message);
-      return res.status(500).json({ error: error.message });
-    }
-    res.json(data || []);
+    const insights = await query.all(sql, params);
+    res.json(insights);
   } catch (error) {
     console.error('[Insights API] Failed to fetch insights:', error);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -78,14 +69,14 @@ router.post('/:id/like', authenticateToken, async (req, res) => {
     
     // Check if already liked
     const existing = await query.get(
-      `SELECT id FROM insight_reactions WHERE insight_id = $1 AND user_id = $2 AND reaction_type = 'LIKE'`,
+      `SELECT id FROM insight_reactions WHERE insight_id = ? AND user_id = ? AND reaction_type = 'LIKE'`,
       [id, userId]
     );
     
     if (!existing) {
       // Insert reaction
       await query.run(
-        `INSERT INTO insight_reactions (insight_id, user_id, reaction_type) VALUES ($1, $2, 'LIKE')`,
+        `INSERT INTO insight_reactions (insight_id, user_id, reaction_type) VALUES (?, ?, 'LIKE')`,
         [id, userId]
       );
       // Increment counter

@@ -7,18 +7,11 @@ const { authenticateToken } = require('../../core/auth');
 router.get('/posts', authenticateToken, async (req, res) => {
   const { category } = req.query;
   try {
-    let sql = `
-      SELECT p.*, 
-             u.raw_user_meta_data->>'name' as author_name,
-             (SELECT count(*) FROM board_comments c WHERE c.post_id = p.id) as comments_count,
-             (SELECT count(*) FROM board_post_likes l WHERE l.post_id = p.id) as likes_count
-      FROM board_posts p
-      LEFT JOIN auth.users u ON p.user_id = u.id
-    `;
+    let sql = `SELECT p.*, u.raw_user_meta_data->>'name' as author_name, (SELECT count(*) FROM board_comments c WHERE c.post_id = p.id) as comments_count, (SELECT count(*) FROM board_post_likes l WHERE l.post_id = p.id) as likes_count FROM board_posts p LEFT JOIN auth.users u ON p.user_id = u.id`;
     const params = [];
     
     if (category) {
-      sql += ` WHERE p.category = $1`;
+      sql += ` WHERE p.category = ?`;
       params.push(category);
     }
     
@@ -53,11 +46,10 @@ router.post('/posts', authenticateToken, async (req, res) => {
   }
 
   try {
-    const result = await query.get(`
-      INSERT INTO board_posts (category, user_id, title, content)
-      VALUES ($1, $2, $3, $4)
-      RETURNING id, created_at
-    `, [category, userId, title, content]);
+    const result = await query.get(
+      `INSERT INTO board_posts (category, user_id, title, content) VALUES (?, ?, ?, ?) RETURNING id, created_at`,
+      [category, userId, title, content]
+    );
     
     res.status(201).json({ success: true, post: result });
   } catch (error) {
