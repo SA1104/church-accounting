@@ -274,4 +274,16 @@ router.get('/admin/setup-politics', async (req, res) => {
   }
 });
 
+router.get('/admin/check-politics', async (req, res) => {
+  try {
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    const pRes = await pool.query('SELECT id, name FROM politics_politicians');
+    pool.end();
+    res.json({ success: true, count: pRes.rows.length, data: pRes.rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
