@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const router = express.Router();
 const db = require('../../core/db');
 
@@ -6,7 +6,7 @@ const db = require('../../core/db');
 // Fetch all politicians with their latest stats for the radar chart
 router.get('/politicians', async (req, res) => {
   try {
-    const queryText = \
+    const queryText = `
       SELECT 
         p.id, p.name, p.profile_image_url, p.gender, p.namuwiki_url,
         s.record_year, s.declared_wealth, s.pledge_fulfillment_rate, 
@@ -18,7 +18,7 @@ router.get('/politicians', async (req, res) => {
           SELECT MAX(record_year) FROM politics_annual_stats WHERE politician_id = p.id
         )
       ORDER BY p.name ASC
-    \;
+    `;
     const result = await db.query(queryText);
     
     // Format them for the frontend
