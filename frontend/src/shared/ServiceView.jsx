@@ -3,6 +3,8 @@ import { useParams } from 'react-router-dom';
 import { Newspaper, BarChart2, MessageSquare, Flame, Plus, X, User, ThumbsUp, MessageCircle, Send } from 'lucide-react';
 import { useAuth } from '../App';
 import { apiClient } from '../core/api';
+import StockAnalysisPage from '../apps/stock/pages/StockAnalysisPage';
+import PoliticsAnalysisPage from '../apps/politics/pages/PoliticsAnalysisPage';
 
 const SERVICE_META = {
   'stock': { title: '주식', desc: '국내/해외 주식 시장 이슈 및 가치 평가' },
@@ -185,14 +187,22 @@ export default function ServiceView() {
 
         {activeTab === 'analysis' && (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-             <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <BarChart2 size={18} className="text-emerald-500" /> 고정 분석 대시보드
-            </h2>
-            <div className="h-64 w-full rounded-xl border border-dashed border-slate-700 flex flex-col items-center justify-center text-slate-500 bg-slate-900/30">
-              <BarChart2 size={32} className="mb-2 opacity-50" />
-              <p className="text-sm font-bold">RAW DATA 기반 분석 시각화 대기중</p>
-              <p className="text-xs mt-1">이곳에 {meta.title} 특화 RAW 데이터를 연동한 차트가 들어갑니다.</p>
-            </div>
+             {serviceId === 'stock' ? (
+                <StockAnalysisPage />
+             ) : serviceId === 'politics' ? (
+                <PoliticsAnalysisPage />
+             ) : (
+                <>
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                    <BarChart2 size={18} className="text-emerald-500" /> 고정 분석 대시보드
+                  </h2>
+                  <div className="h-64 w-full rounded-xl border border-dashed border-slate-700 flex flex-col items-center justify-center text-slate-500 bg-slate-900/30">
+                    <BarChart2 size={32} className="mb-2 opacity-50" />
+                    <p className="text-sm font-bold">RAW DATA 기반 분석 시각화 대기중</p>
+                    <p className="text-xs mt-1">이곳에 {meta.title} 특화 RAW 데이터 연동 차트가 들어갑니다.</p>
+                  </div>
+                </>
+             )}
           </div>
         )}
 
