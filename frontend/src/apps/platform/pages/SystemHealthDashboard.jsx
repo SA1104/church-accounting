@@ -321,5 +321,6 @@ export default function SystemHealthDashboard() {
         </div>
       )}
     </div>
+      </div>
   );
 }
