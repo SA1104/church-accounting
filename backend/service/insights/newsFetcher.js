@@ -33,8 +33,9 @@ async function fetchNaverNewsAPI(keyword) {
     });
 
     if (res.status === 401) {
-      console.log('[News Fetcher] X-Naver-Client-Id failed with 401. Trying X-NCP-APIGW-API-KEY headers...');
-      res = await fetch(url, {
+      console.log('[News Fetcher] X-Naver-Client-Id failed with 401. Trying NCP API HUB...');
+      const ncpUrl = `https://naverapihub.apigw.ntruss.com/search/v1/news?query=${encodedKeyword}&display=20&sort=date`;
+      res = await fetch(ncpUrl, {
         method: 'GET',
         headers: {
           'X-NCP-APIGW-API-KEY-ID': clientId,
