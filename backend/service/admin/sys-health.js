@@ -23,6 +23,20 @@ router.get('/cron-logs', async (req, res) => {
 // GET /api/admin/sys-health/metrics
 router.get('/metrics', async (req, res) => {
   try {
+    // Ensure table exists (fixes missing relation error in prod)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS insight_candidates (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        category VARCHAR(50) NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        link TEXT NOT NULL UNIQUE,
+        pub_date TIMESTAMP WITH TIME ZONE,
+        description TEXT,
+        is_used BOOLEAN DEFAULT false,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `);
+
     const q1 = pool.query(`SELECT COUNT(*) as c FROM politics_politicians`);
     const q2 = pool.query(`SELECT COUNT(*) as c FROM politics_trends`);
     const q3 = pool.query(`SELECT COUNT(*) as c FROM insight_candidates`);
