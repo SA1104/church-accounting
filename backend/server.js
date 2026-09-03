@@ -47,6 +47,13 @@ const {
 const { loadModules } = require('./core/registry');
 
 // Platform 3.1: Capability Routers (isolated from Platform Core)
+const testRoute = require('./service/admin/test_route');
+app.use('/api/admin/debug', testRoute);
+
+// Service Routes
+const politicsRoutes = require('./service/politics');
+const stockRoutes = require('./service/stock');
+const insightRoutes = require('./service/insights');
 const churchServiceRouter = require('./service/church');
 const stockServiceRouter = require('./service/stock');
 const estateServiceRouter = require('./service/estate');
