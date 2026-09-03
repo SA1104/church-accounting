@@ -135,29 +135,33 @@ const CommentsPanel = ({ entity, entityType, color }) => {
       {/* Input */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-2 mt-auto">
         {msg && <div className="text-[10px] text-indigo-400 mb-1">{msg}</div>}
-        <div className="flex flex-col md:flex-row gap-2">
-          <input
-            type="text"
-            value={userName}
-            onChange={(e) => setUserName(e.target.value)}
-            placeholder="닉네임 (미입력시 익명)"
-            className="w-full md:w-28 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
-            disabled={loading}
-          />
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="비밀번호"
-            className="w-full md:w-24 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
-            disabled={loading}
-          />
-          <div className="flex flex-1 gap-2">
+        <div className="flex flex-col gap-2">
+          {/* Row 1: Credentials */}
+          <div className="flex gap-2 w-full">
+            <input
+              type="text"
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+              placeholder="닉네임 (미입력시 익명)"
+              className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+              disabled={loading}
+            />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="비밀번호"
+              className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+              disabled={loading}
+            />
+          </div>
+          {/* Row 2: Comment & Submit */}
+          <div className="flex w-full gap-2">
             <input
               type="text"
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              placeholder="건전한 비판과 토론을 남겨주세요."
+              placeholder="건전한 비판과 토론을 남겨주세요"
               className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
               disabled={loading}
             />
