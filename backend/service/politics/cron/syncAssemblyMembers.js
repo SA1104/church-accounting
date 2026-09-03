@@ -1,15 +1,19 @@
 const { Pool } = require('pg');
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args)).catch(() => global.fetch(...args));
 require('dotenv').config({ path: require('path').join(__dirname, '../../../.env.development') });
+const { logCronExecution } = require('../../../core/cronLogger');
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 async function syncAssemblyMembers() {
+  const startTime = Date.now();
   console.log('[Cron:Politics] Starting National Assembly members sync...');
   const apiKey = process.env.NATIONAL_ASSEMBLY_API_KEY;
   
   if (!apiKey) {
-    console.warn('[Cron:Politics] NATIONAL_ASSEMBLY_API_KEY is not set. Skipping real API fetch, using fallback dummy sync for testing.');
+    const msg = '[Cron:Politics] NATIONAL_ASSEMBLY_API_KEY is not set. Skipping real API fetch, using fallback dummy sync for testing.';
+    console.warn(msg);
+    await logCronExecution('sync_assembly_members', 'SKIPPED', msg, Date.now() - startTime);
     await runFallbackSync();
     return;
   }
@@ -28,9 +32,12 @@ async function syncAssemblyMembers() {
     const members = data.nwvrqwxyaytdioiqd[1].row;
     console.log(`[Cron:Politics] Fetched ${members.length} members from National Assembly API.`);
     await processMembers(members);
+    await logCronExecution('sync_assembly_members', 'SUCCESS', `Synced ${members.length} members`, Date.now() - startTime);
   } catch (error) {
-    console.error('[Cron:Politics] Failed to sync members (API might be unavailable or schema changed):', error.message);
+    const msg = error.message;
+    console.error('[Cron:Politics] Failed to sync members (API might be unavailable or schema changed):', msg);
     console.log('[Cron:Politics] Falling back to robust dummy data generator to ensure platform UI is populated.');
+    await logCronExecution('sync_assembly_members', 'FAILED', msg, Date.now() - startTime);
     await runFallbackSync();
   }
 }

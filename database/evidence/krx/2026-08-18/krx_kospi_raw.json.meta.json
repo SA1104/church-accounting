@@ -1,0 +1,10 @@
+{
+  "market": "KOSPI",
+  "endpoint": "stk_isu_base_info",
+  "httpStatus": 200,
+  "calledAtUtc": "2026-08-18T09:05:46.773Z",
+  "calledAtKst": "2026-08-18T18:05:46.773+09:00",
+  "requestParams": {},
+  "recordCount": 942,
+  "sha256": "2ceadbd4006d93909ea68d20e26b3ccfc1e002b01fd7bfdeec69af586f27d59b"
+}

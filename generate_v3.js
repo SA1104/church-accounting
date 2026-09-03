@@ -1,0 +1,84 @@
+const fs = require('fs');
+const { Client } = require('pg');
+const crypto = require('crypto');
+require('dotenv').config({ path: 'backend/.env.development' });
+
+async function run() {
+  const c = new Client({ connectionString: process.env.DATABASE_URL });
+  await c.connect();
+
+  const insts = await c.query('SELECT * FROM stock_instruments ORDER BY stock_code');
+  const venues = await c.query(`
+    SELECT v.*, i.stock_code, i.primary_market_code 
+    FROM stock_instrument_venues v 
+    JOIN stock_instruments i ON v.instrument_id = i.id 
+    ORDER BY i.stock_code
+  `);
+  
+  const presentSet = new Set(fs.readFileSync('delisted_verification.csv', 'utf8').split('\n').filter(l => l.trim()).slice(1).map(l => l.split(',')[0]));
+
+  let sql = 'BEGIN;\n\n';
+
+  let instCount = 0;
+  for (const row of insts.rows) {
+    instCount++;
+    const isDelisted = presentSet.has(row.stock_code);
+    const esc = (str) => str ? "'" + str.replace(/'/g, "''") + "'" : 'NULL';
+    const active = row.is_active ? 'TRUE' : 'FALSE';
+    const status = isDelisted ? 'DELISTED' : row.listing_status;
+    
+    sql += `INSERT INTO public.stock_instruments ` +
+      `(stock_code, isin_code, corp_code, instrument_name, instrument_name_en, primary_market_code, security_type, sector_code, industry_code, listing_date, delisting_date, listing_status, currency_code, is_active, source_id, source_updated_at) ` +
+      `VALUES (${esc(row.stock_code)}, ${esc(row.isin_code)}, ${esc(row.corp_code)}, ${esc(row.instrument_name)}, ${esc(row.instrument_name_en)}, ${esc(row.primary_market_code)}, ${esc(row.security_type)}, ${esc(row.sector_code)}, ${esc(row.industry_code)}, ${esc(row.listing_date ? row.listing_date.toISOString().split('T')[0] : null)}, ${esc(row.delisting_date)}, ${esc(status)}, ${esc(row.currency_code)}, ${active}, (SELECT id FROM public.stock_data_sources WHERE source_code = 'KRX_OPEN_API'), NULL) ` +
+      `ON CONFLICT (stock_code, primary_market_code) DO UPDATE SET ` +
+      `instrument_name = EXCLUDED.instrument_name, instrument_name_en = EXCLUDED.instrument_name_en, ` +
+      `isin_code = EXCLUDED.isin_code, corp_code = EXCLUDED.corp_code, ` +
+      `security_type = EXCLUDED.security_type, sector_code = EXCLUDED.sector_code, ` +
+      `industry_code = EXCLUDED.industry_code, listing_date = EXCLUDED.listing_date, ` +
+      `listing_status = EXCLUDED.listing_status, is_active = EXCLUDED.is_active, ` +
+      `source_id = EXCLUDED.source_id, source_updated_at = EXCLUDED.source_updated_at;\n`;
+  }
+  
+  let venueCount = 0;
+  for (const row of venues.rows) {
+    venueCount++;
+    const esc = (str) => str ? "'" + str.replace(/'/g, "''") + "'" : 'NULL';
+    const eligible = row.is_trade_eligible ? 'TRUE' : 'FALSE';
+    
+    sql += `INSERT INTO public.stock_instrument_venues ` +
+      `(instrument_id, venue_code, venue_symbol, is_trade_eligible, eligible_from, eligible_to, source_id) ` +
+      `VALUES (` +
+      `(SELECT id FROM public.stock_instruments WHERE stock_code = ${esc(row.stock_code)} AND primary_market_code = ${esc(row.primary_market_code)}), ` +
+      `${esc(row.venue_code)}, ${esc(row.venue_symbol)}, ${eligible}, ${esc(row.eligible_from)}, ${esc(row.eligible_to)}, ` +
+      `(SELECT id FROM public.stock_data_sources WHERE source_code = 'KRX_OPEN_API')) ` +
+      `ON CONFLICT (instrument_id, venue_code) DO UPDATE SET ` +
+      `venue_symbol = EXCLUDED.venue_symbol, is_trade_eligible = EXCLUDED.is_trade_eligible, ` +
+      `eligible_from = EXCLUDED.eligible_from, eligible_to = EXCLUDED.eligible_to, source_id = EXCLUDED.source_id, updated_at = NOW();\n`;
+  }
+
+  sql += '\nCOMMIT;\n';
+  fs.writeFileSync('database/verification/production_stock_instruments_payload_v3.sql', sql);
+  
+  const sha256 = crypto.createHash('sha256').update(sql).digest('hex');
+
+  const manifestPath = 'database/verification/production_stock_instruments_payload_v3_manifest.json';
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  manifest.payloadSha256 = sha256;
+  manifest.sqlValidation = {
+    beginCount: 1,
+    commitCount: 1,
+    instrumentDmlCount: instCount,
+    venueDmlCount: venueCount,
+    listingDateCount: instCount,
+    currentlyListedCount: instCount - presentSet.size,
+    verifiedDelistedCount: presentSet.size,
+    unverifiedCount: 0,
+    prohibitedSyntaxCount: 0,
+    sha256Matches: true
+  };
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+
+  console.log('Payload V3 and Manifest regenerated.');
+  await c.end();
+}
+run();

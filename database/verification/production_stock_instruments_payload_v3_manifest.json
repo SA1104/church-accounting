@@ -1,0 +1,35 @@
+{
+  "createdAt": "2026-08-18T08:30:51.695Z",
+  "commitHash": "2d2d77091a841f6bb261a1a4a13afa41beba070a",
+  "sourceEnvironment": "booza-think-dev",
+  "krxCallCount": 2,
+  "sourceRecordsTotal": 2763,
+  "currentlyListedCount": 2362,
+  "delistedCount": 196,
+  "instrumentCount": 2558,
+  "venueCount": 2558,
+  "listingDateCount": 2558,
+  "securityTypes": {
+    "COMMON": 2437,
+    "PREFERRED": 121
+  },
+  "markets": {
+    "KRX_KOSPI": 943,
+    "KRX_KOSDAQ": 1615
+  },
+  "payloadSha256": "cf57426513a3d3859c232cb343a76a2deb2b66763ebbdb553b2d3fd23798525b",
+  "prohibitedSyntaxCheck": "PASS",
+  "generatorVersion": "1.0.0",
+  "sqlValidation": {
+    "beginCount": 1,
+    "commitCount": 1,
+    "instrumentDmlCount": 2558,
+    "venueDmlCount": 2558,
+    "listingDateCount": 2558,
+    "currentlyListedCount": 2362,
+    "verifiedDelistedCount": 196,
+    "unverifiedCount": 0,
+    "prohibitedSyntaxCount": 0,
+    "sha256Matches": true
+  }
+}

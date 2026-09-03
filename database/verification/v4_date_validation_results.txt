@@ -1,0 +1,2 @@
+V4_DATE_MISMATCH_COUNT_0
+All dates successfully normalized to YYYY-MM-DD. No off-by-one errors from timezones.

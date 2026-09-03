@@ -1,0 +1,10 @@
+{
+  "market": "KOSDAQ",
+  "endpoint": "ksq_isu_base_info",
+  "httpStatus": 200,
+  "calledAtUtc": "2026-08-18T09:05:47.894Z",
+  "calledAtKst": "2026-08-18T18:05:47.894+09:00",
+  "requestParams": {},
+  "recordCount": 1821,
+  "sha256": "702ced9139c16d7ee3e29b6c27164cfb4ad5ed3e42fca6f958830c58ede7c711"
+}

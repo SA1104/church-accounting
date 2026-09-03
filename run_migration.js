@@ -1,0 +1,18 @@
+const { Pool } = require('pg');
+const fs = require('fs');
+require('dotenv').config({path: 'backend/.env.development'});
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+async function migrate() {
+  try {
+    const sql = fs.readFileSync('database/migrations/2026_08_18_stock_canonical_tables.sql', 'utf8');
+    await pool.query(sql);
+    console.log('Migration successful');
+  } catch(e) {
+    console.error('Migration failed', e);
+  } finally {
+    pool.end();
+  }
+}
+migrate();

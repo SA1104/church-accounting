@@ -1,0 +1,18 @@
+{
+  "runId": "8e5ea1d3-2567-4bd9-bf5c-d7e42663b557",
+  "captureDate": "2026-08-18",
+  "captureStartedAt": "2026-08-18T09:05:46.326Z",
+  "captureStartedAtKst": "2026-08-18T18:05:46.326+09:00",
+  "status": "SUCCESS",
+  "networkCallCount": 2,
+  "retryCount": 0,
+  "kospiRecordCount": 942,
+  "kosdaqRecordCount": 1821,
+  "sourceRecordsTotal": 2763,
+  "kospiRawSha256": "2ceadbd4006d93909ea68d20e26b3ccfc1e002b01fd7bfdeec69af586f27d59b",
+  "kosdaqRawSha256": "702ced9139c16d7ee3e29b6c27164cfb4ad5ed3e42fca6f958830c58ede7c711",
+  "dbWriteCount": 0,
+  "errors": [],
+  "captureCompletedAt": "2026-08-18T09:05:47.920Z",
+  "captureCompletedAtKst": "2026-08-18T18:05:47.920+09:00"
+}

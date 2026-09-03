@@ -7,6 +7,7 @@ import PortalLayout from './shared/PortalLayout';
 import ServiceView from './shared/ServiceView';
 import ForgotPassword from './shared/ForgotPassword';
 import ResetPassword from './shared/ResetPassword';
+import SystemHealthDashboard from './apps/platform/pages/SystemHealthDashboard';
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -76,6 +77,9 @@ export default function App() {
           <Route path="/service" element={<PortalLayout />}>
             <Route path=":serviceId" element={<ServiceView />} />
           </Route>
+
+          {/* Admin Routes */}
+          <Route path="/_admin/sys-health" element={<SystemHealthDashboard />} />
 
           {/* Catch-all redirect to Portal */}
           <Route path="*" element={<Navigate to="/" replace />} />

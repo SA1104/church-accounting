@@ -1,0 +1,21 @@
+Command: npm run test:stock
+Started: 2026-08-18T09:21:36.220Z
+Ended: 2026-08-18T09:21:36.751Z
+Exit Code: 0
+
+STDOUT:
+
+> test:stock
+> node test_v4_all.js
+
+[PASS] Provider handles missing Date (null)
+[PASS] Provider correctly normalizes date without timezone shift
+[PASS] Provider rejects invalid calendar date
+[PASS] Repository Transaction Rollback
+[PASS] Capture Mock Retries and 429
+
+Tests completed. Passed: 5, Failed: 0
+
+
+STDERR:
+

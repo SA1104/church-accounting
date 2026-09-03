@@ -1,20 +1,26 @@
 const { query } = require('../../core/db');
 const { generateMarketInsight } = require('./aiService');
 const cron = require('node-cron');
+const { logCronExecution } = require('../../core/cronLogger');
 
 let scheduledTasks = [];
 
 async function runInsightGenerationTask() {
+  const startTime = Date.now();
   console.log('[Cron] Starting AI Insight Generation Task...');
   
   // Use the env key or a fallback for testing if the user provided it in config
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    console.warn('[Cron] OPENAI_API_KEY is not set. Skipping AI generation.');
+    const msg = '[Cron] OPENAI_API_KEY is not set. Skipping AI generation.';
+    console.warn(msg);
+    await logCronExecution('generate_politics_insight', 'SKIPPED', msg, Date.now() - startTime);
     return;
   }
 
   const categories = ['stock', 'real_estate', 'economy', 'politics'];
+  let allSuccess = true;
+  let errorMsg = '';
   
   for (const targetCategory of categories) {
     try {
@@ -54,8 +60,16 @@ async function runInsightGenerationTask() {
         console.log(`[Cron] Insight for ${targetCategory} saved to DB successfully.`);
       }
     } catch (err) {
+      allSuccess = false;
+      errorMsg += `[${targetCategory}] ${err.message}; `;
       console.error(`[Cron] Task failed for ${targetCategory}:`, err.message);
     }
+  }
+
+  if (allSuccess) {
+    await logCronExecution('generate_politics_insight', 'SUCCESS', 'All categories processed.', Date.now() - startTime);
+  } else {
+    await logCronExecution('generate_politics_insight', 'FAILED', errorMsg, Date.now() - startTime);
   }
 }
 
