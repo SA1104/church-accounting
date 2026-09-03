@@ -208,10 +208,19 @@ router.post('/admin/migrate-prod', async (req, res) => {
           approval_rating NUMERIC(5,2),
           buzz_score NUMERIC(5,2),
           source VARCHAR(100),
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-          UNIQUE(politician_id, record_date)
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         )
       `);
+      
+      // Force add unique constraint just in case it's missing
+      try {
+        await client.query(`ALTER TABLE politics_trends ADD CONSTRAINT politics_trends_politician_date_key UNIQUE(politician_id, record_date)`);
+      } catch (e) {
+        // Ignore if already exists
+      }
+
+      // 4.5 Populate search_keyword if null
+      await client.query(`UPDATE politics_politicians SET search_keyword = name WHERE search_keyword IS NULL`);
 
       // 5. Create politics_comments table
       await client.query(`
