@@ -106,6 +106,57 @@ router.get('/admin/migrate-party', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+router.post('/admin/fetch-trends', async (req, res) => {
+  try {
+    const { fetchAndStoreTrends } = require('./cron/trendFetcher');
+    fetchAndStoreTrends().catch(console.error);
+    res.json({ success: true, message: 'Trend fetcher triggered in background on server.' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/admin/test-naver-api', async (req, res) => {
+  try {
+    const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args)).catch(() => global.fetch(...args));
+    
+    const clientId = process.env.NAVER_CLIENT_ID;
+    const clientSecret = process.env.NAVER_CLIENT_SECRET;
+    
+    const body = {
+      startDate: '2026-03-01',
+      endDate: '2026-09-01',
+      timeUnit: 'week',
+      keywordGroups: [
+        { groupName: '한동훈', keywords: ['한동훈'] }
+      ]
+    };
+    
+    const headers = {
+      'Content-Type': 'application/json',
+      'X-NCP-APIGW-API-KEY-ID': clientId,
+      'X-NCP-APIGW-API-KEY': clientSecret
+    };
+    
+    let rawResponse = null;
+    let urlUsed = null;
+    let status = null;
+    
+    const url = 'https://naverapihub.apigw.ntruss.com/search-trend/v1/search';
+    const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+    status = response.status;
+    urlUsed = url;
+    
+    if (response.ok) {
+      rawResponse = await response.json();
+    } else {
+      rawResponse = await response.text();
+    }
+    
+    res.json({ success: true, url: urlUsed, status, rawResponse });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // GET /api/services/politics/ratings/:id
