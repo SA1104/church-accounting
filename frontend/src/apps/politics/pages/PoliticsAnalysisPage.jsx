@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ApprovalTrendChart from '../components/ApprovalTrendChart';
 import CommentsPanel from '../components/CommentsPanel';
 import { 
@@ -22,7 +22,6 @@ const PARTY_COLORS = {
 
 const getPartyColor = (partyName, isAlt = false) => {
   const baseColor = PARTY_COLORS[partyName] || PARTY_COLORS['무소속'];
-  if (isAlt) return baseColor;
   return baseColor;
 };
 
@@ -98,91 +97,8 @@ const SearchableSelect = ({ options, value, onChange, placeholder, outlineColor 
   );
 };
 
-// NEW: Party Leaderboard Component
-const PartyLeaderboard = ({ party, color }) => {
-  if (!party || !party.members || party.members.length === 0) return null;
-
-  // 1. Calculate Party Average Base Score
-  let totalScore = 0;
-  party.members.forEach(m => {
-    const score = ((m.stats?.approval || 50) + (m.dynamic_metrics?.morality_index || 70) + (m.dynamic_metrics?.sns_power || 50)) / 3;
-    totalScore += score;
-  });
-  const partyAverage = totalScore / party.members.length;
-
-  // 2. Calculate Deviation for each member
-  const rankedMembers = party.members.map(m => {
-    const personalScore = ((m.stats?.approval || 50) + (m.dynamic_metrics?.morality_index || 70) + (m.dynamic_metrics?.sns_power || 50)) / 3;
-    const deviation = personalScore - partyAverage;
-    
-    // Mock AI reason generation based on stats
-    let reason = "당 평균 수준의 기여를 하고 있습니다.";
-    if (deviation > 5) {
-      if (m.dynamic_metrics?.morality_index > 85) reason = "압도적인 청렴함과 도덕성으로 당의 쇄신 이미지를 견인 중";
-      else if (m.dynamic_metrics?.sns_power > 85) reason = "강력한 팬덤과 소셜 파급력으로 지지층을 결집시킴";
-      else reason = "안정적인 대국민 호감도로 스윙보터를 흡수 중";
-    } else if (deviation < -5) {
-      if (m.dynamic_metrics?.morality_index < 60) reason = "연이은 논란과 도덕성 리스크로 중도층 이탈의 핵심 원인";
-      else if (m.stats?.approval < 45) reason = "대국민 비호감도가 너무 높아 당의 이미지에 치명적 타격";
-      else reason = "화제성 부족 및 존재감 미미로 평균치 하락 주도";
-    }
-
-    return { ...m, deviation, reason };
-  }).sort((a, b) => b.deviation - a.deviation); // Sort descending
-
-  const mvps = rankedMembers.filter(m => m.deviation >= 0).slice(0, 3);
-  const risks = rankedMembers.filter(m => m.deviation < 0).reverse().slice(0, 3); // bottom up to 3
-
-  return (
-    <div className="mt-6 space-y-4">
-      {mvps.length > 0 && (
-        <div className="bg-slate-800/80 rounded-lg p-4 border border-blue-900/50">
-          <h4 className="text-sm font-bold text-blue-400 mb-3 flex items-center gap-2">
-            🏆 명예의 전당 <span className="text-xs font-normal text-slate-400">(기여도 TOP)</span>
-          </h4>
-          <div className="space-y-3">
-            {mvps.map((m, i) => (
-              <div key={m.id} className="flex gap-3 items-start">
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-xs font-bold border border-blue-500/30">
-                  {i + 1}
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-white">{m.name} <span className="text-xs font-normal text-green-400 ml-1">+{m.deviation.toFixed(1)}점</span></div>
-                  <div className="text-xs text-slate-400 leading-tight mt-1">{m.reason}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {risks.length > 0 && (
-        <div className="bg-slate-800/80 rounded-lg p-4 border border-red-900/50">
-          <h4 className="text-sm font-bold text-red-400 mb-3 flex items-center gap-2">
-            🚨 리스크 주의보 <span className="text-xs font-normal text-slate-400">(훼손도 WORST)</span>
-          </h4>
-          <div className="space-y-3">
-            {risks.map((m, i) => (
-              <div key={m.id} className="flex gap-3 items-start">
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center text-xs font-bold border border-red-500/30">
-                  {i + 1}
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-white">{m.name} <span className="text-xs font-normal text-red-400 ml-1">{m.deviation.toFixed(1)}점</span></div>
-                  <div className="text-xs text-slate-400 leading-tight mt-1">{m.reason}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-
 export default function PoliticsAnalysisPage() {
-  const [viewMode, setViewMode] = useState('party'); // 'politician' | 'party', defaulting to party for this demo
+  const [viewMode, setViewMode] = useState('party'); // 'politician' | 'party'
   const [politicians, setPoliticians] = useState([]);
   const [parties, setParties] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -192,20 +108,24 @@ export default function PoliticsAnalysisPage() {
   
   const [selectedPartyA, setSelectedPartyA] = useState('');
   const [selectedPartyB, setSelectedPartyB] = useState('');
+  
+  // Modal state
+  const [modalData, setModalData] = useState(null); // { party, metricId, metricName }
 
   useEffect(() => {
     const fetchPoliticians = async () => {
       try {
-        const res = await apiClient('/api/services/politics/politicians');
-        setPoliticians(res);
-        if (res.length >= 2) {
-          setSelectedPolA(res[0].id);
-          setSelectedPolB(res[1].id);
+        const res = await apiClient.get('/api/services/politics/politicians');
+        const data = res.data;
+        setPoliticians(data);
+        if (data.length >= 2) {
+          setSelectedPolA(data[0].id);
+          setSelectedPolB(data[1].id);
         }
         
         // Extract unique parties
         const partyMap = new Map();
-        res.forEach(p => {
+        data.forEach(p => {
           if (!p.party) return;
           if (!partyMap.has(p.party)) {
             partyMap.set(p.party, { id: p.party, name: p.party, members: [] });
@@ -216,7 +136,6 @@ export default function PoliticsAnalysisPage() {
         const partyArray = Array.from(partyMap.values());
         setParties(partyArray);
         
-        // Try to default to Minjoo and PPP if available
         const minjoo = partyArray.find(p => p.name === '더불어민주당');
         const ppp = partyArray.find(p => p.name === '국민의힘');
         
@@ -243,278 +162,352 @@ export default function PoliticsAnalysisPage() {
     return <div className="p-8 text-center text-slate-400">데이터를 불러오는 중입니다...</div>;
   }
 
-  // POLITICIAN MODE LOGIC
   const polA = politicians.find(p => p.id === selectedPolA);
   const polB = politicians.find(p => p.id === selectedPolB);
 
   const getPolChartData = (pA, pB) => {
-    const roleA = pA?.role_type || 'ASSEMBLY_MEMBER';
-    const roleB = pB?.role_type || 'ASSEMBLY_MEMBER';
-    
-    const isBothAssembly = roleA === 'ASSEMBLY_MEMBER' && roleB === 'ASSEMBLY_MEMBER';
-    const isBothMayor = roleA === 'MAYOR' && roleB === 'MAYOR';
-    
-    if (isBothAssembly) {
-      return [
-        { subject: '입법 성실도', A: pA ? normalizeScore(pA.stats?.attendance, 100) : 0, B: pB ? normalizeScore(pB.stats?.attendance, 100) : 0, fullMark: 100 },
-        { subject: '공약 이행률', A: pA ? normalizeScore(pA.stats?.pledge, 100) : 0, B: pB ? normalizeScore(pB.stats?.pledge, 100) : 0, fullMark: 100 },
-        { subject: '도덕성/청렴', A: pA ? (pA.dynamic_metrics?.morality_index || 70) : 0, B: pB ? (pB.dynamic_metrics?.morality_index || 70) : 0, fullMark: 100 },
-        { subject: '재력 지수', A: pA ? normalizeScore(pA.stats?.wealth, 5000000000) : 0, B: pB ? normalizeScore(pB.stats?.wealth, 5000000000) : 0, fullMark: 100 },
-        { subject: '세대별 소구력', A: pA ? (pA.dynamic_metrics?.demographic_appeal || 50) : 0, B: pB ? (pB.dynamic_metrics?.demographic_appeal || 50) : 0, fullMark: 100 },
-        { subject: '당내 영향력', A: pA ? (pA.dynamic_metrics?.party_control || 60) : 0, B: pB ? (pB.dynamic_metrics?.party_control || 60) : 0, fullMark: 100 }
-      ];
-    }
-    
-    if (isBothMayor) {
-      return [
-        { subject: '행정 평가', A: pA ? (pA.dynamic_metrics?.admin_rating || 70) : 0, B: pB ? (pB.dynamic_metrics?.admin_rating || 70) : 0, fullMark: 100 },
-        { subject: '도덕성/청렴', A: pA ? (pA.dynamic_metrics?.morality_index || 70) : 0, B: pB ? (pB.dynamic_metrics?.morality_index || 70) : 0, fullMark: 100 },
-        { subject: '화제성(SNS)', A: pA ? (pA.dynamic_metrics?.sns_power || 60) : 0, B: pB ? (pB.dynamic_metrics?.sns_power || 60) : 0, fullMark: 100 },
-        { subject: '대권 지지율', A: pA ? (pA.dynamic_metrics?.presidential_support || 20) : 0, B: pB ? (pB.dynamic_metrics?.presidential_support || 20) : 0, fullMark: 100 },
-        { subject: '세대별 소구력', A: pA ? (pA.dynamic_metrics?.demographic_appeal || 50) : 0, B: pB ? (pB.dynamic_metrics?.demographic_appeal || 50) : 0, fullMark: 100 }
-      ];
-    }
-    
     return [
-      { subject: '정치적 체급', A: pA ? (pA.role_type === 'EXTRA_PARLIAMENTARY' || pA.role_type === 'MAYOR' ? 90 : 70) : 0, B: pB ? (pB.role_type === 'EXTRA_PARLIAMENTARY' || pB.role_type === 'MAYOR' ? 90 : 70) : 0, fullMark: 100 },
-      { subject: '대권 잠재력', A: pA ? (pA.dynamic_metrics?.presidential_support || 40) : 0, B: pB ? (pB.dynamic_metrics?.presidential_support || 40) : 0, fullMark: 100 },
-      { subject: '도덕성/청렴', A: pA ? (pA.dynamic_metrics?.morality_index || 70) : 0, B: pB ? (pB.dynamic_metrics?.morality_index || 70) : 0, fullMark: 100 },
-      { subject: '화제성(SNS)', A: pA ? (pA.dynamic_metrics?.sns_power || 60) : 0, B: pB ? (pB.dynamic_metrics?.sns_power || 60) : 0, fullMark: 100 },
-      { subject: '세대별 소구력', A: pA ? (pA.dynamic_metrics?.demographic_appeal || 50) : 0, B: pB ? (pB.dynamic_metrics?.demographic_appeal || 50) : 0, fullMark: 100 }
+      { subject: '도덕성/청렴', A: pA?.dynamic_metrics?.morality_index || 70, B: pB?.dynamic_metrics?.morality_index || 70, id: 'morality_index', fullMark: 100 },
+      { subject: '대권잠재력', A: pA?.stats?.approval || 50, B: pB?.stats?.approval || 50, id: 'approval', fullMark: 100 }, // Shortened label
+      { subject: '세대별 소구력', A: pA?.dynamic_metrics?.voter_expansion || 60, B: pB?.dynamic_metrics?.voter_expansion || 60, id: 'voter_expansion', fullMark: 100 },
+      { subject: '입법/행정', A: pA?.stats?.attendance || 85, B: pB?.stats?.attendance || 85, id: 'attendance', fullMark: 100 },
+      { subject: '화제성(SNS)', A: pA?.dynamic_metrics?.sns_power || 50, B: pB?.dynamic_metrics?.sns_power || 50, id: 'sns_power', fullMark: 100 },
     ];
-  };
-
-  // PARTY MODE LOGIC
-  const partyA = parties.find(p => p.id === selectedPartyA);
-  const partyB = parties.find(p => p.id === selectedPartyB);
-
-  const calculatePartyAverage = (partyObj, metricKey) => {
-    if (!partyObj || !partyObj.members || partyObj.members.length === 0) return 0;
-    
-    let sum = 0;
-    let count = 0;
-    
-    partyObj.members.forEach(m => {
-      const weight = (m.role_type === 'EXTRA_PARLIAMENTARY' || m.role_type === 'MAYOR') ? 1.5 : 1.0;
-      
-      let val = 0;
-      if (metricKey === 'approval') val = m.stats?.approval ?? 50;
-      if (metricKey === 'morality') val = m.dynamic_metrics?.morality_index ?? 70;
-      if (metricKey === 'sns_power') val = m.dynamic_metrics?.sns_power ?? 50;
-      if (metricKey === 'demographic') val = m.dynamic_metrics?.demographic_appeal ?? 50;
-      if (metricKey === 'presidential') val = m.dynamic_metrics?.presidential_support ?? 10;
-      
-      // Protect against NaN from bad API data
-      if (isNaN(val) || val === null) val = 50;
-      
-      sum += (val * weight);
-      count += weight;
-    });
-    
-    return count > 0 ? (sum / count) : 0;
   };
 
   const getPartyChartData = (pA, pB) => {
+    const calcAvg = (party, keyPath) => {
+      if (!party || !party.members || party.members.length === 0) return 50;
+      let sum = 0;
+      let count = 0;
+      party.members.forEach(m => {
+        let val;
+        if (keyPath === 'approval') val = m.stats?.approval;
+        else if (keyPath === 'attendance') val = m.stats?.attendance;
+        else val = m.dynamic_metrics?.[keyPath];
+        if (val !== undefined && val !== null) {
+          sum += val;
+          count++;
+        }
+      });
+      return count === 0 ? 50 : Math.round(sum / count);
+    };
+
     return [
-      { subject: '대국민 호감도', A: calculatePartyAverage(pA, 'approval'), B: calculatePartyAverage(pB, 'approval'), fullMark: 100 },
-      { subject: '평균 도덕성', A: calculatePartyAverage(pA, 'morality'), B: calculatePartyAverage(pB, 'morality'), fullMark: 100 },
-      { subject: 'SNS 장악력', A: calculatePartyAverage(pA, 'sns_power'), B: calculatePartyAverage(pB, 'sns_power'), fullMark: 100 },
-      { subject: '세대별 소구력', A: calculatePartyAverage(pA, 'demographic'), B: calculatePartyAverage(pB, 'demographic'), fullMark: 100 },
-      { subject: '대권 잠재력 합', A: calculatePartyAverage(pA, 'presidential') * 2, B: calculatePartyAverage(pB, 'presidential') * 2, fullMark: 100 }
+      { subject: '도덕성/청렴', A: calcAvg(pA, 'morality_index'), B: calcAvg(pB, 'morality_index'), id: 'morality_index', fullMark: 100 },
+      { subject: '대권잠재력', A: calcAvg(pA, 'approval'), B: calcAvg(pB, 'approval'), id: 'approval', fullMark: 100 },
+      { subject: '세대별 소구력', A: calcAvg(pA, 'voter_expansion'), B: calcAvg(pB, 'voter_expansion'), id: 'voter_expansion', fullMark: 100 },
+      { subject: '입법/행정', A: calcAvg(pA, 'attendance'), B: calcAvg(pB, 'attendance'), id: 'attendance', fullMark: 100 },
+      { subject: '화제성(SNS)', A: calcAvg(pA, 'sns_power'), B: calcAvg(pB, 'sns_power'), id: 'sns_power', fullMark: 100 },
     ];
   };
 
-  const chartData = viewMode === 'politician' ? getPolChartData(polA, polB) : getPartyChartData(partyA, partyB);
-  
-  let colorA = viewMode === 'politician' ? getPartyColor(polA?.party_name) : getPartyColor(partyA?.name);
-  let colorB = viewMode === 'politician' ? getPartyColor(polB?.party_name) : getPartyColor(partyB?.name);
-  
-  let isSameParty = false;
-  if (viewMode === 'politician' && polA && polB && polA.party_name === polB.party_name) {
-    isSameParty = true;
-    colorB = getPartyColor(polB?.party_name, true);
-  } else if (viewMode === 'party' && partyA && partyB && partyA.name === partyB.name) {
-    isSameParty = true;
-  }
+  const partyA = parties.find(p => p.id === selectedPartyA);
+  const partyB = parties.find(p => p.id === selectedPartyB);
 
-  return (
-    <div className="p-3 md:p-6 max-w-7xl mx-auto space-y-4 md:space-y-6 select-none">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">정치 분석 허브</h1>
-          <p className="text-sm md:text-base text-slate-400 mt-1">인물 및 정당별 동적 지표 비교 (Radar Analysis)</p>
-        </div>
-        
-        {/* VIEW MODE TOGGLE */}
-        <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700 w-max">
-          <button 
-            className={`px-4 py-2.5 md:py-2 rounded-md text-sm font-medium transition-colors min-h-[44px] ${viewMode === 'politician' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
-            onClick={() => setViewMode('politician')}
-          >
-            👤 인물 비교
-          </button>
-          <button 
-            className={`px-4 py-2.5 md:py-2 rounded-md text-sm font-medium transition-colors min-h-[44px] ${viewMode === 'party' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
-            onClick={() => setViewMode('party')}
-          >
-            🏛️ 정당 비교
-          </button>
+  const chartData = viewMode === 'politician' ? getPolChartData(polA, polB) : getPartyChartData(partyA, partyB);
+
+  const colorA = viewMode === 'politician' ? getPartyColor(polA?.party) : getPartyColor(partyA?.name);
+  const colorB = viewMode === 'politician' ? getPartyColor(polB?.party, true) : getPartyColor(partyB?.name, true);
+  
+  const isSameParty = (viewMode === 'politician' && polA?.party === polB?.party) || (viewMode === 'party' && partyA?.name === partyB?.name);
+
+  // Click handler for Radar Axis
+  const handleAxisClick = (payload) => {
+    if (viewMode !== 'party') return;
+    const metricName = payload.value;
+    const metricItem = chartData.find(d => d.subject === metricName);
+    if (!metricItem) return;
+    
+    // We can show modal for the currently selected parties
+    setModalData({
+      metricId: metricItem.id,
+      metricName: metricItem.subject,
+      parties: [partyA, partyB].filter(Boolean)
+    });
+  };
+
+  // Render modal content
+  const renderModal = () => {
+    if (!modalData) return null;
+    
+    const getTopBottom = (party) => {
+      if (!party || !party.members) return { top: [], bottom: [] };
+      const sorted = [...party.members].sort((a, b) => {
+        const valA = modalData.metricId === 'approval' ? (a.stats?.approval || 0) : modalData.metricId === 'attendance' ? (a.stats?.attendance || 0) : (a.dynamic_metrics?.[modalData.metricId] || 0);
+        const valB = modalData.metricId === 'approval' ? (b.stats?.approval || 0) : modalData.metricId === 'attendance' ? (b.stats?.attendance || 0) : (b.dynamic_metrics?.[modalData.metricId] || 0);
+        return valB - valA;
+      });
+      
+      return {
+        top: sorted.slice(0, 5),
+        bottom: sorted.slice(-5).reverse() // reverse so lowest is first
+      };
+    };
+
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" onClick={() => setModalData(null)}>
+        <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-bold text-white">📊 {modalData.metricName} 기여도 상세 분석</h3>
+            <button onClick={() => setModalData(null)} className="text-slate-400 hover:text-white text-xl">&times;</button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {modalData.parties.map((party, idx) => {
+              const { top, bottom } = getTopBottom(party);
+              const color = getPartyColor(party.name);
+              const getValue = (m) => modalData.metricId === 'approval' ? (m.stats?.approval || 0) : modalData.metricId === 'attendance' ? (m.stats?.attendance || 0) : (m.dynamic_metrics?.[modalData.metricId] || 0);
+              
+              return (
+                <div key={party.name} className="space-y-4">
+                  <div className="font-bold text-lg p-2 rounded text-center border-b-2" style={{ borderColor: color, color }}>
+                    {party.name}
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-sm font-bold text-blue-400 mb-2">🏆 상위 5명 (기여도 TOP)</h4>
+                    <div className="space-y-2">
+                      {top.map((m, i) => (
+                        <div key={m.id} className="flex justify-between items-center bg-slate-800/50 p-2 rounded">
+                          <span className="text-sm text-white"><span className="text-xs text-slate-500 mr-2">{i+1}</span>{m.name}</span>
+                          <span className="text-sm font-bold text-blue-300">{getValue(m)}점</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="pt-2">
+                    <h4 className="text-sm font-bold text-red-400 mb-2">🚨 하위 5명 (훼손도 WORST)</h4>
+                    <div className="space-y-2">
+                      {bottom.map((m, i) => (
+                        <div key={m.id} className="flex justify-between items-center bg-slate-800/50 p-2 rounded">
+                          <span className="text-sm text-white"><span className="text-xs text-slate-500 mr-2">{i+1}</span>{m.name}</span>
+                          <span className="text-sm font-bold text-red-300">{getValue(m)}점</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
+    );
+  };
 
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 md:p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8 items-start">
+  return (
+    <div className="w-full bg-slate-950 min-h-screen text-slate-200">
+      <div className="max-w-7xl mx-auto p-4 md:p-8">
+        
+        {/* HEADER */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4 border-b border-slate-800 pb-6">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-2">
+              <span className="text-indigo-400">⚖️</span> AI 정치 지형도
+            </h1>
+            <p className="text-sm text-slate-400 mt-2">부자생각 AI가 분석한 정치인 및 정당의 입체적 역량 평가</p>
+          </div>
           
-          {/* PROFILE A */}
-          <div className="flex flex-col p-4 bg-slate-800/50 rounded-xl border border-slate-700 h-full">
-            {viewMode === 'politician' ? (
-              <SearchableSelect options={politicians} value={selectedPolA} onChange={setSelectedPolA} placeholder="정치인 선택..." outlineColor={colorA} />
-            ) : (
-              <SearchableSelect options={parties} value={selectedPartyA} onChange={setSelectedPartyA} placeholder="정당 선택..." outlineColor={colorA} />
-            )}
+          <div className="flex gap-2 w-full md:w-auto p-1 bg-slate-800/50 rounded-lg">
+            <button 
+              className={`px-4 py-2.5 md:py-2 rounded-md text-sm font-medium transition-colors min-h-[44px] ${viewMode === 'politician' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
+              onClick={() => setViewMode('politician')}
+            >
+              👤 인물 비교
+            </button>
+            <button 
+              className={`px-4 py-2.5 md:py-2 rounded-md text-sm font-medium transition-colors min-h-[44px] ${viewMode === 'party' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
+              onClick={() => setViewMode('party')}
+            >
+              🏛️ 정당 비교
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 md:p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8 items-start">
             
-            {viewMode === 'politician' ? (
-              polA ? (
-                <div className="flex flex-col items-center">
-                  <img src={polA.imageUrl} alt={polA.name} className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 mb-4 bg-white" style={{ borderColor: colorA }} />
-                  <h3 className="text-xl font-bold text-white">{polA.name}</h3>
-                  <div className="flex gap-2 mt-2">
-                    <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ backgroundColor: `${colorA}33`, color: colorA }}>{polA.party || '무소속'}</span>
-                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-600">{polA.role_type === 'MAYOR' ? '지자체장' : polA.role_type === 'EXTRA_PARLIAMENTARY' ? '원외인사' : '국회의원'}</span>
-                  </div>
-                  <div className="mt-4 w-full space-y-2 text-sm text-slate-300">
-                    <div className="flex justify-between"><span>도덕성 지수:</span> <span>{polA.dynamic_metrics?.morality_index || 70}점</span></div>
-                    {polA.role_type === 'ASSEMBLY_MEMBER' && (<div className="flex justify-between"><span>출석률:</span> <span>{polA.stats?.attendance}%</span></div>)}
-                    <div className="flex justify-between"><span>화제성:</span> <span>{polA.stats?.buzz}</span></div>
-                  </div>
-                    <CommentsPanel entity={polA} entityType="politician" color={colorA} />
-                </div>
+            {/* PROFILE A */}
+            <div className="flex flex-col p-4 bg-slate-800/50 rounded-xl border border-slate-700 h-full">
+              {viewMode === 'politician' ? (
+                <SearchableSelect options={politicians} value={selectedPolA} onChange={setSelectedPolA} placeholder="정치인 선택..." outlineColor={colorA} />
               ) : (
-                <div className="h-64 flex items-center justify-center text-slate-500">선택된 인물이 없습니다.</div>
-              )
-            ) : (
-              partyA ? (
-                <div className="flex flex-col w-full">
+                <SearchableSelect options={parties} value={selectedPartyA} onChange={setSelectedPartyA} placeholder="정당 선택..." outlineColor={colorA} />
+              )}
+              
+              {viewMode === 'politician' ? (
+                polA ? (
                   <div className="flex flex-col items-center">
+                    <img src={polA.imageUrl} alt={polA.name} className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 mb-4 bg-white" style={{ borderColor: colorA }} />
+                    <h3 className="text-xl font-bold text-white">{polA.name}</h3>
+                    <div className="flex gap-2 mt-2 mb-4">
+                      <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ backgroundColor: `${colorA}33`, color: colorA }}>{polA.party || '무소속'}</span>
+                      <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-600">{polA.role_type === 'MAYOR' ? '지자체장' : polA.role_type === 'EXTRA_PARLIAMENTARY' ? '원외인사' : '국회의원'}</span>
+                    </div>
+                    {/* Score list inside profile for politician */}
+                    <div className="w-full bg-slate-900/50 rounded-lg p-3 space-y-2 text-sm">
+                      {chartData.map(d => (
+                        <div key={d.subject} className="flex justify-between items-center border-b border-slate-700/50 pb-1 last:border-0 last:pb-0">
+                          <span className="text-slate-400">{d.subject}</span>
+                          <span className="font-bold text-white" style={{ color: colorA }}>{d.A}점</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="h-64 flex items-center justify-center text-slate-500">선택된 인물이 없습니다.</div>
+                )
+              ) : (
+                partyA ? (
+                  <div className="flex flex-col items-center w-full">
                     <div className="w-24 h-24 rounded-full border-4 mb-3 flex items-center justify-center text-3xl font-black text-white" style={{ borderColor: colorA, backgroundColor: colorA }}>
                       {partyA.name.substring(0, 1)}
                     </div>
-                    <h3 className="text-xl font-bold text-white">{partyA.name}</h3>
-                    <span className="text-xs font-medium px-2 py-1 rounded-full mt-2 bg-slate-800 text-slate-300 border border-slate-600">소속 인물 {partyA.members.length}명</span>
+                    <h3 className="text-xl font-bold text-white mb-2">{partyA.name}</h3>
+                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-600 mb-4">소속 인물 {partyA.members.length}명</span>
+                    
+                    <div className="w-full bg-slate-900/50 rounded-lg p-3 space-y-2 text-sm">
+                      <div className="text-[10px] text-slate-500 text-center mb-2 animate-pulse">지표 클릭 시 기여도 상세 확인</div>
+                      {chartData.map(d => (
+                        <div key={d.subject} onClick={() => setModalData({ metricId: d.id, metricName: d.subject, parties: [partyA] })} className="flex justify-between items-center border-b border-slate-700/50 pb-1 last:border-0 last:pb-0 cursor-pointer hover:bg-slate-800 p-1 rounded transition-colors">
+                          <span className="text-slate-300 hover:text-white">{d.subject}</span>
+                          <span className="font-bold" style={{ color: colorA }}>{d.A}점</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  {/* Leaderboard */}
-                                    <CommentsPanel entity={partyA} entityType="party" color={colorA} />
-                </div>
-              ) : (
-                <div className="h-64 flex items-center justify-center text-slate-500">선택된 정당이 없습니다.</div>
-              )
-            )}
-          </div>
-
-          {/* Radar Chart Middle */}
-          <div className="flex flex-col w-full bg-slate-950/30 rounded-xl md:sticky md:top-6 border border-slate-800">
-            <div className="h-[280px] md:h-[350px] w-full flex justify-center items-center pt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="60%" data={chartData}>
-                  <PolarGrid stroke="#334155" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-                  <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                  <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px' }} itemStyle={{ color: '#e2e8f0' }} />
-                  <Legend wrapperStyle={{ paddingTop: '10px' }} />
-                  <Radar name={viewMode === 'politician' ? (polA?.name || 'A') : (partyA?.name || 'Party A')} dataKey="A" stroke={colorA} fill={colorA} fillOpacity={0.5} />
-                  <Radar name={viewMode === 'politician' ? (polB?.name || 'B') : (partyB?.name || 'Party B')} dataKey="B" stroke={colorB} fill={colorB} fillOpacity={0.5} strokeDasharray={isSameParty ? "5 5" : undefined} />
-                </RadarChart>
-              </ResponsiveContainer>
+                ) : (
+                  <div className="h-64 flex items-center justify-center text-slate-500">선택된 정당이 없습니다.</div>
+                )
+              )}
             </div>
-            
-            
-          </div>
 
-          {/* PROFILE B */}
-          <div className="flex flex-col p-4 bg-slate-800/50 rounded-xl border border-slate-700 h-full">
-            {viewMode === 'politician' ? (
-              <SearchableSelect options={politicians} value={selectedPolB} onChange={setSelectedPolB} placeholder="정치인 선택..." outlineColor={colorB} />
-            ) : (
-              <SearchableSelect options={parties} value={selectedPartyB} onChange={setSelectedPartyB} placeholder="정당 선택..." outlineColor={colorB} />
-            )}
-            
-            {viewMode === 'politician' ? (
-              polB ? (
-                <div className="flex flex-col items-center">
-                  <img src={polB.imageUrl} alt={polB.name} className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 mb-4 bg-white" style={{ borderColor: colorB, borderStyle: isSameParty ? 'dashed' : 'solid' }} />
-                  <h3 className="text-xl font-bold text-white">{polB.name}</h3>
-                  <div className="flex gap-2 mt-2">
-                    <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ backgroundColor: `${colorB}33`, color: colorB }}>{polB.party || '무소속'}</span>
-                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-600">{polB.role_type === 'MAYOR' ? '지자체장' : polB.role_type === 'EXTRA_PARLIAMENTARY' ? '원외인사' : '국회의원'}</span>
-                  </div>
-                  <div className="mt-4 w-full space-y-2 text-sm text-slate-300">
-                    <div className="flex justify-between"><span>도덕성 지수:</span> <span>{polB.dynamic_metrics?.morality_index || 70}점</span></div>
-                    {polB.role_type === 'ASSEMBLY_MEMBER' && (<div className="flex justify-between"><span>출석률:</span> <span>{polB.stats?.attendance}%</span></div>)}
-                    <div className="flex justify-between"><span>화제성:</span> <span>{polB.stats?.buzz}</span></div>
-                  </div>
-                    <CommentsPanel entity={polB} entityType="politician" color={colorB} />
-                </div>
+            {/* Radar Chart Middle */}
+            <div className="flex flex-col w-full bg-slate-950/30 rounded-xl md:sticky md:top-6 border border-slate-800">
+              <div className="h-[280px] md:h-[350px] w-full flex justify-center items-center pt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart cx="50%" cy="50%" outerRadius="60%" data={chartData}>
+                    <PolarGrid stroke="#334155" />
+                    <PolarAngleAxis 
+                      dataKey="subject" 
+                      tick={{ fill: '#94a3b8', fontSize: 11, cursor: viewMode === 'party' ? 'pointer' : 'default' }}
+                      onClick={handleAxisClick} 
+                    />
+                    <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px' }} itemStyle={{ color: '#e2e8f0' }} />
+                    <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                    <Radar name={viewMode === 'politician' ? (polA?.name || 'A') : (partyA?.name || 'Party A')} dataKey="A" stroke={colorA} fill={colorA} fillOpacity={0.5} />
+                    <Radar name={viewMode === 'politician' ? (polB?.name || 'B') : (partyB?.name || 'Party B')} dataKey="B" stroke={colorB} fill={colorB} fillOpacity={0.5} strokeDasharray={isSameParty ? "5 5" : undefined} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* PROFILE B */}
+            <div className="flex flex-col p-4 bg-slate-800/50 rounded-xl border border-slate-700 h-full">
+              {viewMode === 'politician' ? (
+                <SearchableSelect options={politicians} value={selectedPolB} onChange={setSelectedPolB} placeholder="정치인 선택..." outlineColor={colorB} />
               ) : (
-                <div className="h-64 flex items-center justify-center text-slate-500">선택된 인물이 없습니다.</div>
-              )
-            ) : (
-              partyB ? (
-                <div className="flex flex-col w-full">
+                <SearchableSelect options={parties} value={selectedPartyB} onChange={setSelectedPartyB} placeholder="정당 선택..." outlineColor={colorB} />
+              )}
+              
+              {viewMode === 'politician' ? (
+                polB ? (
                   <div className="flex flex-col items-center">
+                    <img src={polB.imageUrl} alt={polB.name} className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 mb-4 bg-white" style={{ borderColor: colorB, borderStyle: isSameParty ? 'dashed' : 'solid' }} />
+                    <h3 className="text-xl font-bold text-white">{polB.name}</h3>
+                    <div className="flex gap-2 mt-2 mb-4">
+                      <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ backgroundColor: `${colorB}33`, color: colorB }}>{polB.party || '무소속'}</span>
+                      <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-600">{polB.role_type === 'MAYOR' ? '지자체장' : polB.role_type === 'EXTRA_PARLIAMENTARY' ? '원외인사' : '국회의원'}</span>
+                    </div>
+                    {/* Score list inside profile for politician */}
+                    <div className="w-full bg-slate-900/50 rounded-lg p-3 space-y-2 text-sm">
+                      {chartData.map(d => (
+                        <div key={d.subject} className="flex justify-between items-center border-b border-slate-700/50 pb-1 last:border-0 last:pb-0">
+                          <span className="text-slate-400">{d.subject}</span>
+                          <span className="font-bold text-white" style={{ color: colorB }}>{d.B}점</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="h-64 flex items-center justify-center text-slate-500">선택된 인물이 없습니다.</div>
+                )
+              ) : (
+                partyB ? (
+                  <div className="flex flex-col items-center w-full">
                     <div className="w-24 h-24 rounded-full border-4 mb-3 flex items-center justify-center text-3xl font-black text-white" style={{ borderColor: colorB, backgroundColor: colorB, borderStyle: isSameParty ? 'dashed' : 'solid' }}>
                       {partyB.name.substring(0, 1)}
                     </div>
-                    <h3 className="text-xl font-bold text-white">{partyB.name}</h3>
-                    <span className="text-xs font-medium px-2 py-1 rounded-full mt-2 bg-slate-800 text-slate-300 border border-slate-600">소속 인물 {partyB.members.length}명</span>
+                    <h3 className="text-xl font-bold text-white mb-2">{partyB.name}</h3>
+                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-600 mb-4">소속 인물 {partyB.members.length}명</span>
+                    
+                    <div className="w-full bg-slate-900/50 rounded-lg p-3 space-y-2 text-sm">
+                      <div className="text-[10px] text-slate-500 text-center mb-2 animate-pulse">지표 클릭 시 기여도 상세 확인</div>
+                      {chartData.map(d => (
+                        <div key={d.subject} onClick={() => setModalData({ metricId: d.id, metricName: d.subject, parties: [partyB] })} className="flex justify-between items-center border-b border-slate-700/50 pb-1 last:border-0 last:pb-0 cursor-pointer hover:bg-slate-800 p-1 rounded transition-colors">
+                          <span className="text-slate-300 hover:text-white">{d.subject}</span>
+                          <span className="font-bold" style={{ color: colorB }}>{d.B}점</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  {/* Leaderboard */}
-                                    <CommentsPanel entity={partyB} entityType="party" color={colorB} />
-                </div>
-              ) : (
-                <div className="h-64 flex items-center justify-center text-slate-500">선택된 정당이 없습니다.</div>
-              )
+                ) : (
+                  <div className="h-64 flex items-center justify-center text-slate-500">선택된 정당이 없습니다.</div>
+                )
+              )}
+            </div>
+          </div>
+          
+          {/* BOTTOM COMMENTS PANELS */}
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+            {viewMode === 'politician' ? (
+              <>
+                {polA && <CommentsPanel entity={polA} entityType="politician" color={colorA} />}
+                {polB && <CommentsPanel entity={polB} entityType="politician" color={colorB} />}
+              </>
+            ) : (
+              <>
+                {partyA && <CommentsPanel entity={partyA} entityType="party" color={colorA} />}
+                {partyB && <CommentsPanel entity={partyB} entityType="party" color={colorB} />}
+              </>
             )}
           </div>
-        </div>
-        
-        {/* FULL WIDTH LEADERBOARDS (명예의 전당) */}
-        {viewMode === 'party' && (partyA || partyB) && (
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-            {partyA && <PartyLeaderboard party={partyA} color={colorA} />}
-            {partyB && <PartyLeaderboard party={partyB} color={colorB} />}
+
+          {/* TREND CHART */}
+          <div className="mt-6 md:mt-8 h-[280px] md:h-[400px]">
+            <ApprovalTrendChart 
+              entityA={viewMode === 'politician' ? polA : partyA}
+              entityB={viewMode === 'politician' ? polB : partyB}
+              colorA={colorA}
+              colorB={colorB}
+              isSameParty={isSameParty}
+            />
           </div>
-        )}
 
-        {/* TREND CHART */}
-        <div className="mt-6 md:mt-8 h-[280px] md:h-[400px]">
-          <ApprovalTrendChart 
-            entityA={viewMode === 'politician' ? polA : partyA}
-            entityB={viewMode === 'politician' ? polB : partyB}
-            colorA={colorA}
-            colorB={colorB}
-            isSameParty={isSameParty}
-          />
-        </div>
-
-        {/* FULL WIDTH METRIC DESCRIPTIONS */}
-        <div className="mt-8">
-          <div className="p-3 md:p-6 bg-slate-900/50 border border-slate-800 text-xs text-slate-400 rounded-xl">
-<div className="text-slate-400">
-              <h4 className="font-bold text-slate-300 mb-2 flex items-center gap-1">
-                <span className="text-[10px]">📊</span> 지표 산출 기준 및 출처 (Beta)
-              </h4>
-              <ul className="space-y-1.5 pl-1">
-                <li><strong className="text-slate-300">도덕성/청렴:</strong> 선관위 전과기록, 세금 체납액, 재산 축소 신고 의혹 등을 감점 요소로 산출한 자체 지수.</li>
-              <li><strong className="text-slate-300">화제성(SNS):</strong> 네이버 데이터랩 검색어 트렌드 API를 통해 매일 자동 수집되는 실제 검색량 데이터 기반. (0~100 상대 지표)</li>
-                <li><strong className="text-slate-300">대권/당내 잠재력:</strong> 리얼미터, 갤럽 등 주요 여론조사 기관의 차기 지도자 선호도 및 당대표 지지도 환산.</li>
-                <li><strong className="text-slate-300">입법/행정 성실도:</strong> 열려라 국회(참여연대) 본회의 출석률 및 지자체 공약 이행률 평가 리포트 기반.</li>
-                <li><strong className="text-slate-300">세대별 소구력:</strong> 연령별 지지율 편차를 분석하여 스윙보터(중도층) 확장 가능성을 측정한 AI 평가 지수.</li>
-              </ul>
-              <p className="mt-3 text-[10px] text-slate-500">* 화제성(버즈) 지표는 네이버 데이터랩 실데이터 기반이며, 기타 지표는 공공 데이터 연동 확대 중입니다.</p>
+          {/* FULL WIDTH METRIC DESCRIPTIONS */}
+          <div className="mt-8">
+            <div className="p-3 md:p-6 bg-slate-900/50 border border-slate-800 text-xs text-slate-400 rounded-xl">
+              <div className="text-slate-400">
+                <h4 className="font-bold text-slate-300 mb-2 flex items-center gap-1">
+                  <span className="text-[10px]">📊</span> 지표 산출 기준 및 출처 (Beta)
+                </h4>
+                <ul className="space-y-1.5 pl-1">
+                  <li><strong className="text-slate-300">도덕성/청렴:</strong> 선관위 전과기록, 세금 체납액, 재산 축소 신고 의혹 등을 감점 요소로 산출한 자체 지수.</li>
+                  <li><strong className="text-slate-300">화제성(SNS):</strong> 네이버 데이터랩 검색어 트렌드 API를 통해 매일 자동 수집되는 실제 검색량 데이터 기반. (0~100 상대 지표)</li>
+                  <li><strong className="text-slate-300">대권잠재력:</strong> 리얼미터, 갤럽 등 주요 여론조사 기관의 차기 지도자 선호도 및 당대표 지지도 환산.</li>
+                  <li><strong className="text-slate-300">입법/행정:</strong> 열려라 국회(참여연대) 본회의 출석률 및 지자체 공약 이행률 평가 리포트 기반.</li>
+                  <li><strong className="text-slate-300">세대별 소구력:</strong> 연령별 지지율 편차를 분석하여 스윙보터(중도층) 확장 가능성을 측정한 AI 평가 지수.</li>
+                </ul>
+                <p className="mt-3 text-[10px] text-slate-500">* 화제성(버즈) 지표는 네이버 데이터랩 실데이터 기반이며, 기타 지표는 공공 데이터 연동 확대 중입니다.</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
+      {renderModal()}
     </div>
   );
 }

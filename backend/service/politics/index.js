@@ -198,7 +198,7 @@ router.get('/comments', async (req, res) => {
 // POST /api/services/politics/comments
 router.post('/comments', async (req, res) => {
   try {
-    const { politician_id, party_name, content, user_name, is_toxic, toxicity_reason } = req.body;
+    const { politician_id, party_name, content, user_name, password, user_id, is_toxic, toxicity_reason } = req.body;
     const { Pool } = require('pg');
     const pool = new Pool({ connectionString: process.env.DATABASE_URL });
     
@@ -218,16 +218,115 @@ router.post('/comments', async (req, res) => {
     }
     
     const query = `
-      INSERT INTO politics_comments (politician_id, party_name, user_name, content, is_toxic, toxicity_reason)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING *
+      INSERT INTO politics_comments (politician_id, party_name, user_name, content, password, user_id, is_toxic, toxicity_reason)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING id, politician_id, party_name, user_name, content, created_at, user_id, is_toxic
     `;
-    const params = [politician_id || null, party_name || null, user_name || '익명 유권자', content, toxic, reason];
+    const params = [
+      politician_id || null, 
+      party_name || null, 
+      user_name || '익명 유권자', 
+      content, 
+      password || null,
+      user_id || null,
+      toxic, 
+      reason
+    ];
     
     const result = await pool.query(query, params);
     await pool.end();
     
     res.json({ success: true, data: result.rows[0], message: toxic ? '관리자 검토 대상으로 분류되었습니다.' : '등록되었습니다.' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PUT /api/services/politics/comments/:id
+router.put('/comments/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { content, password, user_id } = req.body;
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    
+    // Check permission
+    const getQuery = 'SELECT password, user_id FROM politics_comments WHERE id = $1';
+    const getResult = await pool.query(getQuery, [id]);
+    
+    if (getResult.rows.length === 0) {
+      await pool.end();
+      return res.status(404).json({ error: '댓글을 찾을 수 없습니다.' });
+    }
+    
+    const comment = getResult.rows[0];
+    let authorized = false;
+    
+    if (comment.user_id && user_id && comment.user_id === user_id) {
+      authorized = true;
+    } else if (comment.password && password && comment.password === password) {
+      authorized = true;
+    }
+    
+    if (!authorized) {
+      await pool.end();
+      return res.status(403).json({ error: '수정 권한이 없습니다. (비밀번호 불일치)' });
+    }
+    
+    const updateQuery = `
+      UPDATE politics_comments 
+      SET content = $1
+      WHERE id = $2
+      RETURNING id, politician_id, party_name, user_name, content, created_at, user_id, is_toxic
+    `;
+    
+    const updateResult = await pool.query(updateQuery, [content, id]);
+    await pool.end();
+    
+    res.json({ success: true, data: updateResult.rows[0], message: '수정되었습니다.' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE /api/services/politics/comments/:id
+router.delete('/comments/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    // We pass password/user_id in body for DELETE or query
+    const password = req.body.password || req.query.password;
+    const user_id = req.body.user_id || req.query.user_id;
+    
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    
+    // Check permission
+    const getQuery = 'SELECT password, user_id FROM politics_comments WHERE id = $1';
+    const getResult = await pool.query(getQuery, [id]);
+    
+    if (getResult.rows.length === 0) {
+      await pool.end();
+      return res.status(404).json({ error: '댓글을 찾을 수 없습니다.' });
+    }
+    
+    const comment = getResult.rows[0];
+    let authorized = false;
+    
+    if (comment.user_id && user_id && comment.user_id === user_id) {
+      authorized = true;
+    } else if (comment.password && password && comment.password === password) {
+      authorized = true;
+    }
+    
+    if (!authorized) {
+      await pool.end();
+      return res.status(403).json({ error: '삭제 권한이 없습니다. (비밀번호 불일치)' });
+    }
+    
+    await pool.query('DELETE FROM politics_comments WHERE id = $1', [id]);
+    await pool.end();
+    
+    res.json({ success: true, message: '삭제되었습니다.' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
