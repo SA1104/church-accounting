@@ -74,7 +74,16 @@ export default function ServiceView() {
     }
   };
 
+  const [expandedInsightId, setExpandedInsightId] = useState(null);
+
   const handleInsightClick = async (insight) => {
+    // Toggle expand
+    if (expandedInsightId === insight.id) {
+      setExpandedInsightId(null);
+      return;
+    }
+    setExpandedInsightId(insight.id);
+    
     // Track view
     try {
       await apiClient(`/api/services/insights/${insight.id}/view`, { method: 'POST' });
@@ -178,7 +187,58 @@ export default function ServiceView() {
                     <div className="text-sm font-semibold text-indigo-100 leading-relaxed ml-2">{insight.impact_analysis}</div>
                   </div>
                   
-                    <div className="flex items-center justify-between mt-2 border-t border-slate-800/60 pt-4">
+                  {expandedInsightId === insight.id && (
+                    <div className="mt-4 pt-4 border-t border-slate-700/50 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                      {insight.content_detailed && (
+                        <div className="bg-slate-950/80 rounded-xl p-5 border border-slate-700/50">
+                          <h4 className="text-sm font-bold text-slate-200 mb-3 flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span> 심층 분석 (Deep Dive)
+                          </h4>
+                          <div className="text-sm text-slate-300 leading-loose whitespace-pre-wrap">
+                            {insight.content_detailed}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {insight.affected_sectors && insight.affected_sectors.length > 0 && (
+                        <div className="bg-emerald-950/20 rounded-xl p-4 border border-emerald-900/30">
+                          <h4 className="text-sm font-bold text-emerald-400 mb-2 flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> 수혜/영향 예상 업종
+                          </h4>
+                          <div className="flex gap-2 flex-wrap ml-3">
+                            {insight.affected_sectors.map(sector => (
+                              <span key={sector} className="px-3 py-1 bg-emerald-900/50 text-emerald-200 border border-emerald-800/50 rounded-lg text-xs font-semibold">
+                                {sector}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {insight.source_links && Array.isArray(insight.source_links) && insight.source_links.length > 0 && (
+                        <div className="pt-2">
+                          <div className="text-xs font-bold text-slate-500 mb-2">참고 기사 (Source Articles)</div>
+                          <ul className="space-y-1">
+                            {insight.source_links.map((src, idx) => (
+                              <li key={idx}>
+                                <a href={src.url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-xs text-blue-400 hover:underline">
+                                  • {src.title || src.url}
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {!expandedInsightId || expandedInsightId !== insight.id ? (
+                    <div className="text-center mt-1">
+                      <span className="text-xs text-slate-500 font-medium hover:text-indigo-400 transition-colors">자세히 보기 ▼</span>
+                    </div>
+                  ) : null}
+
+                  <div className="flex items-center justify-between mt-2 border-t border-slate-800/60 pt-4">
                       <div className="flex gap-2">
                         <button onClick={(e) => handleInsightLike(e, insight.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 transition-colors text-xs font-bold">
                           <ThumbsUp size={14} /> 공감 {insight.like_count || 0}

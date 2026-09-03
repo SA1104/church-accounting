@@ -5,75 +5,60 @@ const { logCronExecution } = require('../../core/cronLogger');
 
 let scheduledTasks = [];
 
+const { fetchAndStoreCandidates } = require('./newsFetcher');
+
 async function runInsightGenerationTask() {
   const startTime = Date.now();
-  console.log('[Cron] Starting AI Insight Generation Task...');
+  console.log('[Cron] Starting News Candidate Fetch Task...');
   
-  // Use the env key or a fallback for testing if the user provided it in config
+  try {
+    const count = await fetchAndStoreCandidates();
+    await logCronExecution('fetch_news_candidates', 'SUCCESS', `Fetched ${count} new candidate articles.`, Date.now() - startTime);
+  } catch (err) {
+    console.error('[Cron] Failed to fetch candidates:', err);
+    await logCronExecution('fetch_news_candidates', 'FAILED', err.message, Date.now() - startTime);
+  }
+}
+
+async function generateFromHITL(category, candidateIds) {
+  const startTime = Date.now();
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    const msg = '[Cron] OPENAI_API_KEY is not set. Skipping AI generation.';
-    console.warn(msg);
-    await logCronExecution('generate_politics_insight', 'SKIPPED', msg, Date.now() - startTime);
-    return;
-  }
+  if (!apiKey) throw new Error('OPENAI_API_KEY is not set');
 
-  const categories = ['stock', 'real_estate', 'economy', 'politics'];
-  let allSuccess = true;
-  let errorMsg = '';
-  let generatedCategories = [];
-  let skippedCategories = [];
+  // Fetch candidate details
+  const placeholders = candidateIds.map(() => '?').join(',');
+  const articlesRes = await query.all(`SELECT id, title, description FROM insight_candidates WHERE category = ? AND id IN (${placeholders})`, [category, ...candidateIds]);
+  const articles = articlesRes || [];
   
-  for (const targetCategory of categories) {
-    try {
-      console.log(`[Cron] Generating insight for category: ${targetCategory}`);
-      
-      const previousInsight = await query.get(
-        `SELECT title, summary, created_at FROM market_insights WHERE category = ? ORDER BY created_at DESC LIMIT 1`,
-        [targetCategory]
-      );
+  if (articles.length === 0) throw new Error('No valid articles found for the given IDs.');
 
-      const insight = await generateMarketInsight(targetCategory, apiKey, previousInsight);
-      
-      if (insight) {
-        if (insight.skip) {
-          console.log(`[Cron] 💤 AI determined no significant changes for ${targetCategory}. Skipped.`);
-          skippedCategories.push(targetCategory);
-          continue; 
-        }
-
-        console.log(`[Cron] Successfully generated: ${insight.title}`);
-        
-        const keywordsPg = `{${insight.keywords.map(k => `"${k}"`).join(',')}}`;
-        
-        await query.run(`
-          INSERT INTO public.market_insights (category, title, keywords, summary, impact_analysis, source_links)
-          VALUES (?, ?, ?, ?, ?, ?)
-        `, [
-          insight.category,
-          insight.title,
-          keywordsPg,
-          insight.summary,
-          insight.impact_analysis,
-          JSON.stringify(insight.source_links)
-        ]);
-        
-        generatedCategories.push(targetCategory);
-      }
-    } catch (err) {
-      allSuccess = false;
-      errorMsg += `[${targetCategory}] ${err.message}; `;
-      console.error(`[Cron] Task failed for ${targetCategory}:`, err.message);
-    }
+  const insight = await generateMarketInsight(category, apiKey, articles);
+  if (insight && !insight.skip) {
+    const keywordsPg = `{${(insight.keywords || []).map(k => `"${k}"`).join(',')}}`;
+    const sectorsPg = `{${(insight.affected_sectors || []).map(k => `"${k}"`).join(',')}}`;
+    
+    await query.run(`
+      INSERT INTO public.market_insights (category, title, keywords, summary, content_detailed, impact_analysis, affected_sectors, source_links, source_articles_used, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'PUBLISHED')
+    `, [
+      insight.category || category,
+      insight.title,
+      keywordsPg,
+      insight.summary,
+      insight.content_detailed || '',
+      insight.impact_analysis,
+      sectorsPg,
+      JSON.stringify(insight.source_links || []),
+      JSON.stringify(candidateIds)
+    ]);
+    
+    // Mark as used
+    await query.run(`UPDATE insight_candidates SET is_used = true WHERE id IN (${placeholders})`, [...candidateIds]);
+    
+    await logCronExecution('generate_hitl_insight', 'SUCCESS', `Generated ${category} insight from ${candidateIds.length} articles.`, Date.now() - startTime);
+    return insight;
   }
-
-  const finalMsg = `Generated: ${generatedCategories.length ? generatedCategories.join(', ') : 'None'}. Skipped (Deduplication): ${skippedCategories.length ? skippedCategories.join(', ') : 'None'}.`;
-
-  if (allSuccess) {
-    await logCronExecution('generate_politics_insight', 'SUCCESS', finalMsg, Date.now() - startTime);
-  } else {
-    await logCronExecution('generate_politics_insight', 'FAILED', `${finalMsg} Errors: ${errorMsg}`, Date.now() - startTime);
-  }
+  throw new Error('AI skipped or failed generation');
 }
 
 function initCron() {
@@ -113,5 +98,6 @@ function stopCron() {
 module.exports = {
   initCron,
   stopCron,
-  runInsightGenerationTask
+  runInsightGenerationTask,
+  generateFromHITL
 };
