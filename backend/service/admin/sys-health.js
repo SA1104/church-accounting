@@ -35,6 +35,14 @@ router.get('/metrics', async (req, res) => {
         is_used BOOLEAN DEFAULT false,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
+      
+      CREATE TABLE IF NOT EXISTS platform_page_views (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        path VARCHAR(255) NOT NULL,
+        session_id VARCHAR(255),
+        user_agent TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
     `);
 
     const q1 = pool.query(`SELECT COUNT(*) as c FROM politics_politicians`);
@@ -139,6 +147,99 @@ router.post('/trigger', async (req, res) => {
   } catch (err) {
     console.error('[SysHealth API] Failed to trigger job:', err);
     res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// GET /api/admin/sys-health/details/politicians
+router.get('/details/politicians', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        id, 
+        name, 
+        party_name, 
+        original_url,
+        (birth_date IS NOT NULL) as has_birth,
+        (profile_image_url IS NOT NULL) as has_image,
+        (election_precinct IS NOT NULL) as has_precinct,
+        created_at
+      FROM politics_politicians
+      ORDER BY name ASC
+    `);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/admin/sys-health/details/sources
+router.get('/details/sources', async (req, res) => {
+  try {
+    // Hardcoded for now based on current system architecture
+    const sources = [
+      { id: 1, name: 'Naver News Search', type: 'API', endpoint: 'naverapihub.apigw.ntruss.com', status: 'Active' },
+      { id: 2, name: 'Naver Search Trend', type: 'API', endpoint: 'naveropenapi.apigw.ntruss.com', status: 'Active' },
+      { id: 3, name: 'National Assembly Members', type: 'API', endpoint: 'apis.data.go.kr', status: 'Active' },
+      { id: 4, name: 'Stock Market Data', type: 'API', endpoint: 'openapi.krx.co.kr', status: 'Active' },
+      { id: 5, name: 'Google Trends', type: 'Crawling', endpoint: 'trends.google.co.kr', status: 'Planned' }
+    ];
+    res.json({ success: true, data: sources });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/admin/sys-health/details/pipelines
+router.get('/details/pipelines', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        job_name, 
+        MAX(created_at) as last_run,
+        COUNT(CASE WHEN status = 'SUCCESS' THEN 1 END) as success_count,
+        COUNT(CASE WHEN status = 'FAILED' THEN 1 END) as error_count
+      FROM system_cron_logs
+      GROUP BY job_name
+      ORDER BY last_run DESC
+    `);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/admin/sys-health/track
+router.post('/track', async (req, res) => {
+  try {
+    const { path, sessionId } = req.body;
+    const userAgent = req.headers['user-agent'] || '';
+    if (!path) return res.status(400).json({ success: false });
+    
+    await pool.query(`
+      INSERT INTO platform_page_views (path, session_id, user_agent)
+      VALUES ($1, $2, $3)
+    `, [path, sessionId || 'anonymous', userAgent]);
+    
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Track error:', err.message);
+    res.status(500).json({ success: false });
+  }
+});
+
+// GET /api/admin/sys-health/traffic
+router.get('/traffic', async (req, res) => {
+  try {
+    const today = await pool.query(`
+      SELECT 
+        COUNT(*) as total_views,
+        COUNT(DISTINCT session_id) as unique_visitors
+      FROM platform_page_views
+      WHERE created_at >= NOW() - INTERVAL '24 hours'
+    `);
+    res.json({ success: true, data: today.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
