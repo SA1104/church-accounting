@@ -5,6 +5,7 @@ const CommentsPanel = ({ entity, entityType, color }) => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [password, setPassword] = useState('');
+  const [userName, setUserName] = useState('');
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState('');
   
@@ -40,7 +41,7 @@ const CommentsPanel = ({ entity, entityType, color }) => {
     try {
       const payload = {
         content: newComment,
-        user_name: '익명 유권자',
+        user_name: userName.trim() || '익명 유권자',
         password: password || ''
       };
       if (entityType === 'politician') payload.politician_id = entity.id;
@@ -136,6 +137,14 @@ const CommentsPanel = ({ entity, entityType, color }) => {
         {msg && <div className="text-[10px] text-indigo-400 mb-1">{msg}</div>}
         <div className="flex flex-col md:flex-row gap-2">
           <input
+            type="text"
+            value={userName}
+            onChange={(e) => setUserName(e.target.value)}
+            placeholder="닉네임 (미입력시 익명)"
+            className="w-full md:w-28 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+            disabled={loading}
+          />
+          <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -154,7 +163,7 @@ const CommentsPanel = ({ entity, entityType, color }) => {
             />
             <button 
               type="submit" 
-              disabled={loading || !newComment.trim()}
+              disabled={loading || !newComment.trim() || !password.trim()}
               className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-bold disabled:opacity-50 min-w-[70px]"
               style={{ backgroundColor: color }}
             >
