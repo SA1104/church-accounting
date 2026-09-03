@@ -1,5 +1,6 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { apiClient } from './core/api';
 import Signup from './shared/Signup';
 import Portal from './shared/Portal';
 import Login from './shared/Login';
@@ -16,6 +17,16 @@ export const useAuth = () => useContext(AuthContext);
 function PrivateRoute({ children }) {
   const { token } = useAuth();
   return token ? children : <Navigate to="/login" replace />;
+}
+
+function RouteTracker() {
+  const location = useLocation();
+  useEffect(() => {
+    let sid = localStorage.getItem('boozathink_sid');
+    if (!sid) { sid = Math.random().toString(36).substring(2, 15); localStorage.setItem('boozathink_sid', sid); }
+    apiClient('/api/admin/sys-health/track', { method: 'POST', body: JSON.stringify({ path: location.pathname, sessionId: sid }) }).catch(e=>console.error(e));
+  }, [location]);
+  return null;
 }
 
 export default function App() {
@@ -66,6 +77,7 @@ export default function App() {
   return (
     <AuthContext.Provider value={{ token, user, login, logout }}>
       <Router>
+        <RouteTracker />
         <Routes>
           {/* Public / Entry Routes */}
           <Route path="/" element={<Portal />} />

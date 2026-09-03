@@ -9,6 +9,7 @@ export default function SystemHealthDashboard() {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [activeCategory, setActiveCategory] = useState('stock');
   const [metrics, setMetrics] = useState(null);
+  const [traffic, setTraffic] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerType, setDrawerType] = useState(null);
   const [drawerData, setDrawerData] = useState(null);
@@ -27,12 +28,21 @@ export default function SystemHealthDashboard() {
     fetchLogs();
     fetchCandidates('stock');
     fetchMetrics();
+    fetchTraffic();
     const interval = setInterval(() => {
       fetchLogs();
       fetchMetrics();
+      fetchTraffic();
     }, 10000);
     return () => clearInterval(interval);
   }, []);
+
+  const fetchTraffic = async () => {
+    try {
+      const res = await apiClient('/api/admin/sys-health/traffic', { method: 'GET' });
+      if (res.success) setTraffic(res.data);
+    } catch (err) { console.error(err); }
+  };
 
   const fetchMetrics = async () => {
     try {
@@ -149,7 +159,7 @@ export default function SystemHealthDashboard() {
 
       {/* KPI METRICS OVERVIEW */}
       {metrics && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex flex-col justify-center cursor-pointer hover:bg-slate-800 transition-colors" onClick={() => openDrawer('sources')}>
             <span className="text-slate-400 text-sm font-semibold mb-1">연동된 API (Data Sources)</span>
             <div className="flex items-end gap-2">
@@ -182,6 +192,14 @@ export default function SystemHealthDashboard() {
             <div className="w-full bg-slate-800 h-1.5 mt-3 rounded-full overflow-hidden">
               <div className={`h-full ${metrics.pipeline_health.success_rate >= 90 ? 'bg-green-500' : 'bg-yellow-500'}`} style={{ width: `${metrics.pipeline_health.success_rate}%` }}></div>
             </div>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex flex-col justify-center">
+            <span className="text-slate-400 text-sm font-semibold mb-1">오늘 방문자 (Traffic 24h)</span>
+            <div className="flex items-end gap-2">
+              <span className="text-3xl font-black text-rose-400">{traffic ? traffic.unique_visitors : 0}</span>
+              <span className="text-sm text-slate-500 mb-1">UV</span>
+            </div>
+            <div className="text-xs text-slate-500 mt-2">Total PV: {traffic ? traffic.total_views : 0}</div>
           </div>
         </div>
       )}
