@@ -32,9 +32,21 @@ const ApprovalTrendChart = ({ entityA, entityB, colorA, colorB, isSameParty }) =
     if (entityA?.id || entityB?.id) fetchRatings();
   }, [entityA, entityB]);
 
+  // Dynamically merge data from both entities
+  // Collect all unique months from both datasets
+  const allMonths = new Set();
+  dataA.forEach(d => allMonths.add(d.month));
+  dataB.forEach(d => allMonths.add(d.month));
+  
+  // Sort months in natural order (3월 < 4월 < ... < 12월 < 1월 < 2월)
+  const monthOrder = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  const sortedMonths = [...allMonths].sort((a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b));
+  
+  // If no data from either side, show a placeholder message
+  const hasData = sortedMonths.length > 0;
+
   const mergedData = [];
-  const months = ['3월', '4월', '5월', '6월', '7월', '8월'];
-  months.forEach(month => {
+  sortedMonths.forEach(month => {
     const ptA = dataA.find(d => d.month === month);
     const ptB = dataB.find(d => d.month === month);
     mergedData.push({
@@ -64,6 +76,12 @@ const ApprovalTrendChart = ({ entityA, entityB, colorA, colorB, isSameParty }) =
           <div className="h-full flex items-center justify-center text-slate-500">데이터를 불러오는 중...</div>
         ) : (!entityA && !entityB) ? (
           <div className="h-full flex items-center justify-center text-slate-500">비교할 대상을 선택해주세요.</div>
+        ) : !hasData ? (
+          <div className="h-full flex flex-col items-center justify-center text-slate-500 gap-2">
+            <span className="text-2xl">📊</span>
+            <span>트렌드 데이터 수집 중입니다.</span>
+            <span className="text-xs text-slate-600">매일 자정(KST) 네이버 검색어 트렌드 데이터를 자동 수집합니다.</span>
+          </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={mergedData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>

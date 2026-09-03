@@ -109,22 +109,55 @@ router.get('/admin/migrate-party', async (req, res) => {
 });
 
 // GET /api/services/politics/ratings/:id
-// Returns mock historical trend data (approval & buzz) for the last 6 months
+// Returns real historical trend data (buzz from Naver Trend + approval) from politics_trends table
 router.get('/ratings/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    // Generate deterministic mock data based on ID so it looks stable
-    const baseApproval = 20 + (id.charCodeAt(0) % 40); 
-    const baseBuzz = 30 + (id.charCodeAt(1) % 50);
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
     
-    const months = ['3월', '4월', '5월', '6월', '7월', '8월'];
-    const data = months.map((month, index) => {
-      return {
+    // Fetch the last 6 months of weekly trend data
+    const result = await pool.query(`
+      SELECT record_date, buzz_score, approval_rating
+      FROM politics_trends
+      WHERE politician_id = $1
+        AND record_date >= NOW() - INTERVAL '6 months'
+      ORDER BY record_date ASC
+    `, [id]);
+    await pool.end();
+
+    if (result.rows.length === 0) {
+      // Fallback: if no real data yet, return empty with a message
+      // The frontend will show "데이터 수집 중..." instead of fake data
+      return res.json({ 
+        success: true, 
+        data: [],
+        message: 'Trend data is being collected. Check back after the daily cron runs.'
+      });
+    }
+
+    // Group by month for the chart (aggregate weekly -> monthly average)
+    const monthlyMap = new Map();
+    for (const row of result.rows) {
+      const d = new Date(row.record_date);
+      const monthKey = `${d.getMonth() + 1}월`;
+      if (!monthlyMap.has(monthKey)) {
+        monthlyMap.set(monthKey, { buzzSum: 0, approvalSum: 0, count: 0 });
+      }
+      const entry = monthlyMap.get(monthKey);
+      entry.buzzSum += parseFloat(row.buzz_score) || 0;
+      entry.approvalSum += parseFloat(row.approval_rating) || 0;
+      entry.count++;
+    }
+
+    const data = [];
+    for (const [month, entry] of monthlyMap) {
+      data.push({
         month,
-        approval: Math.min(100, Math.max(0, baseApproval + (Math.sin(index) * 15) + (index * 2))),
-        buzz: Math.min(100, Math.max(0, baseBuzz + (Math.cos(index) * 20) - (index * 1)))
-      };
-    });
+        approval: entry.count > 0 ? Math.round((entry.approvalSum / entry.count) * 10) / 10 : 0,
+        buzz: entry.count > 0 ? Math.round((entry.buzzSum / entry.count) * 10) / 10 : 0
+      });
+    }
     
     res.json({ success: true, data });
   } catch (error) {

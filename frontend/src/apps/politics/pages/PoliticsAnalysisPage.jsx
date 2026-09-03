@@ -326,13 +326,13 @@ export default function PoliticsAnalysisPage() {
 
   const chartData = viewMode === 'politician' ? getPolChartData(polA, polB) : getPartyChartData(partyA, partyB);
   
-  let colorA = viewMode === 'politician' ? getPartyColor(polA?.party) : getPartyColor(partyA?.name);
-  let colorB = viewMode === 'politician' ? getPartyColor(polB?.party) : getPartyColor(partyB?.name);
+  let colorA = viewMode === 'politician' ? getPartyColor(polA?.party_name) : getPartyColor(partyA?.name);
+  let colorB = viewMode === 'politician' ? getPartyColor(polB?.party_name) : getPartyColor(partyB?.name);
   
   let isSameParty = false;
-  if (viewMode === 'politician' && polA && polB && polA.party === polB.party) {
+  if (viewMode === 'politician' && polA && polB && polA.party_name === polB.party_name) {
     isSameParty = true;
-    colorB = getPartyColor(polB?.party, true);
+    colorB = getPartyColor(polB?.party_name, true);
   } else if (viewMode === 'party' && partyA && partyB && partyA.name === partyB.name) {
     isSameParty = true;
   }
@@ -505,12 +505,12 @@ export default function PoliticsAnalysisPage() {
               </h4>
               <ul className="space-y-1.5 pl-1">
                 <li><strong className="text-slate-300">도덕성/청렴:</strong> 선관위 전과기록, 세금 체납액, 재산 축소 신고 의혹 등을 감점 요소로 산출한 자체 지수.</li>
-                <li><strong className="text-slate-300">화제성(SNS):</strong> 네이버 데이터랩 검색어 트렌드, 언론 보도량, 유튜브/인스타 해시태그 언급량 종합.</li>
+              <li><strong className="text-slate-300">화제성(SNS):</strong> 네이버 데이터랩 검색어 트렌드 API를 통해 매일 자동 수집되는 실제 검색량 데이터 기반. (0~100 상대 지표)</li>
                 <li><strong className="text-slate-300">대권/당내 잠재력:</strong> 리얼미터, 갤럽 등 주요 여론조사 기관의 차기 지도자 선호도 및 당대표 지지도 환산.</li>
                 <li><strong className="text-slate-300">입법/행정 성실도:</strong> 열려라 국회(참여연대) 본회의 출석률 및 지자체 공약 이행률 평가 리포트 기반.</li>
                 <li><strong className="text-slate-300">세대별 소구력:</strong> 연령별 지지율 편차를 분석하여 스윙보터(중도층) 확장 가능성을 측정한 AI 평가 지수.</li>
               </ul>
-              <p className="mt-3 text-[10px] text-slate-500">* 본 지표는 현재 데이터 파이프라인 연동 테스트 중인 <span className="text-slate-400 border-b border-slate-600">시뮬레이션(더미) 데이터</span>이며, 곧 실시간 공공 데이터로 전환됩니다.</p>
+              <p className="mt-3 text-[10px] text-slate-500">* 화제성(버즈) 지표는 네이버 데이터랩 실데이터 기반이며, 기타 지표는 공공 데이터 연동 확대 중입니다.</p>
             </div>
           </div>
         </div>
