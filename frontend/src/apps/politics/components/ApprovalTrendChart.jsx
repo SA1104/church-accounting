@@ -13,12 +13,18 @@ const ApprovalTrendChart = ({ entityA, entityB, colorA, colorB, isSameParty }) =
       try {
         let resultsA = [];
         let resultsB = [];
-        if (entityA?.id) {
-          const resA = await apiClient.get('/api/services/politics/ratings/' + entityA.id);
+        if (entityA) {
+          const urlA = entityA.members 
+            ? '/api/services/politics/ratings/party/' + encodeURIComponent(entityA.name)
+            : '/api/services/politics/ratings/' + entityA.id;
+          const resA = await apiClient.get(urlA);
           if (resA.data?.success) resultsA = resA.data.data;
         }
-        if (entityB?.id) {
-          const resB = await apiClient.get('/api/services/politics/ratings/' + entityB.id);
+        if (entityB) {
+          const urlB = entityB.members 
+            ? '/api/services/politics/ratings/party/' + encodeURIComponent(entityB.name)
+            : '/api/services/politics/ratings/' + entityB.id;
+          const resB = await apiClient.get(urlB);
           if (resB.data?.success) resultsB = resB.data.data;
         }
         setDataA(resultsA);
