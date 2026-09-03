@@ -76,7 +76,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/services/insights/:id/view
-router.post('/:id/view', authenticateToken, async (req, res) => {
+router.post('/:id/view', async (req, res) => {
   try {
     const { id } = req.params;
     // Simple view count increment (in production, we'd want to track unique views)

@@ -13,11 +13,14 @@ export default function SystemHealthDashboard() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerType, setDrawerType] = useState(null);
   const [drawerData, setDrawerData] = useState(null);
+  const [logPage, setLogPage] = useState(1);
+  const [drawerPage, setDrawerPage] = useState(1);
 
   const openDrawer = async (type) => {
     setDrawerType(type);
     setDrawerOpen(true);
     setDrawerData(null);
+    setDrawerPage(1);
     try {
       const res = await apiClient(`/api/admin/sys-health/details/${type}`, { method: 'GET' });
       if (res.success) setDrawerData(res.data);
@@ -259,11 +262,11 @@ export default function SystemHealthDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
-              {logs.map(log => (
+              {logs.slice((logPage - 1) * 10, logPage * 10).map(log => (
                 <tr key={log.id} className="hover:bg-slate-800/50">
                   <td className="px-6 py-3 font-mono text-slate-300">{new Date(log.created_at).toLocaleString('ko-KR')}</td>
                   <td className="px-6 py-3 font-medium text-slate-200">{log.job_name}</td>
-                  <td className="px-6 py-3 text-slate-400">{log.status}</td>
+                  <td className={`px-6 py-3 font-bold ${log.status === 'FAILED' ? 'text-red-500' : 'text-slate-400'}`}>{log.status}</td>
                   <td className="px-6 py-3 text-slate-400 whitespace-normal text-xs">{log.message}</td>
                 </tr>
               ))}
@@ -291,7 +294,7 @@ export default function SystemHealthDashboard() {
                     <table className="w-full text-left text-sm whitespace-nowrap">
                       <thead className="bg-slate-800 text-slate-400"><tr><th className="p-2">Name</th><th className="p-2">Party</th><th className="p-2">Birth</th><th className="p-2">Photo</th></tr></thead>
                       <tbody className="divide-y divide-slate-800 text-slate-300">
-                        {drawerData.map(p => (
+                        {drawerData.slice((drawerPage - 1) * 20, drawerPage * 20).map(p => (
                           <tr key={p.id}>
                             <td className="p-2 font-medium">{p.name}</td>
                             <td className="p-2 text-xs">{p.party_name}</td>
@@ -306,7 +309,7 @@ export default function SystemHealthDashboard() {
                     <table className="w-full text-left text-sm whitespace-nowrap">
                       <thead className="bg-slate-800 text-slate-400"><tr><th className="p-2">Name</th><th className="p-2">Type</th><th className="p-2">Endpoint</th><th className="p-2">Status</th></tr></thead>
                       <tbody className="divide-y divide-slate-800 text-slate-300">
-                        {drawerData.map(s => (
+                        {drawerData.slice((drawerPage - 1) * 20, drawerPage * 20).map(s => (
                           <tr key={s.id}>
                             <td className="p-2 font-medium">{s.name}</td>
                             <td className="p-2"><span className="px-2 py-0.5 bg-indigo-900/50 text-indigo-300 rounded text-xs">{s.type}</span></td>
@@ -321,7 +324,7 @@ export default function SystemHealthDashboard() {
                     <table className="w-full text-left text-sm whitespace-nowrap">
                       <thead className="bg-slate-800 text-slate-400"><tr><th className="p-2">Job Name</th><th className="p-2">Last Run</th><th className="p-2">Success</th><th className="p-2">Error</th></tr></thead>
                       <tbody className="divide-y divide-slate-800 text-slate-300">
-                        {drawerData.map(j => (
+                        {drawerData.slice((drawerPage - 1) * 20, drawerPage * 20).map(j => (
                           <tr key={j.job_name}>
                             <td className="p-2 font-medium">{j.job_name}</td>
                             <td className="p-2 text-xs">{new Date(j.last_run).toLocaleString()}</td>
@@ -335,6 +338,29 @@ export default function SystemHealthDashboard() {
                 </div>
               )}
             </div>
+            
+            {/* DRAWER PAGINATION */}
+            {drawerData && drawerData.length > 20 && (
+              <div className="flex justify-between items-center mt-4 pt-4 border-t border-slate-700">
+                <button 
+                  disabled={drawerPage === 1} 
+                  onClick={() => setDrawerPage(p => p - 1)}
+                  className="px-3 py-1 bg-slate-800 rounded text-slate-400 disabled:opacity-30 hover:bg-slate-700"
+                >
+                  Prev
+                </button>
+                <span className="text-slate-500 text-sm">
+                  Page {drawerPage} of {Math.ceil(drawerData.length / 20)}
+                </span>
+                <button 
+                  disabled={drawerPage >= Math.ceil(drawerData.length / 20)} 
+                  onClick={() => setDrawerPage(p => p + 1)}
+                  className="px-3 py-1 bg-slate-800 rounded text-slate-400 disabled:opacity-30 hover:bg-slate-700"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
