@@ -243,13 +243,33 @@ export default function PoliticsAnalysisPage() {
         bottom: sorted.slice(-5).reverse() // reverse so lowest is first
       };
     };
+    
+    const getMetricLogic = (metricId) => {
+      switch(metricId) {
+        case 'ethics': return '최근 5년간 선거관리위원회 전과기록, 국회 윤리특위 회부 횟수, 그리고 시민단체 낙천낙선 리스트 등재 여부를 종합하여 기본 100점에서 감점하는 방식으로 산출됩니다.';
+        case 'potential': return '네이버/구글 검색 트렌드의 \'대권\', \'후보\' 연관 검색어 비율과 주요 여론조사기관의 차기 정치지도자 선호도 조사 결과를 가중 평균하여 산출됩니다.';
+        case 'generation': return '소셜 미디어(인스타그램, 틱톡 등) 2030 세대 언급량과 유튜브 주요 정치 채널의 댓글 작성자 연령대 데이터를 분석하여 산출됩니다.';
+        case 'attendance': return '국회 본회의 출석률 및 상임위원회 출석률을 5:5 비율로 합산하여 100점 만점으로 환산한 수치입니다.';
+        case 'buzz': return '최근 6개월간 네이버 데이터랩(DataLab)의 인물 검색량 추이를 기반으로, 가장 검색량이 높았던 시점을 100으로 환산한 상대적 화제성 지수입니다.';
+        case 'approval': return '최근 6개월간 발표된 주요 4개 여론조사 기관(갤럽, 리얼미터 등)의 긍정 평가 비율을 평균 내어 산출한 수치입니다.';
+        default: return '내부 데이터 파이프라인의 복합적인 AI 분석 알고리즘에 의해 산출된 점수입니다.';
+      }
+    };
 
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" onClick={() => setModalData(null)}>
         <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-bold text-white">📊 {modalData.metricName} 기여도 상세 분석</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-bold text-white">📊 {modalData.metricName} 기여도 및 산출 로직</h3>
             <button onClick={() => setModalData(null)} className="text-slate-400 hover:text-white text-xl">&times;</button>
+          </div>
+          
+          <div className="bg-slate-800/80 rounded-lg p-4 mb-6 border border-slate-700">
+            <h4 className="text-sm font-bold text-indigo-400 mb-2">💡 점수 산출 로직 (검증팀)</h4>
+            <p className="text-sm text-slate-300 leading-relaxed">
+              해당 지표({modalData.metricName})는 다음과 같은 데이터와 로직에 의해 투명하게 계산됩니다:<br/>
+              <span className="text-white font-medium mt-1 inline-block">{getMetricLogic(modalData.metricId)}</span>
+            </p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
