@@ -476,4 +476,15 @@ router.delete('/comments/:id', async (req, res) => {
   }
 });
 
+router.get('/admin/cron-logs', async (req, res) => {
+  try {
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    const result = await pool.query('SELECT * FROM system_cron_logs ORDER BY created_at DESC LIMIT 10');
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
