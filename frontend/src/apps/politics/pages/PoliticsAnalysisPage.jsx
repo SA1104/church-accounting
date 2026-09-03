@@ -115,8 +115,7 @@ export default function PoliticsAnalysisPage() {
   useEffect(() => {
     const fetchPoliticians = async () => {
       try {
-        const res = await apiClient.get('/api/services/politics/politicians');
-        const data = res.data;
+        const data = await apiClient('/api/services/politics/politicians');
         setPoliticians(data);
         if (data.length >= 2) {
           setSelectedPolA(data[0].id);

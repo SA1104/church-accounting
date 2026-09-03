@@ -18,9 +18,9 @@ const CommentsPanel = ({ entity, entityType, color }) => {
     if (!entity) return;
     try {
       const q = entityType === 'politician' ? `politician_id=${entity.id}` : `party_name=${entity.name}`;
-      const res = await apiClient.get(`/api/services/politics/comments?${q}`);
-      if (res.data?.success) {
-        setComments(res.data.data);
+      const data = await apiClient(`/api/services/politics/comments?${q}`);
+      if (data?.success) {
+        setComments(data.data);
       }
     } catch (e) {
       console.error(e);
@@ -46,17 +46,20 @@ const CommentsPanel = ({ entity, entityType, color }) => {
       if (entityType === 'politician') payload.politician_id = entity.id;
       else payload.party_name = entity.name;
 
-      const res = await apiClient.post('/api/services/politics/comments', payload);
-      if (res.data?.success) {
-        setMsg(res.data.message);
+      const data = await apiClient('/api/services/politics/comments', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      if (data?.success) {
+        setMsg(data.message);
         setNewComment('');
         setPassword('');
         fetchComments();
       } else {
-        setMsg(res.data?.error || '등록 실패');
+        setMsg(data?.error || '등록 실패');
       }
     } catch (e) {
-      setMsg('오류가 발생했습니다. (내용을 확인해주세요)');
+      setMsg(e.message || '오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
@@ -69,25 +72,31 @@ const CommentsPanel = ({ entity, entityType, color }) => {
       const payload = { password: actionPassword };
       if (actionModal.type === 'edit') {
         payload.content = actionContent;
-        const res = await apiClient.put(`/api/services/politics/comments/${actionModal.comment.id}`, payload);
-        if (res.data?.success) {
+        const data = await apiClient(`/api/services/politics/comments/${actionModal.comment.id}`, {
+          method: 'PUT',
+          body: JSON.stringify(payload)
+        });
+        if (data?.success) {
           setActionModal(null);
           fetchComments();
         } else {
-          setActionMsg(res.data?.error || '비밀번호가 일치하지 않습니다.');
+          setActionMsg(data?.error || '비밀번호가 일치하지 않습니다.');
         }
       } else {
         // delete
-        const res = await apiClient.delete(`/api/services/politics/comments/${actionModal.comment.id}`, { data: payload });
-        if (res.data?.success) {
+        const data = await apiClient(`/api/services/politics/comments/${actionModal.comment.id}`, {
+          method: 'DELETE',
+          body: JSON.stringify(payload)
+        });
+        if (data?.success) {
           setActionModal(null);
           fetchComments();
         } else {
-          setActionMsg(res.data?.error || '비밀번호가 일치하지 않습니다.');
+          setActionMsg(data?.error || '비밀번호가 일치하지 않습니다.');
         }
       }
     } catch (e) {
-      setActionMsg(e.response?.data?.error || '처리 중 오류가 발생했습니다.');
+      setActionMsg(e.message || '처리 중 오류가 발생했습니다.');
     }
   };
 
