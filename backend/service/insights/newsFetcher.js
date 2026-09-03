@@ -20,15 +20,28 @@ async function fetchNaverNewsAPI(keyword) {
 
   try {
     const encodedKeyword = encodeURIComponent(keyword);
-    const url = `https://openapi.naver.com/v1/search/news.json?query=${encodedKeyword}&display=20&sort=date`;
+    let url = `https://openapi.naver.com/v1/search/news.json?query=${encodedKeyword}&display=20&sort=date`;
     
-    const res = await fetch(url, {
+    // NCP API HUB typically uses these headers even for legacy APIs, or the legacy ones.
+    // We try the standard X-Naver-Client-Id first, if 401, we fallback to X-NCP-APIGW headers.
+    let res = await fetch(url, {
       method: 'GET',
       headers: {
         'X-Naver-Client-Id': clientId,
         'X-Naver-Client-Secret': clientSecret
       }
     });
+
+    if (res.status === 401) {
+      console.log('[News Fetcher] X-Naver-Client-Id failed with 401. Trying X-NCP-APIGW-API-KEY headers...');
+      res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'X-NCP-APIGW-API-KEY-ID': clientId,
+          'X-NCP-APIGW-API-KEY': clientSecret
+        }
+      });
+    }
 
     if (!res.ok) {
       const errorText = await res.text();
