@@ -21,14 +21,15 @@ async function runInsightGenerationTask() {
   const categories = ['stock', 'real_estate', 'economy', 'politics'];
   let allSuccess = true;
   let errorMsg = '';
+  let generatedCategories = [];
+  let skippedCategories = [];
   
   for (const targetCategory of categories) {
     try {
       console.log(`[Cron] Generating insight for category: ${targetCategory}`);
       
-      // Fetch the latest insight to check for similarity/deduplication
       const previousInsight = await query.get(
-        `SELECT title, summary FROM market_insights WHERE category = ? ORDER BY created_at DESC LIMIT 1`,
+        `SELECT title, summary, created_at FROM market_insights WHERE category = ? ORDER BY created_at DESC LIMIT 1`,
         [targetCategory]
       );
 
@@ -36,13 +37,13 @@ async function runInsightGenerationTask() {
       
       if (insight) {
         if (insight.skip) {
-          console.log(`[Cron] 🚫 AI determined no significant changes for ${targetCategory}. Skipped to prevent fatigue.`);
-          continue; // Skip DB insertion
+          console.log(`[Cron] 💤 AI determined no significant changes for ${targetCategory}. Skipped.`);
+          skippedCategories.push(targetCategory);
+          continue; 
         }
 
         console.log(`[Cron] Successfully generated: ${insight.title}`);
         
-        // Convert keywords array to postgres array format: {"A","B"}
         const keywordsPg = `{${insight.keywords.map(k => `"${k}"`).join(',')}}`;
         
         await query.run(`
@@ -57,7 +58,7 @@ async function runInsightGenerationTask() {
           JSON.stringify(insight.source_links)
         ]);
         
-        console.log(`[Cron] Insight for ${targetCategory} saved to DB successfully.`);
+        generatedCategories.push(targetCategory);
       }
     } catch (err) {
       allSuccess = false;
@@ -66,10 +67,12 @@ async function runInsightGenerationTask() {
     }
   }
 
+  const finalMsg = `Generated: ${generatedCategories.length ? generatedCategories.join(', ') : 'None'}. Skipped (Deduplication): ${skippedCategories.length ? skippedCategories.join(', ') : 'None'}.`;
+
   if (allSuccess) {
-    await logCronExecution('generate_politics_insight', 'SUCCESS', 'All categories processed.', Date.now() - startTime);
+    await logCronExecution('generate_politics_insight', 'SUCCESS', finalMsg, Date.now() - startTime);
   } else {
-    await logCronExecution('generate_politics_insight', 'FAILED', errorMsg, Date.now() - startTime);
+    await logCronExecution('generate_politics_insight', 'FAILED', `${finalMsg} Errors: ${errorMsg}`, Date.now() - startTime);
   }
 }
 

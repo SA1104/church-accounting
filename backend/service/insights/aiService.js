@@ -22,7 +22,10 @@ The output must be a single JSON object with the following exact keys:
 }
 Ensure the text is written in professional, natural Korean (한국어).`;
 
-  if (previousInsight) {
+  // Deduplication check logic: only ask AI to deduplicate if the last insight was within the last 12 hours
+  const isRecent = previousInsight && previousInsight.created_at && (Date.now() - new Date(previousInsight.created_at).getTime() < 12 * 60 * 60 * 1000);
+
+  if (previousInsight && isRecent) {
     userPrompt += `
 
 [CRITICAL INSTRUCTION FOR DEDUPLICATION]
