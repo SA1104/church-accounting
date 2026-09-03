@@ -212,6 +212,22 @@ router.post('/admin/migrate-prod', async (req, res) => {
           UNIQUE(politician_id, record_date)
         )
       `);
+
+      // 5. Create politics_comments table
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS politics_comments (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          politician_id UUID REFERENCES politics_politicians(id) ON DELETE CASCADE,
+          party_name VARCHAR(100),
+          user_id UUID,
+          user_name VARCHAR(100) NOT NULL,
+          password VARCHAR(255),
+          content TEXT NOT NULL,
+          is_toxic BOOLEAN DEFAULT false,
+          toxicity_reason TEXT,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
       
       await client.query('COMMIT');
       res.json({ success: true, message: 'Production DB migration successful!' });
