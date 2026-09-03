@@ -20,6 +20,51 @@ router.get('/cron-logs', async (req, res) => {
   }
 });
 
+// GET /api/admin/sys-health/metrics
+router.get('/metrics', async (req, res) => {
+  try {
+    const q1 = pool.query(`SELECT COUNT(*) as c FROM politics_politicians`);
+    const q2 = pool.query(`SELECT COUNT(*) as c FROM politics_trends`);
+    const q3 = pool.query(`SELECT COUNT(*) as c FROM insight_candidates`);
+    const q4 = pool.query(`
+      SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN status = 'SUCCESS' THEN 1 ELSE 0 END) as success
+      FROM system_cron_logs
+      WHERE created_at >= NOW() - INTERVAL '24 hours'
+    `);
+    
+    const [res1, res2, res3, res4] = await Promise.all([q1, q2, q3, q4]);
+    
+    const polCount = parseInt(res1.rows[0].c, 10);
+    const trendCount = parseInt(res2.rows[0].c, 10);
+    const newsCount = parseInt(res3.rows[0].c, 10);
+    
+    const cronTotal = parseInt(res4.rows[0].total, 10) || 0;
+    const cronSuccess = parseInt(res4.rows[0].success, 10) || 0;
+    const successRate = cronTotal > 0 ? Math.round((cronSuccess / cronTotal) * 100) : 100;
+
+    res.json({
+      success: true,
+      data: {
+        total_apis: 4, // Naver News, Naver Trends, Assembly API, Supabase
+        db_records: {
+          politicians: polCount,
+          trends: trendCount,
+          news: newsCount
+        },
+        pipeline_health: {
+          jobs_24h: cronTotal,
+          success_rate: successRate
+        }
+      }
+    });
+  } catch (err) {
+    console.error('[SysHealth API] Failed to fetch metrics:', err);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
 // GET /api/admin/sys-health/candidates
 router.get('/candidates', async (req, res) => {
   const { category } = req.query;

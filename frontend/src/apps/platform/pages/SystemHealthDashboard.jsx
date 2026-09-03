@@ -8,13 +8,27 @@ export default function SystemHealthDashboard() {
   const [candidates, setCandidates] = useState([]);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [activeCategory, setActiveCategory] = useState('stock');
+  const [metrics, setMetrics] = useState(null);
 
   useEffect(() => {
     fetchLogs();
     fetchCandidates('stock');
-    const interval = setInterval(fetchLogs, 30000);
+    fetchMetrics();
+    const interval = setInterval(() => {
+      fetchLogs();
+      fetchMetrics();
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
+
+  const fetchMetrics = async () => {
+    try {
+      const res = await apiClient('/api/admin/sys-health/metrics', { method: 'GET' });
+      if (res.success) setMetrics(res.data);
+    } catch (err) {
+      console.error('Failed to fetch metrics:', err);
+    }
+  };
 
   const fetchLogs = async () => {
     try {
@@ -119,6 +133,45 @@ export default function SystemHealthDashboard() {
             </button>
           </div>
         </div>
+
+      {/* KPI METRICS OVERVIEW */}
+      {metrics && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex flex-col justify-center">
+            <span className="text-slate-400 text-sm font-semibold mb-1">연동된 API (Data Sources)</span>
+            <div className="flex items-end gap-2">
+              <span className="text-3xl font-black text-indigo-400">{metrics.total_apis}</span>
+              <span className="text-sm text-slate-500 mb-1">개</span>
+            </div>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex flex-col justify-center">
+            <span className="text-slate-400 text-sm font-semibold mb-1">수집된 정치인 (Politicians)</span>
+            <div className="flex items-end gap-2">
+              <span className="text-3xl font-black text-blue-400">{metrics.db_records.politicians.toLocaleString()}</span>
+              <span className="text-sm text-slate-500 mb-1">명</span>
+            </div>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex flex-col justify-center">
+            <span className="text-slate-400 text-sm font-semibold mb-1">수집된 트렌드 (Trend Data)</span>
+            <div className="flex items-end gap-2">
+              <span className="text-3xl font-black text-emerald-400">{metrics.db_records.trends.toLocaleString()}</span>
+              <span className="text-sm text-slate-500 mb-1">건</span>
+            </div>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex flex-col justify-center">
+            <span className="text-slate-400 text-sm font-semibold mb-1">파이프라인 성공률 (24h)</span>
+            <div className="flex items-end gap-2">
+              <span className={`text-3xl font-black ${metrics.pipeline_health.success_rate >= 90 ? 'text-green-400' : 'text-yellow-400'}`}>
+                {metrics.pipeline_health.success_rate}
+              </span>
+              <span className="text-sm text-slate-500 mb-1">%</span>
+            </div>
+            <div className="w-full bg-slate-800 h-1.5 mt-3 rounded-full overflow-hidden">
+              <div className={`h-full ${metrics.pipeline_health.success_rate >= 90 ? 'bg-green-500' : 'bg-yellow-500'}`} style={{ width: `${metrics.pipeline_health.success_rate}%` }}></div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* HITL CURATION PANEL */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl p-6">
