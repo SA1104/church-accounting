@@ -8,6 +8,7 @@ import ServiceView from './shared/ServiceView';
 import ForgotPassword from './shared/ForgotPassword';
 import ResetPassword from './shared/ResetPassword';
 import SystemHealthDashboard from './apps/platform/pages/SystemHealthDashboard';
+import FinanceDashboard from './apps/platform/pages/FinanceDashboard';
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -80,6 +81,7 @@ export default function App() {
 
           {/* Admin Routes */}
           <Route path="/_admin/sys-health" element={<SystemHealthDashboard />} />
+          <Route path="/_admin/finance" element={<FinanceDashboard />} />
 
           {/* Catch-all redirect to Portal */}
           <Route path="*" element={<Navigate to="/" replace />} />

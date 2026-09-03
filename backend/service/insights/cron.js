@@ -61,6 +61,41 @@ async function generateFromHITL(category, candidateIds) {
   throw new Error('AI skipped or failed generation');
 }
 
+async function runAutoPilotFallback() {
+  console.log('[Cron] Checking if Auto-Pilot fallback is needed...');
+  const categories = ['stock', 'real_estate', 'economy', 'politics'];
+  
+  for (const category of categories) {
+    try {
+      // Check if an insight was generated in the last 12 hours
+      const recent = await query.get(`
+        SELECT id FROM public.market_insights 
+        WHERE category = ? AND created_at > NOW() - INTERVAL '12 hours'
+      `, [category]);
+      
+      if (!recent) {
+        console.log(`[Cron] Auto-Pilot triggered for ${category}.`);
+        // Fetch up to 10 unused candidates
+        const candidatesRes = await query.all(`
+          SELECT id FROM public.insight_candidates 
+          WHERE category = ? AND is_used = false 
+          ORDER BY created_at DESC 
+          LIMIT 10
+        `, [category]);
+        
+        if (candidatesRes && candidatesRes.length > 0) {
+          const candidateIds = candidatesRes.map(c => c.id);
+          await generateFromHITL(category, candidateIds);
+        } else {
+          console.log(`[Cron] No candidates available for Auto-Pilot in ${category}.`);
+        }
+      }
+    } catch (err) {
+      console.error(`[Cron] Auto-Pilot failed for ${category}:`, err);
+    }
+  }
+}
+
 function initCron() {
   // 1. Run once immediately on boot after a short delay to let DB initialize
   setTimeout(() => {
@@ -68,13 +103,6 @@ function initCron() {
   }, 10000);
 
   // 2. Register node-cron schedule: 06:00, 11:00, 15:00, 19:00 KST
-  // (Assuming server runs on UTC, KST is UTC+9. 
-  // 06:00 KST = 21:00 UTC (previous day)
-  // 11:00 KST = 02:00 UTC
-  // 15:00 KST = 06:00 UTC
-  // 19:00 KST = 10:00 UTC
-  // Alternatively, just specify timezone in node-cron).
-  
   const scheduleString = '0 6,11,15,19 * * *';
   
   const task = cron.schedule(scheduleString, () => {
@@ -84,8 +112,17 @@ function initCron() {
     timezone: "Asia/Seoul"
   });
   
+  // 3. Register Auto-pilot fallback: 08:00 KST daily
+  const fallbackTask = cron.schedule('0 8 * * *', () => {
+    runAutoPilotFallback();
+  }, {
+    scheduled: true,
+    timezone: "Asia/Seoul"
+  });
+
   scheduledTasks.push(task);
-  console.log(`[Insights DB] AI Cron registered. Will run at 06:00, 11:00, 15:00, 19:00 (KST).`);
+  scheduledTasks.push(fallbackTask);
+  console.log(`[Insights DB] AI Cron registered. Will run at 06:00, 11:00, 15:00, 19:00 (KST). Fallback at 08:00 (KST).`);
 }
 
 function stopCron() {

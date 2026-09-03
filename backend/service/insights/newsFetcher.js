@@ -1,48 +1,52 @@
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args)).catch(() => global.fetch(...args));
 const { query } = require('../../core/db');
 
-// Map categories to search keywords for Google News RSS
+// Map categories to search keywords for Naver News API
 const CATEGORY_KEYWORDS = {
-  'stock': '주식 시장 OR 증시',
-  'real_estate': '부동산 시장 OR 아파트 가격',
-  'economy': '거시 경제 OR 금리 OR 환율',
-  'politics': '정치 OR 국회 OR 정책'
+  'stock': '주식 시장',
+  'real_estate': '부동산 시장',
+  'economy': '거시 경제',
+  'politics': '정치 정책'
 };
 
-async function fetchGoogleNewsRSS(keyword) {
+async function fetchNaverNewsAPI(keyword) {
+  const clientId = process.env.NAVER_CLIENT_ID;
+  const clientSecret = process.env.NAVER_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    console.error('[News Fetcher] NAVER_CLIENT_ID or NAVER_CLIENT_SECRET is missing!');
+    return [];
+  }
+
   try {
     const encodedKeyword = encodeURIComponent(keyword);
-    // Use Google News RSS feed for the query (Korean, South Korea)
-    const url = `https://news.google.com/rss/search?q=${encodedKeyword}&hl=ko&gl=KR&ceid=KR:ko`;
-    const res = await fetch(url);
-    const xml = await res.text();
+    const url = `https://openapi.naver.com/v1/search/news.json?query=${encodedKeyword}&display=20&sort=date`;
     
-    // Very basic regex-based XML parsing to avoid large dependencies like xml2js if possible
-    // Note: For production, a proper XML parser is recommended. 
-    // We extract <item> blocks.
-    const items = [];
-    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
-    let match;
-    
-    while ((match = itemRegex.exec(xml)) !== null) {
-      const itemXml = match[1];
-      
-      const titleMatch = itemXml.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/) || itemXml.match(/<title>(.*?)<\/title>/);
-      const linkMatch = itemXml.match(/<link>(.*?)<\/link>/);
-      const pubDateMatch = itemXml.match(/<pubDate>(.*?)<\/pubDate>/);
-      const descMatch = itemXml.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/) || itemXml.match(/<description>([\s\S]*?)<\/description>/);
-      
-      if (titleMatch && linkMatch) {
-        items.push({
-          title: titleMatch[1].trim(),
-          link: linkMatch[1].trim(),
-          pubDate: pubDateMatch ? new Date(pubDateMatch[1]) : new Date(),
-          description: descMatch ? descMatch[1].replace(/<[^>]*>?/gm, '').trim() : '' // strip HTML tags
-        });
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'X-Naver-Client-Id': clientId,
+        'X-Naver-Client-Secret': clientSecret
       }
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`[News Fetcher] Naver API Error: ${res.status} - ${errorText}`);
+      return [];
     }
+
+    const data = await res.json();
     
-    return items.slice(0, 20); // Top 20 results
+    // Naver News items have: title, originallink, link, description, pubDate
+    const items = data.items.map(item => ({
+      title: item.title.replace(/<[^>]*>?/gm, '').trim(), // strip HTML tags (Naver returns <b> tags for match)
+      link: item.link,
+      pubDate: new Date(item.pubDate),
+      description: item.description.replace(/<[^>]*>?/gm, '').trim()
+    }));
+    
+    return items;
   } catch (err) {
     console.error(`[News Fetcher] Failed to fetch news for ${keyword}:`, err);
     return [];
@@ -50,12 +54,12 @@ async function fetchGoogleNewsRSS(keyword) {
 }
 
 async function fetchAndStoreCandidates() {
-  console.log('[News Fetcher] Starting to fetch news candidates...');
+  console.log('[News Fetcher] Starting to fetch news candidates from Naver...');
   let totalSaved = 0;
   
   for (const [category, keyword] of Object.entries(CATEGORY_KEYWORDS)) {
     console.log(`[News Fetcher] Fetching candidates for ${category}...`);
-    const articles = await fetchGoogleNewsRSS(keyword);
+    const articles = await fetchNaverNewsAPI(keyword);
     
     for (const article of articles) {
       // Check if it already exists to avoid duplicates

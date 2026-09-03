@@ -99,23 +99,26 @@ export default function SystemHealthDashboard() {
     <div className="p-6 max-w-7xl mx-auto space-y-8 text-white min-h-screen pb-20">
       
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">System Health & Curation</h1>
-          <p className="text-slate-400 mt-1">Real-time background tasks and AI Human-in-the-Loop Curation</p>
+        <div className="flex justify-between items-center mb-8 border-b border-slate-800 pb-4">
+          <div>
+            <h1 className="text-3xl font-extrabold text-white tracking-tight">System Health & Curation</h1>
+            <p className="text-slate-400 mt-2">Real-time background tasks and AI Human-in-the-Loop Curation</p>
+          </div>
+          <div className="flex gap-4">
+            <button onClick={() => window.location.href='/_admin/finance'} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded text-sm font-semibold transition-colors text-slate-300 border border-slate-600">
+              Go to Finance & Legal
+            </button>
+            <button onClick={() => triggerJob('generate_politics_insight')} disabled={triggering} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded text-sm font-semibold transition-colors disabled:opacity-50">
+              Fetch New News (Cron)
+            </button>
+            <button onClick={() => triggerJob('sync_assembly_members')} disabled={triggering} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded text-sm font-semibold transition-colors disabled:opacity-50">
+              Trigger Assembly Sync
+            </button>
+            <button onClick={fetchLogs} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-sm font-semibold transition-colors border border-slate-600">
+              Refresh Logs
+            </button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => triggerJob('generate_politics_insight')} disabled={triggering} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded text-sm font-semibold transition-colors disabled:opacity-50">
-            Fetch New News (Cron)
-          </button>
-          <button onClick={() => triggerJob('sync_assembly_members')} disabled={triggering} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded text-sm font-semibold transition-colors disabled:opacity-50">
-            Trigger Assembly Sync
-          </button>
-          <button onClick={fetchLogs} className="px-4 py-2 bg-slate-800 border border-slate-700 hover:bg-slate-700 rounded text-sm font-semibold transition-colors">
-            Refresh Logs
-          </button>
-        </div>
-      </div>
 
       {/* HITL CURATION PANEL */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl p-6">
