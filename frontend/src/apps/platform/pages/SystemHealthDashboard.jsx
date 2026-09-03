@@ -15,7 +15,7 @@ export default function SystemHealthDashboard() {
 
   const fetchLogs = async () => {
     try {
-      const res = await apiClient.get('/api/admin/sys-health/cron-logs');
+      const res = await apiClient('/api/admin/sys-health/cron-logs', { method: 'GET' });
       if (res.success) {
         setLogs(res.data || []);
       }
@@ -30,7 +30,10 @@ export default function SystemHealthDashboard() {
     if (triggering) return;
     setTriggering(true);
     try {
-      const res = await apiClient.post('/api/admin/sys-health/trigger', { job_name: jobName });
+      const res = await apiClient('/api/admin/sys-health/trigger', { 
+        method: 'POST', 
+        body: JSON.stringify({ job_name: jobName }) 
+      });
       if (res.success) {
         alert(`${jobName} started successfully.`);
         setTimeout(fetchLogs, 2000); // Fetch after short delay
