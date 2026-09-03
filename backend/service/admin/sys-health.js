@@ -61,7 +61,7 @@ router.get('/metrics', async (req, res) => {
     });
   } catch (err) {
     console.error('[SysHealth API] Failed to fetch metrics:', err);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    res.status(500).json({ success: false, error: err.message, stack: err.stack });
   }
 });
 
