@@ -106,6 +106,8 @@ router.get('/admin/migrate-party', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
 router.post('/admin/fetch-trends', async (req, res) => {
   try {
     const { fetchAndStoreTrends } = require('./cron/trendFetcher');
@@ -154,6 +156,72 @@ router.post('/admin/test-naver-api', async (req, res) => {
     }
     
     res.json({ success: true, url: urlUsed, status, rawResponse });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/admin/migrate-prod', async (req, res) => {
+  try {
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      
+      // 1. Add search_keyword to politics_politicians
+      await client.query(`
+        ALTER TABLE politics_politicians 
+        ADD COLUMN IF NOT EXISTS search_keyword VARCHAR(255)
+      `);
+
+      // 2. Add unique constraint to politics_politicians(name) if it doesn't exist
+      await client.query(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint WHERE conname = 'politics_politicians_name_key'
+          ) THEN
+            ALTER TABLE politics_politicians ADD CONSTRAINT politics_politicians_name_key UNIQUE (name);
+          END IF;
+        END $$;
+      `);
+
+      // 3. Create system_cron_logs
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS system_cron_logs (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          job_name VARCHAR(100) NOT NULL,
+          status VARCHAR(50) NOT NULL,
+          message TEXT,
+          execution_time INTEGER,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // 4. Create politics_trends table if not exists (just in case)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS politics_trends (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          politician_id UUID REFERENCES politics_politicians(id) ON DELETE CASCADE,
+          record_date DATE NOT NULL,
+          approval_rating NUMERIC(5,2),
+          buzz_score NUMERIC(5,2),
+          source VARCHAR(100),
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(politician_id, record_date)
+        )
+      `);
+      
+      await client.query('COMMIT');
+      res.json({ success: true, message: 'Production DB migration successful!' });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+      await pool.end();
+    }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
