@@ -51,6 +51,7 @@ const churchServiceRouter = require('./service/church');
 const stockServiceRouter = require('./service/stock');
 const estateServiceRouter = require('./service/estate');
 const missionServiceRouter = require('./service/mission');
+const testRoute = require('./service/admin/test_route');
 
 
 const rateLimit = require('express-rate-limit');
@@ -317,6 +318,7 @@ app.use('/api/platform/users', require('./service/platform/users'));
 app.use('/api/platform/admin/users', require('./core/admin/users'));
 app.use('/api/admin/sys-health', require('./service/admin/sys-health'));
 app.use('/api/admin/finance', require('./service/admin/finance'));
+app.use('/api/admin/debug', testRoute);
 app.use('/api/church', churchServiceRouter);
 app.use('/api/stock', require('./service/stock/routes/publicStockRoutes'));
 app.use('/api/stock', authenticateToken, stockServiceRouter);
