@@ -50,7 +50,7 @@ const SearchableSelect = ({ options, value, onChange, placeholder, outlineColor 
   const selectedOpt = options.find(opt => opt.id === value);
 
   return (
-    <div ref={wrapperRef} className="relative w-full mb-4 z-50">
+    <div ref={wrapperRef} className="relative w-full mb-4 z-30">
       <div 
         className="w-full bg-slate-900 border text-white rounded-lg p-3 cursor-pointer flex justify-between items-center"
         style={{ borderColor: isOpen ? outlineColor : '#334155' }}
@@ -61,7 +61,7 @@ const SearchableSelect = ({ options, value, onChange, placeholder, outlineColor 
       </div>
       
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden z-50">
           <div className="p-2 border-b border-slate-700">
             <input
               type="text"
@@ -338,23 +338,23 @@ export default function PoliticsAnalysisPage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6 select-none">
+    <div className="p-3 md:p-6 max-w-7xl mx-auto space-y-4 md:space-y-6 select-none">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">정치 분석 허브</h1>
-          <p className="text-slate-400 mt-1">인물 및 정당별 동적 지표 비교 (Radar Analysis)</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">정치 분석 허브</h1>
+          <p className="text-sm md:text-base text-slate-400 mt-1">인물 및 정당별 동적 지표 비교 (Radar Analysis)</p>
         </div>
         
         {/* VIEW MODE TOGGLE */}
         <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700 w-max">
           <button 
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'politician' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
+            className={`px-4 py-2.5 md:py-2 rounded-md text-sm font-medium transition-colors min-h-[44px] ${viewMode === 'politician' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
             onClick={() => setViewMode('politician')}
           >
             👤 인물 비교
           </button>
           <button 
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'party' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
+            className={`px-4 py-2.5 md:py-2 rounded-md text-sm font-medium transition-colors min-h-[44px] ${viewMode === 'party' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
             onClick={() => setViewMode('party')}
           >
             🏛️ 정당 비교
@@ -362,8 +362,8 @@ export default function PoliticsAnalysisPage() {
         </div>
       </div>
 
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 md:p-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8 items-start">
           
           {/* PROFILE A */}
           <div className="flex flex-col p-4 bg-slate-800/50 rounded-xl border border-slate-700 h-full">
@@ -376,7 +376,7 @@ export default function PoliticsAnalysisPage() {
             {viewMode === 'politician' ? (
               polA ? (
                 <div className="flex flex-col items-center">
-                  <img src={polA.imageUrl} alt={polA.name} className="w-32 h-32 rounded-full object-cover border-4 mb-4 bg-white" style={{ borderColor: colorA }} />
+                  <img src={polA.imageUrl} alt={polA.name} className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 mb-4 bg-white" style={{ borderColor: colorA }} />
                   <h3 className="text-xl font-bold text-white">{polA.name}</h3>
                   <div className="flex gap-2 mt-2">
                     <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ backgroundColor: `${colorA}33`, color: colorA }}>{polA.party || '무소속'}</span>
@@ -412,8 +412,8 @@ export default function PoliticsAnalysisPage() {
           </div>
 
           {/* Radar Chart Middle */}
-          <div className="flex flex-col w-full bg-slate-950/30 rounded-xl sticky top-6 border border-slate-800">
-            <div className="h-[350px] w-full flex justify-center items-center pt-4">
+          <div className="flex flex-col w-full bg-slate-950/30 rounded-xl md:sticky md:top-6 border border-slate-800">
+            <div className="h-[280px] md:h-[350px] w-full flex justify-center items-center pt-4">
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart cx="50%" cy="50%" outerRadius="60%" data={chartData}>
                   <PolarGrid stroke="#334155" />
@@ -441,7 +441,7 @@ export default function PoliticsAnalysisPage() {
             {viewMode === 'politician' ? (
               polB ? (
                 <div className="flex flex-col items-center">
-                  <img src={polB.imageUrl} alt={polB.name} className="w-32 h-32 rounded-full object-cover border-4 mb-4 bg-white" style={{ borderColor: colorB, borderStyle: isSameParty ? 'dashed' : 'solid' }} />
+                  <img src={polB.imageUrl} alt={polB.name} className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 mb-4 bg-white" style={{ borderColor: colorB, borderStyle: isSameParty ? 'dashed' : 'solid' }} />
                   <h3 className="text-xl font-bold text-white">{polB.name}</h3>
                   <div className="flex gap-2 mt-2">
                     <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ backgroundColor: `${colorB}33`, color: colorB }}>{polB.party || '무소속'}</span>
@@ -486,7 +486,7 @@ export default function PoliticsAnalysisPage() {
         )}
 
         {/* TREND CHART */}
-        <div className="mt-8 h-[400px]">
+        <div className="mt-6 md:mt-8 h-[280px] md:h-[400px]">
           <ApprovalTrendChart 
             entityA={viewMode === 'politician' ? polA : partyA}
             entityB={viewMode === 'politician' ? polB : partyB}
@@ -498,7 +498,7 @@ export default function PoliticsAnalysisPage() {
 
         {/* FULL WIDTH METRIC DESCRIPTIONS */}
         <div className="mt-8">
-          <div className="p-6 bg-slate-900/50 border border-slate-800 text-xs text-slate-400 rounded-xl">
+          <div className="p-3 md:p-6 bg-slate-900/50 border border-slate-800 text-xs text-slate-400 rounded-xl">
 <div className="text-slate-400">
               <h4 className="font-bold text-slate-300 mb-2 flex items-center gap-1">
                 <span className="text-[10px]">📊</span> 지표 산출 기준 및 출처 (Beta)

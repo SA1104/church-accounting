@@ -63,15 +63,15 @@ const ApprovalTrendChart = ({ entityA, entityB, colorA, colorB, isSameParty }) =
 
   return (
     <div className="w-full h-full flex flex-col bg-slate-950/30 rounded-xl border border-slate-800 overflow-hidden relative">
-      <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-        <h3 className="font-bold text-white flex items-center gap-2">
+      <div className="p-3 md:p-4 border-b border-slate-800 flex flex-wrap justify-between items-center gap-2 bg-slate-900/50">
+        <h3 className="font-bold text-white flex items-center gap-2 text-sm md:text-base">
           <span className="text-xl">📈</span> 최근 6개월 지지율 및 화제성 추이 (여론조사 종합)
         </h3>
         <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded-full border border-indigo-500/30">
           AI 분석 연동형
         </span>
       </div>
-      <div className="flex-1 p-4 h-[350px]">
+      <div className="flex-1 p-4 h-[250px] md:h-[350px]">
         {loading ? (
           <div className="h-full flex items-center justify-center text-slate-500">데이터를 불러오는 중...</div>
         ) : (!entityA && !entityB) ? (
@@ -86,8 +86,8 @@ const ApprovalTrendChart = ({ entityA, entityB, colorA, colorB, isSameParty }) =
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={mergedData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="month" stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={{ stroke: '#334155' }} />
-              <YAxis yAxisId="left" stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 12 }} domain={[0, 100]} axisLine={false} tickLine={false} />
+              <XAxis dataKey="month" stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={{ stroke: '#334155' }} />
+              <YAxis yAxisId="left" stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 10 }} domain={[0, 100]} axisLine={false} tickLine={false} />
               
               <Tooltip 
                 contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px' }} 
@@ -95,7 +95,7 @@ const ApprovalTrendChart = ({ entityA, entityB, colorA, colorB, isSameParty }) =
                 labelStyle={{ color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }} 
               />
               
-              <Legend wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }} iconType="circle" />
+              <Legend wrapperStyle={{ paddingTop: '10px', fontSize: '10px' }} iconType="circle" />
               
               {entityA && <Bar yAxisId="left" name={nameA + ' 화제성(막대)'} dataKey="buzzA" fill={colorA} fillOpacity={0.4} barSize={20} radius={[4,4,0,0]} />}
               {entityB && <Bar yAxisId="left" name={nameB + ' 화제성(막대)'} dataKey="buzzB" fill={colorB} fillOpacity={0.4} barSize={20} radius={[4,4,0,0]} />}
