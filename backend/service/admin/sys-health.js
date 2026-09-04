@@ -27,22 +27,25 @@ router.get('/metrics', async (req, res) => {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS insight_candidates (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        category VARCHAR(50) NOT NULL,
-        title VARCHAR(255) NOT NULL,
-        link TEXT NOT NULL UNIQUE,
+        category VARCHAR(50),
+        title TEXT,
+        link TEXT,
         pub_date TIMESTAMP WITH TIME ZONE,
         description TEXT,
         is_used BOOLEAN DEFAULT false,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
-      
       CREATE TABLE IF NOT EXISTS platform_page_views (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         path VARCHAR(255) NOT NULL,
-        session_id VARCHAR(255),
+        viewer_ip VARCHAR(45) NOT NULL,
         user_agent TEXT,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
+      ALTER TABLE public.market_insights ADD COLUMN IF NOT EXISTS content_detailed TEXT;
+      ALTER TABLE public.market_insights ADD COLUMN IF NOT EXISTS affected_sectors TEXT[];
+      ALTER TABLE public.market_insights ADD COLUMN IF NOT EXISTS source_articles_used JSONB;
+      ALTER TABLE public.market_insights ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'PUBLISHED';
     `);
 
     const q1 = pool.query(`SELECT COUNT(*) as c FROM politics_politicians`);
