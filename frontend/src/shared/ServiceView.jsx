@@ -243,25 +243,25 @@ export default function ServiceView() {
                   className="rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 transition-colors p-5 md:p-6 group flex flex-col gap-4 cursor-pointer shadow-lg shadow-black/20"
                 >
                   <div className="flex flex-col gap-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <h3 className="text-lg md:text-xl font-black text-slate-100 group-hover:text-white leading-tight">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
+                      <h3 className="text-lg md:text-xl font-black text-slate-100 group-hover:text-white leading-tight break-keep">
                         {insight.title}
                       </h3>
-                      <div className="flex gap-1 flex-wrap justify-end">
+                      <div className="flex gap-1 flex-wrap sm:justify-end shrink-0">
                         {insight.keywords && insight.keywords.map(kw => (
                           <span key={kw} className="px-2.5 py-1 rounded-full bg-slate-800/80 text-xs font-bold text-indigo-300 whitespace-nowrap">#{kw}</span>
                         ))}
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-4 text-xs font-bold text-slate-500">
-                      <button onClick={(e) => handleInsightLike(e, insight.id)} className="flex items-center gap-1.5 hover:text-rose-400 transition-colors bg-slate-800/50 px-2 py-1 rounded-md">
+                    <div className="flex items-center flex-wrap gap-2 md:gap-4 text-xs font-bold text-slate-500">
+                      <button onClick={(e) => handleInsightLike(e, insight.id)} className="flex items-center gap-1.5 hover:text-rose-400 transition-colors bg-slate-800/50 px-2 py-1 rounded-md shrink-0">
                         <ThumbsUp size={14} /> 공감 {insight.like_count || 0}
                       </button>
-                      <div className="flex items-center gap-1.5 bg-slate-800/50 px-2 py-1 rounded-md">
+                      <div className="flex items-center gap-1.5 bg-slate-800/50 px-2 py-1 rounded-md shrink-0">
                         조회수 {insight.view_count || 0}
                       </div>
-                      <div className="ml-auto font-normal text-slate-600">
+                      <div className="sm:ml-auto font-normal text-slate-600 shrink-0 mt-1 sm:mt-0">
                         {new Date(insight.created_at).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>

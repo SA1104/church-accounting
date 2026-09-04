@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "build": "cd ../frontend && npm install --include=dev && npx vite build",
+    "build": "echo Skipping frontend build on Render, using committed dist folder",
     "stock:krx:health": "node service/stock/cli/syncKrxOpenApi.js health",
     "stock:krx:sync-master": "node service/stock/cli/syncKrxOpenApi.js sync-master",
     "stock:krx:sync-daily": "node service/stock/cli/syncKrxOpenApi.js sync-daily",
