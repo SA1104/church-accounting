@@ -177,7 +177,7 @@ export default function SystemHealthDashboard() {
               <span className="text-sm text-slate-500 mb-1">명</span>
             </div>
           </div>
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex flex-col justify-center cursor-pointer hover:bg-slate-800 transition-colors" onClick={() => openDrawer('pipelines')}>
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex flex-col justify-center cursor-pointer hover:bg-slate-800 transition-colors" onClick={() => openDrawer('trends')}>
             <span className="text-slate-400 text-sm font-semibold mb-1">수집된 트렌드 (Trend Data)</span>
             <div className="flex items-end gap-2">
               <span className="text-3xl font-black text-emerald-400">{metrics.db_records.trends.toLocaleString()}</span>
@@ -320,6 +320,23 @@ export default function SystemHealthDashboard() {
                       </tbody>
                     </table>
                   )}
+                  
+                  {drawerType === 'trends' && (
+                    <table className="w-full text-left text-sm whitespace-nowrap">
+                      <thead className="bg-slate-800 text-slate-400"><tr><th className="p-2">Name</th><th className="p-2">Record Date</th><th className="p-2">Buzz Score</th><th className="p-2">Approval</th></tr></thead>
+                      <tbody className="divide-y divide-slate-800 text-slate-300">
+                        {drawerData.slice((drawerPage - 1) * 20, drawerPage * 20).map(t => (
+                          <tr key={t.id}>
+                            <td className="p-2 font-medium">{t.politician_name}</td>
+                            <td className="p-2 text-xs">{new Date(t.record_date).toLocaleDateString()}</td>
+                            <td className="p-2">{t.buzz_score}</td>
+                            <td className="p-2">{t.approval_rating}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+
                   {drawerType === 'pipelines' && (
                     <table className="w-full text-left text-sm whitespace-nowrap">
                       <thead className="bg-slate-800 text-slate-400"><tr><th className="p-2">Job Name</th><th className="p-2">Last Run</th><th className="p-2">Success</th><th className="p-2">Error</th></tr></thead>

@@ -208,6 +208,28 @@ router.get('/details/pipelines', async (req, res) => {
   }
 });
 
+// GET /api/admin/sys-health/details/trends
+router.get('/details/trends', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        t.id, 
+        p.name as politician_name,
+        t.record_date,
+        t.buzz_score,
+        t.approval_rating,
+        t.created_at
+      FROM politics_trends t
+      JOIN politics_politicians p ON t.politician_id = p.id
+      ORDER BY t.created_at DESC
+      LIMIT 100
+    `);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // POST /api/admin/sys-health/track
 router.post('/track', async (req, res) => {
   try {

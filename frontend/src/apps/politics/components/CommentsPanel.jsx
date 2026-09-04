@@ -39,10 +39,17 @@ const CommentsPanel = ({ entity, entityType, color }) => {
     setLoading(true);
     setMsg('');
     try {
+      let userId = null;
+      try {
+        const u = JSON.parse(localStorage.getItem('user'));
+        if (u && u.id) userId = u.id;
+      } catch (e) {}
+
       const payload = {
         content: newComment,
         user_name: userName.trim() || '익명 유권자',
-        password: password || ''
+        password: password || '',
+        user_id: userId
       };
       if (entityType === 'politician') payload.politician_id = entity.id;
       else payload.party_name = entity.name;
@@ -120,7 +127,11 @@ const CommentsPanel = ({ entity, entityType, color }) => {
           comments.map(c => (
             <div key={c.id} className="bg-slate-800/60 p-3 rounded-lg border border-slate-700/50 group">
               <div className="flex justify-between items-start mb-1">
-                <span className="text-xs font-bold text-slate-300">{c.user_name} <span className="text-[10px] text-slate-500 font-normal ml-1">{new Date(c.created_at).toLocaleString()}</span></span>
+                <span className="text-xs font-bold text-slate-300">
+                  {c.user_name} 
+                  {c.user_id && <span className="text-[10px] text-indigo-400 font-bold ml-1 border border-indigo-400/30 px-1 py-0.5 rounded bg-indigo-500/10">(회원)</span>}
+                  <span className="text-[10px] text-slate-500 font-normal ml-1">{new Date(c.created_at).toLocaleString()}</span>
+                </span>
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
                   <button onClick={() => { setActionModal({ type: 'edit', comment: c }); setActionPassword(''); setActionContent(c.content); }} className="text-[10px] text-slate-400 hover:text-white">수정</button>
                   <button onClick={() => { setActionModal({ type: 'delete', comment: c }); setActionPassword(''); }} className="text-[10px] text-red-400 hover:text-red-300">삭제</button>
