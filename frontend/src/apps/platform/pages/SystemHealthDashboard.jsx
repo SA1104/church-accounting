@@ -209,14 +209,14 @@ export default function SystemHealthDashboard() {
 
       {/* HITL CURATION PANEL */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl p-6">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-4">
           <h2 className="text-xl font-bold">AI Insight Curation (HITL)</h2>
-          <div className="flex space-x-2">
+          <div className="flex flex-wrap gap-2">
             {['stock', 'real_estate', 'economy', 'politics'].map(cat => (
               <button 
                 key={cat} 
                 onClick={() => handleCategoryChange(cat)}
-                className={`px-3 py-1 rounded text-sm font-medium ${activeCategory === cat ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+                className={`px-3 py-1 rounded text-sm font-medium shrink-0 ${activeCategory === cat ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
               >
                 {cat.toUpperCase()}
               </button>
@@ -224,9 +224,9 @@ export default function SystemHealthDashboard() {
           </div>
         </div>
 
-        <div className="flex justify-between items-center bg-slate-800/50 p-3 rounded mb-4 text-sm">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-800/50 p-3 rounded mb-4 text-sm gap-3">
           <span className="text-slate-300">Selected: <strong className="text-white">{selectedIds.size}</strong> articles</span>
-          <button onClick={triggerHITL} disabled={selectedIds.size === 0 || triggering} className="px-4 py-1.5 bg-green-600 hover:bg-green-500 rounded font-semibold transition-colors disabled:opacity-50">
+          <button onClick={triggerHITL} disabled={selectedIds.size === 0 || triggering} className="w-full sm:w-auto px-4 py-1.5 bg-green-600 hover:bg-green-500 rounded font-semibold transition-colors disabled:opacity-50">
             Approve & Generate AI Insight
           </button>
         </div>
