@@ -158,10 +158,9 @@ router.get('/details/politicians', async (req, res) => {
         id, 
         name, 
         party_name, 
-        original_url,
+        namuwiki_url,
         (birth_date IS NOT NULL) as has_birth,
         (profile_image_url IS NOT NULL) as has_image,
-        (election_precinct IS NOT NULL) as has_precinct,
         created_at
       FROM politics_politicians
       ORDER BY name ASC
