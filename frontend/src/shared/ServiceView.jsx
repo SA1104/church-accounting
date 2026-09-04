@@ -82,17 +82,19 @@ export default function ServiceView() {
 
   const [expandedInsightId, setExpandedInsightId] = useState(null);
 
-  const handleInsightClick = async (insight) => {
-    // Toggle expand
+  const handleInsightClick = (insight) => {
     if (expandedInsightId === insight.id) {
       setExpandedInsightId(null);
-      return;
+    } else {
+      setExpandedInsightId(insight.id);
     }
-    setExpandedInsightId(insight.id);
-    
-    // Track view
+  };
+
+  const handleSourceClick = async (insightId) => {
     try {
-      await apiClient(`/api/services/insights/${insight.id}/view`, { method: 'POST' });
+      await apiClient(`/api/services/insights/${insightId}/view`, { method: 'POST' });
+      // Update local state to reflect view immediately
+      setInsightsList(prev => prev.map(ins => ins.id === insightId ? { ...ins, view_count: (ins.view_count || 0) + 1 } : ins));
     } catch (e) { console.error(e); }
   };
 
@@ -189,8 +191,17 @@ export default function ServiceView() {
                 >
                   <ChevronLeft size={18} />
                 </button>
-                <div className="relative flex items-center justify-center">
+                <div 
+                  className="relative flex items-center justify-center cursor-pointer"
+                  onClick={() => {
+                    const input = document.getElementById('date-picker-input');
+                    if (input && input.showPicker) {
+                      try { input.showPicker(); } catch (e) {}
+                    }
+                  }}
+                >
                   <input 
+                    id="date-picker-input"
                     type="date"
                     min="2026-08-01"
                     max={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]}
@@ -199,7 +210,7 @@ export default function ServiceView() {
                     className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
                     title="날짜 선택"
                   />
-                  <div className="flex items-center gap-2 text-sm font-bold text-indigo-400 min-w-[100px] justify-center cursor-pointer pointer-events-none">
+                  <div className="flex items-center gap-2 text-sm font-bold text-indigo-400 min-w-[100px] justify-center pointer-events-none">
                     <Calendar size={14} />
                     {selectedDate}
                   </div>
@@ -231,18 +242,32 @@ export default function ServiceView() {
                   onClick={() => handleInsightClick(insight)}
                   className="rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 transition-colors p-5 md:p-6 group flex flex-col gap-4 cursor-pointer shadow-lg shadow-black/20"
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <h3 className="text-lg md:text-xl font-black text-slate-100 group-hover:text-white leading-tight">
-                      {insight.title}
-                    </h3>
-                    <div className="flex gap-1 flex-wrap justify-end">
-                      {insight.keywords && insight.keywords.map(kw => (
-                        <span key={kw} className="px-2.5 py-1 rounded-full bg-slate-800/80 text-xs font-bold text-indigo-300 whitespace-nowrap">#{kw}</span>
-                      ))}
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-start justify-between gap-4">
+                      <h3 className="text-lg md:text-xl font-black text-slate-100 group-hover:text-white leading-tight">
+                        {insight.title}
+                      </h3>
+                      <div className="flex gap-1 flex-wrap justify-end">
+                        {insight.keywords && insight.keywords.map(kw => (
+                          <span key={kw} className="px-2.5 py-1 rounded-full bg-slate-800/80 text-xs font-bold text-indigo-300 whitespace-nowrap">#{kw}</span>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-4 text-xs font-bold text-slate-500">
+                      <button onClick={(e) => handleInsightLike(e, insight.id)} className="flex items-center gap-1.5 hover:text-rose-400 transition-colors bg-slate-800/50 px-2 py-1 rounded-md">
+                        <ThumbsUp size={14} /> 공감 {insight.like_count || 0}
+                      </button>
+                      <div className="flex items-center gap-1.5 bg-slate-800/50 px-2 py-1 rounded-md">
+                        조회수 {insight.view_count || 0}
+                      </div>
+                      <div className="ml-auto font-normal text-slate-600">
+                        {new Date(insight.created_at).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      </div>
                     </div>
                   </div>
                   
-                  <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800/50">
+                  <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800/50 mt-1">
                     <div className="text-xs font-bold text-slate-500 mb-1">FACT SUMMARY</div>
                     <div className="text-sm text-slate-300 leading-relaxed">{insight.summary}</div>
                   </div>
@@ -287,8 +312,8 @@ export default function ServiceView() {
                           <ul className="space-y-1">
                             {insight.source_links.map((src, idx) => (
                               <li key={idx}>
-                                <a href={src.url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-xs text-blue-400 hover:underline">
-                                  • {src.title || src.url}
+                                <a href={src.url || src.link} target="_blank" rel="noreferrer" onClick={(e) => { e.stopPropagation(); handleSourceClick(insight.id); }} className="text-xs text-blue-400 hover:underline">
+                                  • {src.title || src.url || src.link}
                                 </a>
                               </li>
                             ))}
@@ -303,19 +328,6 @@ export default function ServiceView() {
                       <span className="text-xs text-slate-500 font-medium hover:text-indigo-400 transition-colors">자세히 보기 ▼</span>
                     </div>
                   ) : null}
-
-                  <div className="flex items-center justify-between mt-2 border-t border-slate-800/60 pt-4">
-                      <div className="flex gap-2">
-                        <button onClick={(e) => handleInsightLike(e, insight.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 transition-colors text-xs font-bold">
-                          <ThumbsUp size={14} /> 공감 {insight.like_count || 0}
-                        </button>
-                      </div>
-                      <div className="text-xs text-slate-500 flex items-center gap-2">
-                        조회수 {insight.view_count || 0}
-                        <span>•</span>
-                        {new Date(insight.created_at).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </div>
                 </div>
               ))}
             </div>
