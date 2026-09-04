@@ -21,6 +21,18 @@ router.get('/cron-logs', async (req, res) => {
 });
 
 // GET /api/admin/sys-health/metrics
+router.get('/migrate-now', async (req, res) => {
+  try {
+    await pool.query('ALTER TABLE public.market_insights ADD COLUMN IF NOT EXISTS content_detailed TEXT');
+    await pool.query('ALTER TABLE public.market_insights ADD COLUMN IF NOT EXISTS affected_sectors TEXT[]');
+    await pool.query('ALTER TABLE public.market_insights ADD COLUMN IF NOT EXISTS source_articles_used JSONB');
+    await pool.query("ALTER TABLE public.market_insights ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'PUBLISHED'");
+    res.json({ success: true, message: 'Migrated successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/metrics', async (req, res) => {
   try {
     // Ensure table exists (fixes missing relation error in prod)
@@ -42,11 +54,8 @@ router.get('/metrics', async (req, res) => {
         user_agent TEXT,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
-      ALTER TABLE public.market_insights ADD COLUMN IF NOT EXISTS content_detailed TEXT;
-      ALTER TABLE public.market_insights ADD COLUMN IF NOT EXISTS affected_sectors TEXT[];
-      ALTER TABLE public.market_insights ADD COLUMN IF NOT EXISTS source_articles_used JSONB;
-      ALTER TABLE public.market_insights ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'PUBLISHED';
     `);
+
 
     const q1 = pool.query(`SELECT COUNT(*) as c FROM politics_politicians`);
     const q2 = pool.query(`SELECT COUNT(*) as c FROM politics_trends`);
