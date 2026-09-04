@@ -24,6 +24,7 @@ async function runInsightGenerationTask() {
 
 async function generateFromHITL(category, candidateIds) {
   const startTime = Date.now();
+  try {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY is not set');
 
@@ -60,7 +61,12 @@ async function generateFromHITL(category, candidateIds) {
     await logCronExecution('generate_hitl_insight', 'SUCCESS', `Generated ${category} insight from ${candidateIds.length} articles.`, Date.now() - startTime);
     return insight;
   }
+  await logCronExecution('generate_hitl_insight', 'FAILED', 'AI skipped or failed generation', Date.now() - startTime);
   throw new Error('AI skipped or failed generation');
+  } catch (err) {
+    await logCronExecution('generate_hitl_insight', 'FAILED', err.message, Date.now() - startTime);
+    throw err;
+  }
 }
 
 async function runAutoPilotFallback() {
