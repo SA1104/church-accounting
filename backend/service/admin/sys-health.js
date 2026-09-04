@@ -33,6 +33,15 @@ router.get('/migrate-now', async (req, res) => {
   }
 });
 
+router.get('/truncate-insights', async (req, res) => {
+  try {
+    await pool.query('TRUNCATE TABLE public.market_insights RESTART IDENTITY CASCADE');
+    res.json({ success: true, message: 'Truncated market_insights' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.post('/backfill-history', async (req, res) => {
   try {
     const { date } = req.body;

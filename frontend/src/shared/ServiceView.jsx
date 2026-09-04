@@ -181,23 +181,43 @@ export default function ServiceView() {
                 <Flame size={18} className="text-indigo-500" /> BoozaThink AI 인사이트
               </h2>
               
-              <div className="flex items-center gap-3 bg-slate-800/80 px-4 py-2 rounded-xl border border-slate-700">
+              <div className="flex items-center gap-2 sm:gap-3 bg-slate-800/80 px-2 sm:px-4 py-2 rounded-xl border border-slate-700">
                 <button 
                   onClick={handlePrevDate}
                   className="p-1 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
+                  title="이전 날짜"
                 >
                   <ChevronLeft size={18} />
                 </button>
-                <div className="flex items-center gap-2 text-sm font-bold text-indigo-400 min-w-[110px] justify-center">
-                  <Calendar size={14} />
-                  {selectedDate}
+                <div className="relative flex items-center justify-center">
+                  <input 
+                    type="date"
+                    min="2026-08-01"
+                    max={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]}
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+                    title="날짜 선택"
+                  />
+                  <div className="flex items-center gap-2 text-sm font-bold text-indigo-400 min-w-[100px] justify-center cursor-pointer pointer-events-none">
+                    <Calendar size={14} />
+                    {selectedDate}
+                  </div>
                 </div>
                 <button 
                   onClick={handleNextDate}
                   disabled={selectedDate >= new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]}
                   className="p-1 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="다음 날짜"
                 >
                   <ChevronRight size={18} />
+                </button>
+                <div className="w-px h-4 bg-slate-600 mx-1"></div>
+                <button 
+                  onClick={() => setSelectedDate(new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0])}
+                  className="text-xs font-bold text-slate-300 hover:text-white px-2 py-1 rounded-md bg-slate-700 hover:bg-slate-600 transition-colors"
+                >
+                  오늘
                 </button>
               </div>
             </div>
