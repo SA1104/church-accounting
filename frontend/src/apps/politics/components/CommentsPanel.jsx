@@ -154,7 +154,7 @@ const CommentsPanel = ({ entity, entityType, color }) => {
               value={userName}
               onChange={(e) => setUserName(e.target.value)}
               placeholder="닉네임 (미입력시 익명)"
-              className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+              className="flex-1 min-w-0 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
               disabled={loading}
             />
             <input
@@ -162,7 +162,7 @@ const CommentsPanel = ({ entity, entityType, color }) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="비밀번호"
-              className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+              className="flex-1 min-w-0 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
               disabled={loading}
             />
           </div>
@@ -173,7 +173,7 @@ const CommentsPanel = ({ entity, entityType, color }) => {
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="건전한 비판과 토론을 남겨주세요"
-              className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+              className="flex-1 min-w-0 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
               disabled={loading}
             />
             <button 
