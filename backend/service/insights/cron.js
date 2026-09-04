@@ -1,4 +1,6 @@
 const { query } = require('../../core/db');
+const { Pool } = require('pg');
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const { generateMarketInsight } = require('./aiService');
 const cron = require('node-cron');
 const { logCronExecution } = require('../../core/cronLogger');
@@ -26,9 +28,9 @@ async function generateFromHITL(category, candidateIds) {
   if (!apiKey) throw new Error('OPENAI_API_KEY is not set');
 
   // Fetch candidate details
-  const placeholders = candidateIds.map(() => '?').join(',');
-  const articlesRes = await query.all(`SELECT id, title, description FROM insight_candidates WHERE category = ? AND id IN (${placeholders})`, [category, ...candidateIds]);
-  const articles = articlesRes || [];
+  const articlesRes = await pool.query(`SELECT id, title, description FROM insight_candidates WHERE category = $1 AND id = ANY($2)`, [category, candidateIds]);
+  const articles = articlesRes.rows || [];
+  
   
   if (articles.length === 0) throw new Error('No valid articles found for the given IDs.');
 
@@ -37,9 +39,9 @@ async function generateFromHITL(category, candidateIds) {
     const keywordsPg = `{${(insight.keywords || []).map(k => `"${k}"`).join(',')}}`;
     const sectorsPg = `{${(insight.affected_sectors || []).map(k => `"${k}"`).join(',')}}`;
     
-    await query.run(`
+    await pool.query(`
       INSERT INTO public.market_insights (category, title, keywords, summary, content_detailed, impact_analysis, affected_sectors, source_links, source_articles_used, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'PUBLISHED')
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'PUBLISHED')
     `, [
       insight.category || category,
       insight.title,
@@ -53,7 +55,7 @@ async function generateFromHITL(category, candidateIds) {
     ]);
     
     // Mark as used
-    await query.run(`UPDATE insight_candidates SET is_used = true WHERE id IN (${placeholders})`, [...candidateIds]);
+    await pool.query(`UPDATE insight_candidates SET is_used = true WHERE id = ANY($1)`, [candidateIds]);
     
     await logCronExecution('generate_hitl_insight', 'SUCCESS', `Generated ${category} insight from ${candidateIds.length} articles.`, Date.now() - startTime);
     return insight;
