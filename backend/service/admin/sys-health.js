@@ -47,6 +47,7 @@ router.post('/backfill-history', async (req, res) => {
       const prompt = `Act as an expert financial/political analyst in South Korea.
 Generate a realistic daily market/political insight summary for the date ${date} for the category '${cat}'.
 It must look exactly like a real daily digest based on Korean news.
+IMPORTANT: ALL OUTPUT MUST BE WRITTEN IN THE KOREAN LANGUAGE (한국어).
 Output JSON format:
 {
   "title": "Short catchy title with emoji",
