@@ -82,7 +82,7 @@ Output JSON format:
         INSERT INTO market_insights (category, title, keywords, summary, content_detailed, impact_analysis, affected_sectors, source_links, source_articles_used, status, created_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, '[]', 'PUBLISHED', $9)
       `, [
-        cat, parsed.title, JSON.stringify(parsed.keywords), parsed.summary, parsed.content_detailed, parsed.impact_analysis, JSON.stringify(parsed.affected_sectors), JSON.stringify(fakeSources), `${date} 12:00:00+09`
+        cat, parsed.title, parsed.keywords || [], parsed.summary, parsed.content_detailed, parsed.impact_analysis, parsed.affected_sectors || [], JSON.stringify(fakeSources), `${date} 12:00:00+09`
       ]);
     }
     
