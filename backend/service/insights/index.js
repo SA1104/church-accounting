@@ -53,19 +53,29 @@ router.get('/admin/debug-index', async (req, res) => {
   }
 });
 
-// GET /api/services/insights?category=...
+// GET /api/services/insights?category=...&date=YYYY-MM-DD
 router.get('/', async (req, res) => {
-  const { category } = req.query;
+  const { category, date } = req.query;
   try {
     let sql = `SELECT * FROM market_insights`;
     const params = [];
+    const conditions = [];
     
     if (category) {
-      sql += ` WHERE category = ?`;
+      conditions.push(`category = ?`);
       params.push(category);
     }
     
-    sql += ` ORDER BY created_at DESC LIMIT 20`;
+    if (date) {
+      conditions.push(`DATE(created_at AT TIME ZONE 'Asia/Seoul') = ?`);
+      params.push(date);
+    }
+    
+    if (conditions.length > 0) {
+      sql += ` WHERE ` + conditions.join(' AND ');
+    }
+    
+    sql += ` ORDER BY created_at DESC LIMIT 100`;
     
     const insights = await query.all(sql, params);
     res.json(insights);

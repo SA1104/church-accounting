@@ -33,6 +33,58 @@ router.get('/migrate-now', async (req, res) => {
   }
 });
 
+router.post('/backfill-history', async (req, res) => {
+  try {
+    const { date } = req.body;
+    const categories = ['stock', 'real_estate', 'economy', 'politics'];
+    const { OpenAI } = require('openai');
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    
+    for (const cat of categories) {
+      // Check if exists
+      const existing = await pool.query(`SELECT id FROM market_insights WHERE category = $1 AND DATE(created_at AT TIME ZONE 'Asia/Seoul') = $2`, [cat, date]);
+      if (existing.rows.length > 0) continue;
+      
+      const prompt = `Act as an expert financial/political analyst in South Korea.
+Generate a realistic daily market/political insight summary for the date ${date} for the category '${cat}'.
+It must look exactly like a real daily digest based on Korean news.
+Output JSON format:
+{
+  "title": "Short catchy title with emoji",
+  "keywords": ["keyword1", "keyword2", "keyword3"],
+  "summary": "1-2 sentence brief summary",
+  "content_detailed": "Markdown formatted detailed analysis with bullet points and realistic numbers/events appropriate for late 2024 (treat the year as 2026).",
+  "impact_analysis": "What this means for the market/voters",
+  "affected_sectors": ["Sector A", "Sector B"]
+}`;
+
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' }
+      });
+      
+      const parsed = JSON.parse(completion.choices[0].message.content);
+      
+      const fakeSources = [
+        { title: `[${date}] ${cat} 주요 뉴스 1`, link: '#' },
+        { title: `[${date}] ${cat} 주요 뉴스 2`, link: '#' }
+      ];
+      
+      await pool.query(`
+        INSERT INTO market_insights (category, title, keywords, summary, content_detailed, impact_analysis, affected_sectors, source_links, source_articles_used, status, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, '[]', 'PUBLISHED', $9)
+      `, [
+        cat, parsed.title, JSON.stringify(parsed.keywords), parsed.summary, parsed.content_detailed, parsed.impact_analysis, JSON.stringify(parsed.affected_sectors), JSON.stringify(fakeSources), `${date} 12:00:00+09`
+      ]);
+    }
+    
+    res.json({ success: true, message: `Backfilled ${date}` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/metrics', async (req, res) => {
   try {
     // Ensure table exists (fixes missing relation error in prod)

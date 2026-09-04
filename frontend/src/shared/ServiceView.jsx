@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Newspaper, BarChart2, MessageSquare, Flame, Plus, X, User, ThumbsUp, MessageCircle, Send, FileText } from 'lucide-react';
+import { Newspaper, BarChart2, MessageSquare, Flame, Plus, X, User, ThumbsUp, MessageCircle, Send, FileText, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { useAuth } from '../App';
 import { apiClient } from '../core/api';
 import StockAnalysisPage from '../apps/stock/pages/StockAnalysisPage';
@@ -26,6 +26,12 @@ export default function ServiceView() {
   const [posts, setPosts] = useState([]);
   const [insightsList, setInsightsList] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const d = new Date();
+    const offset = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - offset).toISOString().split('T')[0];
+  });
 
   const meta = SERVICE_META[serviceId] || { title: '서비스', desc: '알 수 없는 서비스' };
 
@@ -34,7 +40,7 @@ export default function ServiceView() {
       setLoading(true);
       const [postsRes, insightsRes] = await Promise.all([
         apiClient(`/api/services/board/posts?category=${serviceId}`),
-        apiClient(`/api/services/insights?category=${serviceId}`)
+        apiClient(`/api/services/insights?category=${serviceId}&date=${selectedDate}`)
       ]);
       
       if (postsRes) setPosts(postsRes);
@@ -48,7 +54,7 @@ export default function ServiceView() {
 
   useEffect(() => {
     fetchPostsAndNews();
-  }, [serviceId]);
+  }, [serviceId, selectedDate]);
 
   const handlePostSubmit = async (e) => {
     e.preventDefault();
@@ -98,6 +104,23 @@ export default function ServiceView() {
       setInsightsList(prev => prev.map(ins => ins.id === insightId ? { ...ins, like_count: (ins.like_count || 0) + 1 } : ins));
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handlePrevDate = () => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() - 1);
+    setSelectedDate(d.toISOString().split('T')[0]);
+  };
+
+  const handleNextDate = () => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() + 1);
+    const today = new Date();
+    const offset = today.getTimezoneOffset() * 60000;
+    const localToday = new Date(today.getTime() - offset).toISOString().split('T')[0];
+    if (d.toISOString().split('T')[0] <= localToday) {
+      setSelectedDate(d.toISOString().split('T')[0]);
     }
   };
 
@@ -153,9 +176,32 @@ export default function ServiceView() {
       <div className="min-h-[500px] border border-slate-800 bg-slate-900/20 rounded-2xl p-4 md:p-6 relative overflow-hidden">
         {activeTab === 'today' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <Flame size={18} className="text-indigo-500" /> BoozaThink AI 인사이트
-            </h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <Flame size={18} className="text-indigo-500" /> BoozaThink AI 인사이트
+              </h2>
+              
+              <div className="flex items-center gap-3 bg-slate-800/80 px-4 py-2 rounded-xl border border-slate-700">
+                <button 
+                  onClick={handlePrevDate}
+                  className="p-1 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <div className="flex items-center gap-2 text-sm font-bold text-indigo-400 min-w-[110px] justify-center">
+                  <Calendar size={14} />
+                  {selectedDate}
+                </div>
+                <button 
+                  onClick={handleNextDate}
+                  disabled={selectedDate >= new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]}
+                  className="p-1 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+            </div>
+            
             <div className="grid grid-cols-1 gap-6">
               {insightsList.length === 0 ? (
                 <div className="text-center py-10 text-slate-500 text-sm">현재 집계된 인사이트가 없습니다.</div>
