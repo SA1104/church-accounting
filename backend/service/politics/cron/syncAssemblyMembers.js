@@ -20,16 +20,16 @@ async function syncAssemblyMembers() {
 
   try {
     // API endpoint for 22nd National Assembly members
-    const url = `https://open.assembly.go.kr/portal/openapi/nwvrqwxyaytdioiqd?KEY=${apiKey}&Type=json&pIndex=1&pSize=300`;
+    const url = `https://open.assembly.go.kr/portal/openapi/ALLNAMEMBER?KEY=${apiKey}&Type=json&pIndex=1&pSize=300`;
     const response = await fetch(url);
     if (!response.ok) throw new Error(`API Error: ${response.status}`);
     const data = await response.json();
     
-    if (!data.nwvrqwxyaytdioiqd || !data.nwvrqwxyaytdioiqd[1]) {
+    if (!data.ALLNAMEMBER || !data.ALLNAMEMBER[1]) {
       throw new Error('Unexpected API response format');
     }
     
-    const members = data.nwvrqwxyaytdioiqd[1].row;
+    const members = data.ALLNAMEMBER[1].row;
     console.log(`[Cron:Politics] Fetched ${members.length} members from National Assembly API.`);
     await processMembers(members);
     await logCronExecution('sync_assembly_members', 'SUCCESS', `Synced ${members.length} members`, Date.now() - startTime);
@@ -69,16 +69,14 @@ async function processMembers(members) {
     await client.query('BEGIN');
     
     for (const m of members) {
-      // Map API fields to DB columns
-      const name = m.HG_NM; // 이름
-      const party = m.POLY_NM; // 정당
-      const gender = m.SEX_GBN_NM === '여' ? 'FEMALE' : 'MALE';
-      const birthDate = m.BTH_DATE || '1970-01-01'; // Fallback if API misses it
+      // Map API fields to DB columns (handles both ALLNAMEMBER and fallback formats)
+      const name = m.NAAS_NM || m.HG_NM; // 이름
+      const party = m.PLPT_NM || m.POLY_NM; // 정당
+      const rawGender = m.NTR_DIV || m.SEX_GBN_NM;
+      const gender = rawGender === '여' ? 'FEMALE' : 'MALE';
+      const birthDate = m.BIRDY_DT || m.BTH_DATE || '1970-01-01'; // Fallback if API misses it
       
-      // If we have MONA_CD from API, we can get official photo, otherwise fallback
-      const photoUrl = m.MONA_CD 
-        ? `https://www.assembly.go.kr/photo/${m.MONA_CD}.jpg` 
-        : `https://ui-avatars.com/api/?name=${encodeURIComponent(m.HG_NM)}&background=random&color=fff&size=200`;
+      const photoUrl = m.NAAS_PIC || (m.MONA_CD ? `https://www.assembly.go.kr/photo/${m.MONA_CD}.jpg` : `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=200`);
         
       const namuwikiUrl = `https://namu.wiki/w/${encodeURIComponent(name)}`;
       
