@@ -34,9 +34,26 @@ const CommentsPanel = ({ entity, entityType, color }) => {
 
   const handleInteraction = async (commentId, type) => {
     try {
-      const data = await apiClient(`/api/services/politics/community/${commentId}/${type}`, { method: 'POST' });
+      const storageKey = `politics_interaction_comment_${commentId}`;
+      const previousInteraction = localStorage.getItem(storageKey);
+      
+      let action = 'increment';
+      if (previousInteraction === type) {
+        action = 'decrement';
+        localStorage.removeItem(storageKey);
+      } else {
+        if (previousInteraction) {
+           action = 'switch';
+        }
+        localStorage.setItem(storageKey, type);
+      }
+
+      const data = await apiClient(`/api/services/politics/community/${commentId}/${type}`, { 
+        method: 'POST',
+        body: JSON.stringify({ action, previousInteraction }) 
+      });
       if (data?.success) {
-        setComments(prev => prev.map(c => c.id === commentId ? { ...c, [type + 's']: data[type + 's'] } : c));
+        setComments(prev => prev.map(c => c.id === commentId ? { ...c, likes: data.likes, dislikes: data.dislikes } : c));
       }
     } catch (e) {
       console.error(e);

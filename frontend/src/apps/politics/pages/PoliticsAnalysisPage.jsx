@@ -112,6 +112,53 @@ export default function PoliticsAnalysisPage() {
   // Modal state
   const [modalData, setModalData] = useState(null); // { party, metricId, metricName }
 
+  const handleEntityInteraction = async (id, type, interactionType) => {
+    try {
+      const storageKey = `politics_interaction_${type}_${id}`;
+      const previousInteraction = localStorage.getItem(storageKey);
+      
+      let action = 'increment';
+      if (previousInteraction === interactionType) {
+        action = 'decrement';
+        localStorage.removeItem(storageKey);
+      } else {
+        if (previousInteraction) {
+           action = 'switch';
+        }
+        localStorage.setItem(storageKey, interactionType);
+      }
+
+      await apiClient(`/api/services/politics/${type}/${encodeURIComponent(id)}/interaction`, {
+        method: 'POST',
+        body: JSON.stringify({ type: interactionType, action, previousInteraction })
+      });
+      
+      const updateFn = prev => prev.map(p => {
+        const pId = type === 'party' ? p.name : p.id;
+        if (pId === id) {
+          const newState = { ...p };
+          if (action === 'increment') {
+            newState[interactionType + 's'] = (newState[interactionType + 's'] || 0) + 1;
+          } else if (action === 'decrement') {
+            newState[interactionType + 's'] = Math.max(0, (newState[interactionType + 's'] || 0) - 1);
+          } else if (action === 'switch') {
+             newState[interactionType + 's'] = (newState[interactionType + 's'] || 0) + 1;
+             newState[previousInteraction + 's'] = Math.max(0, (newState[previousInteraction + 's'] || 0) - 1);
+          }
+          return newState;
+        }
+        return p;
+      });
+      
+      if (type === 'politician') setPoliticians(updateFn);
+      else if (type === 'party') setParties(updateFn);
+
+    } catch (e) {
+      console.error(e);
+      alert('반영에 실패했습니다.');
+    }
+  };
+
   useEffect(() => {
     const fetchPoliticians = async () => {
       try {
