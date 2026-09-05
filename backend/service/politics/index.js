@@ -15,7 +15,7 @@ router.get('/politicians', async (req, res) => {
     
     const queryText = `
       SELECT 
-        p.id, p.name, p.profile_image_url, p.gender, p.namuwiki_url, p.party_name, p.role_type,
+        p.id, p.name, p.profile_image_url, p.gender, p.namuwiki_url, p.party_name, p.role_type, p.likes, p.dislikes,
         s.record_year, s.declared_wealth, s.pledge_fulfillment_rate, 
         s.attendance_rate, s.buzz_index, s.approval_rating, s.dynamic_metrics
       FROM politics_politicians p
@@ -39,6 +39,8 @@ router.get('/politicians', async (req, res) => {
       role_type: p.role_type || 'ASSEMBLY_MEMBER',
       imageUrl: p.profile_image_url,
       namuwikiUrl: p.namuwiki_url,
+      likes: p.likes || 0,
+      dislikes: p.dislikes || 0,
       stats: {
         wealth: p.declared_wealth,
         pledge: parseFloat(p.pledge_fulfillment_rate),
@@ -558,6 +560,57 @@ router.post('/community/:id/dislike', async (req, res) => {
     const result = await pool.query('UPDATE politics_comments SET dislikes = COALESCE(dislikes, 0) + 1 WHERE id = $1 RETURNING dislikes', [id]);
     if (result.rows.length === 0) return res.status(404).json({ success: false, error: 'Comment not found' });
     res.json({ success: true, dislikes: result.rows[0].dislikes });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/services/politics/politician/:id/interaction
+router.post('/politician/:id/interaction', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { type } = req.body; // 'like' or 'dislike'
+    if (type !== 'like' && type !== 'dislike') return res.status(400).json({ success: false });
+    
+    const col = type === 'like' ? 'likes' : 'dislikes';
+    const result = await pool.query(`UPDATE politics_politicians SET ${col} = COALESCE(${col}, 0) + 1 WHERE id = $1 RETURNING likes, dislikes`, [id]);
+    
+    if (result.rows.length === 0) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/services/politics/party/:name/interaction
+router.post('/party/:name/interaction', async (req, res) => {
+  try {
+    const { name } = req.params;
+    const { type } = req.body; // 'like' or 'dislike'
+    if (type !== 'like' && type !== 'dislike') return res.status(400).json({ success: false });
+    
+    const col = type === 'like' ? 'likes' : 'dislikes';
+    
+    // Upsert into politics_parties
+    const result = await pool.query(`
+      INSERT INTO politics_parties (name, ${col}) 
+      VALUES ($1, 1) 
+      ON CONFLICT (name) 
+      DO UPDATE SET ${col} = politics_parties.${col} + 1 
+      RETURNING likes, dislikes
+    `, [name]);
+    
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/services/politics/parties
+router.get('/parties', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT name, likes, dislikes FROM politics_parties');
+    res.json({ success: true, data: result.rows });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

@@ -132,7 +132,15 @@ export default function PoliticsAnalysisPage() {
           partyMap.get(p.party).members.push(p);
         });
         
-        const partyArray = Array.from(partyMap.values());
+        
+        const partyData = await apiClient('/api/services/politics/parties');
+        const partyStats = (partyData?.data || []).reduce((acc, p) => ({...acc, [p.name]: p}), {});
+        const partyArray = Array.from(partyMap.values()).map(p => ({
+          ...p, 
+          likes: partyStats[p.name]?.likes || 0,
+          dislikes: partyStats[p.name]?.dislikes || 0
+        }));
+  
         setParties(partyArray);
         
         const minjoo = partyArray.find(p => p.name === '더불어민주당');
@@ -367,6 +375,10 @@ export default function PoliticsAnalysisPage() {
                       <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ backgroundColor: `${colorA}33`, color: colorA }}>{polA.party || '무소속'}</span>
                       <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-600">{polA.role_type === 'MAYOR' ? '지자체장' : polA.role_type === 'EXTRA_PARLIAMENTARY' ? '원외인사' : '국회의원'}</span>
                     </div>
+                    <div className="flex gap-4 mb-4">
+                      <button onClick={() => handleEntityInteraction(polA.id, 'politician', 'like')} className="flex items-center gap-1 px-3 py-1 bg-slate-800/50 hover:bg-slate-700/50 rounded-full text-slate-300 text-sm transition-colors border border-slate-700/50">👍 {polA.likes || 0}</button>
+                      <button onClick={() => handleEntityInteraction(polA.id, 'politician', 'dislike')} className="flex items-center gap-1 px-3 py-1 bg-slate-800/50 hover:bg-slate-700/50 rounded-full text-slate-300 text-sm transition-colors border border-slate-700/50">👎 {polA.dislikes || 0}</button>
+                    </div>
                     {/* Score list inside profile for politician */}
                     <div className="w-full bg-slate-900/50 rounded-lg p-3 space-y-2 text-sm">
                       {chartData.map(d => (
@@ -387,7 +399,11 @@ export default function PoliticsAnalysisPage() {
                       {partyA.name.substring(0, 1)}
                     </div>
                     <h3 className="text-xl font-bold text-white mb-2">{partyA.name}</h3>
-                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-600 mb-4">소속 인물 {partyA.members.length}명</span>
+                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-600 mb-2">소속 인물 {partyA.members.length}명</span>
+                    <div className="flex gap-4 mb-4">
+                      <button onClick={() => handleEntityInteraction(partyA.name, 'party', 'like')} className="flex items-center gap-1 px-3 py-1 bg-slate-800/50 hover:bg-slate-700/50 rounded-full text-slate-300 text-sm transition-colors border border-slate-700/50">👍 {partyA.likes || 0}</button>
+                      <button onClick={() => handleEntityInteraction(partyA.name, 'party', 'dislike')} className="flex items-center gap-1 px-3 py-1 bg-slate-800/50 hover:bg-slate-700/50 rounded-full text-slate-300 text-sm transition-colors border border-slate-700/50">👎 {partyA.dislikes || 0}</button>
+                    </div>
                     
                     <div className="w-full bg-slate-900/50 rounded-lg p-3 space-y-2 text-sm">
                       <div className="text-[10px] text-slate-500 text-center mb-2 animate-pulse">지표 클릭 시 기여도 상세 확인</div>
@@ -419,8 +435,8 @@ export default function PoliticsAnalysisPage() {
                     <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
                     <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px' }} itemStyle={{ color: '#e2e8f0' }} />
                     <Legend wrapperStyle={{ paddingTop: '10px' }} />
-                    <Radar name={viewMode === 'politician' ? (polA?.name || 'A') : (partyA?.name || 'Party A')} dataKey="A" stroke={colorA} fill={colorA} fillOpacity={0.5} />
-                    <Radar name={viewMode === 'politician' ? (polB?.name || 'B') : (partyB?.name || 'Party B')} dataKey="B" stroke={colorB} fill={colorB} fillOpacity={0.5} strokeDasharray={isSameParty ? "5 5" : undefined} />
+                    <Radar name={viewMode === 'politician' ? (polA?.name || 'A') : (partyA?.name || 'Party A')} dataKey="A" stroke={colorA} fill="transparent" strokeWidth={2} />
+                    <Radar name={viewMode === 'politician' ? (polB?.name || 'B') : (partyB?.name || 'Party B')} dataKey="B" stroke={colorB} fill="transparent" strokeWidth={2} strokeDasharray={isSameParty ? "5 5" : undefined} />
                   </RadarChart>
                 </ResponsiveContainer>
               </div>
@@ -445,6 +461,10 @@ export default function PoliticsAnalysisPage() {
                       <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ backgroundColor: `${colorB}33`, color: colorB }}>{polB.party || '무소속'}</span>
                       <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-600">{polB.role_type === 'MAYOR' ? '지자체장' : polB.role_type === 'EXTRA_PARLIAMENTARY' ? '원외인사' : '국회의원'}</span>
                     </div>
+                    <div className="flex gap-4 mb-4">
+                      <button onClick={() => handleEntityInteraction(polB.id, 'politician', 'like')} className="flex items-center gap-1 px-3 py-1 bg-slate-800/50 hover:bg-slate-700/50 rounded-full text-slate-300 text-sm transition-colors border border-slate-700/50">👍 {polB.likes || 0}</button>
+                      <button onClick={() => handleEntityInteraction(polB.id, 'politician', 'dislike')} className="flex items-center gap-1 px-3 py-1 bg-slate-800/50 hover:bg-slate-700/50 rounded-full text-slate-300 text-sm transition-colors border border-slate-700/50">👎 {polB.dislikes || 0}</button>
+                    </div>
                     {/* Score list inside profile for politician */}
                     <div className="w-full bg-slate-900/50 rounded-lg p-3 space-y-2 text-sm">
                       {chartData.map(d => (
@@ -465,7 +485,11 @@ export default function PoliticsAnalysisPage() {
                       {partyB.name.substring(0, 1)}
                     </div>
                     <h3 className="text-xl font-bold text-white mb-2">{partyB.name}</h3>
-                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-600 mb-4">소속 인물 {partyB.members.length}명</span>
+                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-600 mb-2">소속 인물 {partyB.members.length}명</span>
+                    <div className="flex gap-4 mb-4">
+                      <button onClick={() => handleEntityInteraction(partyB.name, 'party', 'like')} className="flex items-center gap-1 px-3 py-1 bg-slate-800/50 hover:bg-slate-700/50 rounded-full text-slate-300 text-sm transition-colors border border-slate-700/50">👍 {partyB.likes || 0}</button>
+                      <button onClick={() => handleEntityInteraction(partyB.name, 'party', 'dislike')} className="flex items-center gap-1 px-3 py-1 bg-slate-800/50 hover:bg-slate-700/50 rounded-full text-slate-300 text-sm transition-colors border border-slate-700/50">👎 {partyB.dislikes || 0}</button>
+                    </div>
                     
                     <div className="w-full bg-slate-900/50 rounded-lg p-3 space-y-2 text-sm">
                       <div className="text-[10px] text-slate-500 text-center mb-2 animate-pulse">지표 클릭 시 기여도 상세 확인</div>
