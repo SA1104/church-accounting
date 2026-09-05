@@ -6,7 +6,7 @@ const { initPoliticsCron } = require('./cron');
 // Initialize the background cron jobs for politics
 initPoliticsCron();
 
-router.get('/admin/migrate-likes', async (req, res) => { try { await db.pool.query('ALTER TABLE politics_politicians ADD COLUMN IF NOT EXISTS likes INTEGER DEFAULT 0; ALTER TABLE politics_politicians ADD COLUMN IF NOT EXISTS dislikes INTEGER DEFAULT 0; ALTER TABLE politics_comments ADD COLUMN IF NOT EXISTS likes INTEGER DEFAULT 0; ALTER TABLE politics_comments ADD COLUMN IF NOT EXISTS dislikes INTEGER DEFAULT 0; CREATE TABLE IF NOT EXISTS politics_parties ( name VARCHAR(255) PRIMARY KEY, likes INTEGER DEFAULT 0, dislikes INTEGER DEFAULT 0 ); DELETE FROM politics_politicians WHERE name NOT IN (''이재명'', ''한동훈'', ''오세훈'', ''홍준표'', ''안철수'', ''김동연'', ''이준석'');'); res.json({success: true, message: 'Migration applied'}); } catch (e) { res.status(500).json({error: e.message}); } });
+router.get('/admin/migrate-likes', async (req, res) => { try { await db.pool.query("DELETE FROM politics_politicians WHERE name NOT IN ('이재명', '한동훈', '오세훈', '홍준표', '안철수', '김동연', '이준석');"); res.json({success: true, message: 'Deleted fake politicians'}); } catch (e) { res.status(500).json({error: e.message}); } });
 // Fetch all politicians with their latest stats for the radar chart
 router.get('/politicians', async (req, res) => {
   try {
