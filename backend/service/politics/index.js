@@ -25,7 +25,7 @@ router.get('/politicians', async (req, res) => {
         )
       ORDER BY p.name ASC
     `;
-    const result = await db.query(queryText);
+    const result = await db.pool.query(queryText);
     
     const rows = result.rows;
     
@@ -60,23 +60,23 @@ router.get('/admin/migrate-party', async (req, res) => {
   try {
     
     
-    await db.query('ALTER TABLE politics_politicians ADD COLUMN IF NOT EXISTS party_name VARCHAR(100)');
-    await db.query(`UPDATE politics_politicians SET party_name = '더불어민주당' WHERE name = '이재명'`);
-    await db.query(`UPDATE politics_politicians SET party_name = '국민의힘' WHERE name IN ('한동훈', '안철수')`);
+    await db.pool.query('ALTER TABLE politics_politicians ADD COLUMN IF NOT EXISTS party_name VARCHAR(100)');
+    await db.pool.query(`UPDATE politics_politicians SET party_name = '더불어민주당' WHERE name = '이재명'`);
+    await db.pool.query(`UPDATE politics_politicians SET party_name = '국민의힘' WHERE name IN ('한동훈', '안철수')`);
     
     // NEW: Role migration
-    await db.query(`ALTER TABLE politics_politicians ADD COLUMN IF NOT EXISTS role_type VARCHAR(50) DEFAULT 'ASSEMBLY_MEMBER'`);
-    await db.query(`ALTER TABLE politics_annual_stats ADD COLUMN IF NOT EXISTS dynamic_metrics JSONB DEFAULT '{}'::jsonb`);
+    await db.pool.query(`ALTER TABLE politics_politicians ADD COLUMN IF NOT EXISTS role_type VARCHAR(50) DEFAULT 'ASSEMBLY_MEMBER'`);
+    await db.pool.query(`ALTER TABLE politics_annual_stats ADD COLUMN IF NOT EXISTS dynamic_metrics JSONB DEFAULT '{}'::jsonb`);
     
-    await db.query(`UPDATE politics_politicians SET role_type = 'EXTRA_PARLIAMENTARY' WHERE name = '한동훈'`);
+    await db.pool.query(`UPDATE politics_politicians SET role_type = 'EXTRA_PARLIAMENTARY' WHERE name = '한동훈'`);
     
-    const checkOh = await db.query(`SELECT id FROM politics_politicians WHERE name = '오세훈'`);
+    const checkOh = await db.pool.query(`SELECT id FROM politics_politicians WHERE name = '오세훈'`);
     let ohId;
     if (checkOh.rows.length > 0) {
       ohId = checkOh.rows[0].id;
-      await db.query(`UPDATE politics_politicians SET role_type = 'MAYOR' WHERE id = $1`, [ohId]);
+      await db.pool.query(`UPDATE politics_politicians SET role_type = 'MAYOR' WHERE id = $1`, [ohId]);
     } else {
-      const ohRes = await db.query(`
+      const ohRes = await db.pool.query(`
         INSERT INTO politics_politicians (id, name, profile_image_url, gender, party_name, namuwiki_url, role_type, created_at, updated_at)
         VALUES (gen_random_uuid(), '오세훈', 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Oh_Se-hoon_in_2021.jpg/500px-Oh_Se-hoon_in_2021.jpg', 'MALE', '국민의힘', 'https://namu.wiki/w/%EC%98%A4%EC%84%B8%ED%9B%88', 'MAYOR', NOW(), NOW())
         RETURNING id
@@ -84,17 +84,17 @@ router.get('/admin/migrate-party', async (req, res) => {
       ohId = ohRes.rows[0].id;
     }
     
-    const checkStats = await db.query(`SELECT 1 FROM politics_annual_stats WHERE politician_id = $1 AND record_year = 2026`, [ohId]);
+    const checkStats = await db.pool.query(`SELECT 1 FROM politics_annual_stats WHERE politician_id = $1 AND record_year = 2026`, [ohId]);
     if (checkStats.rows.length > 0) {
-      await db.query(`UPDATE politics_annual_stats SET buzz_index = 85 WHERE politician_id = $1 AND record_year = 2026`, [ohId]);
+      await db.pool.query(`UPDATE politics_annual_stats SET buzz_index = 85 WHERE politician_id = $1 AND record_year = 2026`, [ohId]);
     } else {
-      await db.query(`
+      await db.pool.query(`
         INSERT INTO politics_annual_stats (politician_id, record_year, declared_wealth, buzz_index, dynamic_metrics)
         VALUES ($1, 2026, 5900000000, 85, '{"admin_rating": 72, "budget_execution": 95, "presidential_support": 35}')
       `, [ohId]);
     }
     
-    await db.query(`
+    await db.pool.query(`
       UPDATE politics_annual_stats 
       SET dynamic_metrics = '{"party_control": 88, "presidential_support": 42}'
       WHERE politician_id = (SELECT id FROM politics_politicians WHERE name = '한동훈')
@@ -258,7 +258,7 @@ router.get('/ratings/:id', async (req, res) => {
     
     
     // Fetch the last 6 months of weekly trend data
-    const result = await db.query(`
+    const result = await db.pool.query(`
       SELECT record_date, buzz_score, approval_rating
       FROM politics_trends
       WHERE politician_id = $1
@@ -313,7 +313,7 @@ router.get('/ratings/party/:partyName', async (req, res) => {
     
     
     // Average trends for all politicians in the party
-    const result = await db.query(`
+    const result = await db.pool.query(`
       SELECT t.record_date, AVG(t.buzz_score) as buzz_score, AVG(t.approval_rating) as approval_rating
       FROM politics_trends t
       JOIN politics_politicians p ON t.politician_id = p.id
@@ -376,7 +376,7 @@ router.get('/comments', async (req, res) => {
     
     query += 'ORDER BY created_at DESC LIMIT 50';
     
-    const result = await db.query(query, params);
+    const result = await db.pool.query(query, params);
     
     
     res.json({ success: true, data: result.rows });
@@ -422,7 +422,7 @@ router.post('/comments', async (req, res) => {
       reason
     ];
     
-    const result = await db.query(query, params);
+    const result = await db.pool.query(query, params);
     
     
     res.json({ success: true, data: result.rows[0], message: toxic ? '관리자 검토 대상으로 분류되었습니다.' : '등록되었습니다.' });
@@ -440,7 +440,7 @@ router.put('/comments/:id', async (req, res) => {
     
     // Check permission
     const getQuery = 'SELECT password, user_id FROM politics_comments WHERE id = $1';
-    const getResult = await db.query(getQuery, [id]);
+    const getResult = await db.pool.query(getQuery, [id]);
     
     if (getResult.rows.length === 0) {
       
@@ -468,7 +468,7 @@ router.put('/comments/:id', async (req, res) => {
       RETURNING id, politician_id, party_name, user_name, content, created_at, user_id, is_toxic
     `;
     
-    const updateResult = await db.query(updateQuery, [content, id]);
+    const updateResult = await db.pool.query(updateQuery, [content, id]);
     
     
     res.json({ success: true, data: updateResult.rows[0], message: '수정되었습니다.' });
@@ -489,7 +489,7 @@ router.delete('/comments/:id', async (req, res) => {
     
     // Check permission
     const getQuery = 'SELECT password, user_id FROM politics_comments WHERE id = $1';
-    const getResult = await db.query(getQuery, [id]);
+    const getResult = await db.pool.query(getQuery, [id]);
     
     if (getResult.rows.length === 0) {
       
@@ -510,7 +510,7 @@ router.delete('/comments/:id', async (req, res) => {
       return res.status(403).json({ error: '삭제 권한이 없습니다. (비밀번호 불일치)' });
     }
     
-    await db.query('DELETE FROM politics_comments WHERE id = $1', [id]);
+    await db.pool.query('DELETE FROM politics_comments WHERE id = $1', [id]);
     
     
     res.json({ success: true, message: '삭제되었습니다.' });
@@ -522,7 +522,7 @@ router.delete('/comments/:id', async (req, res) => {
 router.get('/admin/cron-logs', async (req, res) => {
   try {
     
-    const result = await db.query('SELECT * FROM system_cron_logs ORDER BY created_at DESC LIMIT 10');
+    const result = await db.pool.query('SELECT * FROM system_cron_logs ORDER BY created_at DESC LIMIT 10');
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -534,7 +534,7 @@ router.get('/admin/cron-logs', async (req, res) => {
 router.post('/community/:id/like', async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await db.query('UPDATE politics_comments SET likes = COALESCE(likes, 0) + 1 WHERE id = $1 RETURNING likes', [id]);
+    const result = await db.pool.query('UPDATE politics_comments SET likes = COALESCE(likes, 0) + 1 WHERE id = $1 RETURNING likes', [id]);
     if (result.rows.length === 0) return res.status(404).json({ success: false, error: 'Comment not found' });
     res.json({ success: true, likes: result.rows[0].likes });
   } catch (err) {
@@ -546,7 +546,7 @@ router.post('/community/:id/like', async (req, res) => {
 router.post('/community/:id/dislike', async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await db.query('UPDATE politics_comments SET dislikes = COALESCE(dislikes, 0) + 1 WHERE id = $1 RETURNING dislikes', [id]);
+    const result = await db.pool.query('UPDATE politics_comments SET dislikes = COALESCE(dislikes, 0) + 1 WHERE id = $1 RETURNING dislikes', [id]);
     if (result.rows.length === 0) return res.status(404).json({ success: false, error: 'Comment not found' });
     res.json({ success: true, dislikes: result.rows[0].dislikes });
   } catch (err) {
@@ -562,7 +562,7 @@ router.post('/politician/:id/interaction', async (req, res) => {
     if (type !== 'like' && type !== 'dislike') return res.status(400).json({ success: false });
     
     const col = type === 'like' ? 'likes' : 'dislikes';
-    const result = await db.query(`UPDATE politics_politicians SET ${col} = COALESCE(${col}, 0) + 1 WHERE id = $1 RETURNING likes, dislikes`, [id]);
+    const result = await db.pool.query(`UPDATE politics_politicians SET ${col} = COALESCE(${col}, 0) + 1 WHERE id = $1 RETURNING likes, dislikes`, [id]);
     
     if (result.rows.length === 0) return res.status(404).json({ success: false, error: 'Not found' });
     res.json({ success: true, data: result.rows[0] });
@@ -581,7 +581,7 @@ router.post('/party/:name/interaction', async (req, res) => {
     const col = type === 'like' ? 'likes' : 'dislikes';
     
     // Upsert into politics_parties
-    const result = await db.query(`
+    const result = await db.pool.query(`
       INSERT INTO politics_parties (name, ${col}) 
       VALUES ($1, 1) 
       ON CONFLICT (name) 
@@ -598,7 +598,7 @@ router.post('/party/:name/interaction', async (req, res) => {
 // GET /api/services/politics/parties
 router.get('/parties', async (req, res) => {
   try {
-    const result = await db.query('SELECT name, likes, dislikes FROM politics_parties');
+    const result = await db.pool.query('SELECT name, likes, dislikes FROM politics_parties');
     res.json({ success: true, data: result.rows });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
