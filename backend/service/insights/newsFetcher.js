@@ -1,5 +1,5 @@
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args)).catch(() => global.fetch(...args));
-const { query } = require('../../core/db');
+const db = require('../../core/db');
 
 // Map categories to search keywords for Naver News API
 const CATEGORY_KEYWORDS = {
@@ -77,15 +77,16 @@ async function fetchAndStoreCandidates() {
     
     for (const article of articles) {
       // Check if it already exists to avoid duplicates
-      const exists = await query.get(
-        `SELECT id FROM public.insight_candidates WHERE category = ? AND title = ?`, 
+      const existsResult = await db.pool.query(
+        `SELECT id FROM public.insight_candidates WHERE category = $1 AND title = $2`, 
         [category, article.title]
       );
+      const exists = existsResult.rows.length > 0;
       
       if (!exists) {
-        await query.run(`
+        await db.pool.query(`
           INSERT INTO public.insight_candidates (category, title, link, pub_date, description)
-          VALUES (?, ?, ?, ?, ?)
+          VALUES ($1, $2, $3, $4, $5)
         `, [category, article.title, article.link, article.pubDate, article.description]);
         totalSaved++;
       }
