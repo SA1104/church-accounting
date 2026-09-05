@@ -531,24 +531,27 @@ router.get('/admin/cron-logs', async (req, res) => {
 
 
 // POST /api/services/politics/community/:id/like
-router.post('/community/:id/like', async (req, res) => {
+router.post('/community/:id/:type(like|dislike)', async (req, res) => {
   try {
-    const { id } = req.params;
-    const result = await db.pool.query('UPDATE politics_comments SET likes = COALESCE(likes, 0) + 1 WHERE id = $1 RETURNING likes', [id]);
+    const { id, type } = req.params;
+    const { action = 'increment' } = req.body;
+    
+    let query = '';
+    if (action === 'increment') {
+      const col = type === 'like' ? 'likes' : 'dislikes';
+      query = `UPDATE politics_comments SET ${col} = COALESCE(${col}, 0) + 1 WHERE id = $1 RETURNING likes, dislikes`;
+    } else if (action === 'decrement') {
+      const col = type === 'like' ? 'likes' : 'dislikes';
+      query = `UPDATE politics_comments SET ${col} = GREATEST(COALESCE(${col}, 0) - 1, 0) WHERE id = $1 RETURNING likes, dislikes`;
+    } else if (action === 'switch') {
+      const colInc = type === 'like' ? 'likes' : 'dislikes';
+      const colDec = type === 'like' ? 'dislikes' : 'likes';
+      query = `UPDATE politics_comments SET ${colInc} = COALESCE(${colInc}, 0) + 1, ${colDec} = GREATEST(COALESCE(${colDec}, 0) - 1, 0) WHERE id = $1 RETURNING likes, dislikes`;
+    }
+    
+    const result = await db.pool.query(query, [id]);
     if (result.rows.length === 0) return res.status(404).json({ success: false, error: 'Comment not found' });
-    res.json({ success: true, likes: result.rows[0].likes });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// POST /api/services/politics/community/:id/dislike
-router.post('/community/:id/dislike', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await db.pool.query('UPDATE politics_comments SET dislikes = COALESCE(dislikes, 0) + 1 WHERE id = $1 RETURNING dislikes', [id]);
-    if (result.rows.length === 0) return res.status(404).json({ success: false, error: 'Comment not found' });
-    res.json({ success: true, dislikes: result.rows[0].dislikes });
+    res.json({ success: true, likes: result.rows[0].likes, dislikes: result.rows[0].dislikes });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -558,11 +561,23 @@ router.post('/community/:id/dislike', async (req, res) => {
 router.post('/politician/:id/interaction', async (req, res) => {
   try {
     const { id } = req.params;
-    const { type } = req.body; // 'like' or 'dislike'
+    const { type, action = 'increment', previousInteraction } = req.body; // type is the NEW interaction ('like' or 'dislike')
     if (type !== 'like' && type !== 'dislike') return res.status(400).json({ success: false });
     
-    const col = type === 'like' ? 'likes' : 'dislikes';
-    const result = await db.pool.query(`UPDATE politics_politicians SET ${col} = COALESCE(${col}, 0) + 1 WHERE id = $1 RETURNING likes, dislikes`, [id]);
+    let query = '';
+    if (action === 'increment') {
+      const col = type === 'like' ? 'likes' : 'dislikes';
+      query = `UPDATE politics_politicians SET ${col} = COALESCE(${col}, 0) + 1 WHERE id = $1 RETURNING likes, dislikes`;
+    } else if (action === 'decrement') {
+      const col = type === 'like' ? 'likes' : 'dislikes';
+      query = `UPDATE politics_politicians SET ${col} = GREATEST(COALESCE(${col}, 0) - 1, 0) WHERE id = $1 RETURNING likes, dislikes`;
+    } else if (action === 'switch') {
+      const colInc = type === 'like' ? 'likes' : 'dislikes';
+      const colDec = type === 'like' ? 'dislikes' : 'likes';
+      query = `UPDATE politics_politicians SET ${colInc} = COALESCE(${colInc}, 0) + 1, ${colDec} = GREATEST(COALESCE(${colDec}, 0) - 1, 0) WHERE id = $1 RETURNING likes, dislikes`;
+    }
+    
+    const result = await db.pool.query(query, [id]);
     
     if (result.rows.length === 0) return res.status(404).json({ success: false, error: 'Not found' });
     res.json({ success: true, data: result.rows[0] });
@@ -575,19 +590,23 @@ router.post('/politician/:id/interaction', async (req, res) => {
 router.post('/party/:name/interaction', async (req, res) => {
   try {
     const { name } = req.params;
-    const { type } = req.body; // 'like' or 'dislike'
+    const { type, action = 'increment', previousInteraction } = req.body; // type is the NEW interaction ('like' or 'dislike')
     if (type !== 'like' && type !== 'dislike') return res.status(400).json({ success: false });
     
-    const col = type === 'like' ? 'likes' : 'dislikes';
+    let query = '';
+    if (action === 'increment') {
+      const col = type === 'like' ? 'likes' : 'dislikes';
+      query = `INSERT INTO politics_parties (name, ${col}) VALUES ($1, 1) ON CONFLICT (name) DO UPDATE SET ${col} = politics_parties.${col} + 1 RETURNING likes, dislikes`;
+    } else if (action === 'decrement') {
+      const col = type === 'like' ? 'likes' : 'dislikes';
+      query = `UPDATE politics_parties SET ${col} = GREATEST(COALESCE(${col}, 0) - 1, 0) WHERE name = $1 RETURNING likes, dislikes`;
+    } else if (action === 'switch') {
+      const colInc = type === 'like' ? 'likes' : 'dislikes';
+      const colDec = type === 'like' ? 'dislikes' : 'likes';
+      query = `UPDATE politics_parties SET ${colInc} = COALESCE(${colInc}, 0) + 1, ${colDec} = GREATEST(COALESCE(${colDec}, 0) - 1, 0) WHERE name = $1 RETURNING likes, dislikes`;
+    }
     
-    // Upsert into politics_parties
-    const result = await db.pool.query(`
-      INSERT INTO politics_parties (name, ${col}) 
-      VALUES ($1, 1) 
-      ON CONFLICT (name) 
-      DO UPDATE SET ${col} = politics_parties.${col} + 1 
-      RETURNING likes, dislikes
-    `, [name]);
+    const result = await db.pool.query(query, [name]);
     
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
