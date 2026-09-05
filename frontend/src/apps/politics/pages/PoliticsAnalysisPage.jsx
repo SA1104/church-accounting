@@ -221,11 +221,11 @@ export default function PoliticsAnalysisPage() {
 
   const getPolChartData = (pA, pB) => {
     return [
-      { subject: '도덕성/청렴', A: pA?.dynamic_metrics?.morality_index || 70, B: pB?.dynamic_metrics?.morality_index || 70, id: 'morality_index', fullMark: 100 },
-      { subject: '대권잠재력', A: pA?.stats?.approval || 50, B: pB?.stats?.approval || 50, id: 'approval', fullMark: 100 }, // Shortened label
+      { subject: '도덕성/청렴', A: pA?.stats?.pledge || pA?.dynamic_metrics?.morality_index || 70, B: pB?.stats?.pledge || pB?.dynamic_metrics?.morality_index || 70, id: 'morality_index', fullMark: 100 },
+      { subject: '대권잠재력', A: pA?.stats?.approval || 50, B: pB?.stats?.approval || 50, id: 'approval', fullMark: 100 },
       { subject: '세대별 소구력', A: pA?.dynamic_metrics?.voter_expansion || 60, B: pB?.dynamic_metrics?.voter_expansion || 60, id: 'voter_expansion', fullMark: 100 },
       { subject: '입법/행정', A: pA?.stats?.attendance || 85, B: pB?.stats?.attendance || 85, id: 'attendance', fullMark: 100 },
-      { subject: '화제성(SNS)', A: pA?.dynamic_metrics?.sns_power || 50, B: pB?.dynamic_metrics?.sns_power || 50, id: 'sns_power', fullMark: 100 },
+      { subject: '화제성(SNS)', A: pA?.stats?.buzz || pA?.dynamic_metrics?.sns_power || 50, B: pB?.stats?.buzz || pB?.dynamic_metrics?.sns_power || 50, id: 'sns_power', fullMark: 100 },
     ];
   };
 
@@ -238,6 +238,8 @@ export default function PoliticsAnalysisPage() {
         let val;
         if (keyPath === 'approval') val = m.stats?.approval;
         else if (keyPath === 'attendance') val = m.stats?.attendance;
+        else if (keyPath === 'sns_power') val = m.stats?.buzz || m.dynamic_metrics?.sns_power;
+        else if (keyPath === 'morality_index') val = m.stats?.pledge || m.dynamic_metrics?.morality_index;
         else val = m.dynamic_metrics?.[keyPath];
         if (val !== undefined && val !== null) {
           sum += val;
