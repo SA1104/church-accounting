@@ -74,7 +74,8 @@ async function processMembers(members) {
       const party = m.PLPT_NM || m.POLY_NM; // 정당
       const rawGender = m.NTR_DIV || m.SEX_GBN_NM;
       const gender = rawGender === '여' ? 'FEMALE' : 'MALE';
-      const birthDate = m.BIRDY_DT || m.BTH_DATE || '1970-01-01'; // Fallback if API misses it
+      let birthDate = m.BIRDY_DT || m.BTH_DATE || '1970-01-01'; // Fallback if API misses it
+      if (birthDate.includes('-00')) birthDate = '1970-01-01';
       
       const photoUrl = m.NAAS_PIC || (m.MONA_CD ? `https://www.assembly.go.kr/photo/${m.MONA_CD}.jpg` : `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=200`);
         
