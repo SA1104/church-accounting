@@ -296,7 +296,13 @@ export default function SystemHealthDashboard() {
                       <tbody className="divide-y divide-slate-800 text-slate-300">
                         {drawerData.slice((drawerPage - 1) * 20, drawerPage * 20).map(p => (
                           <tr key={p.id}>
-                            <td className="p-2 font-medium">{p.name}</td>
+                            <td className="p-2 font-medium">
+                              {p.namuwiki_url ? (
+                                <a href={p.namuwiki_url} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">
+                                  {p.name} 🔗
+                                </a>
+                              ) : p.name}
+                            </td>
                             <td className="p-2 text-xs">{p.party_name}</td>
                             <td className="p-2">{p.has_birth ? '✅' : '❌'}</td>
                             <td className="p-2">{p.has_image ? '✅' : '❌'}</td>

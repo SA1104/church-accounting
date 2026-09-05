@@ -1,0 +1,1 @@
+const { Pool } = require('pg'); require('dotenv').config({path: 'backend/.env.development'}); const pool = new Pool({ connectionString: process.env.DATABASE_URL }); pool.query('SELECT name, has_image FROM (SELECT name, profile_image_url NOT LIKE \'%wikipedia%\' as has_image FROM politics_politicians) sub LIMIT 3').then(r => { console.log(r.rows); pool.end(); });

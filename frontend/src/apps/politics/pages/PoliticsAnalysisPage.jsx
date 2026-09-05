@@ -360,7 +360,9 @@ export default function PoliticsAnalysisPage() {
                 polA ? (
                   <div className="flex flex-col items-center">
                     <img src={polA.imageUrl} alt={polA.name} className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 mb-4 bg-white" style={{ borderColor: colorA }} />
-                    <h3 className="text-xl font-bold text-white">{polA.name}</h3>
+                    <h3 className="text-xl font-bold text-white">
+                      {polA.namuwikiUrl ? <a href={polA.namuwikiUrl} target="_blank" rel="noreferrer" className="hover:underline">{polA.name}</a> : polA.name}
+                    </h3>
                     <div className="flex gap-2 mt-2 mb-4">
                       <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ backgroundColor: `${colorA}33`, color: colorA }}>{polA.party || '무소속'}</span>
                       <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-600">{polA.role_type === 'MAYOR' ? '지자체장' : polA.role_type === 'EXTRA_PARLIAMENTARY' ? '원외인사' : '국회의원'}</span>
@@ -436,7 +438,9 @@ export default function PoliticsAnalysisPage() {
                 polB ? (
                   <div className="flex flex-col items-center">
                     <img src={polB.imageUrl} alt={polB.name} className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 mb-4 bg-white" style={{ borderColor: colorB, borderStyle: isSameParty ? 'dashed' : 'solid' }} />
-                    <h3 className="text-xl font-bold text-white">{polB.name}</h3>
+                    <h3 className="text-xl font-bold text-white">
+                      {polB.namuwikiUrl ? <a href={polB.namuwikiUrl} target="_blank" rel="noreferrer" className="hover:underline">{polB.name}</a> : polB.name}
+                    </h3>
                     <div className="flex gap-2 mt-2 mb-4">
                       <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ backgroundColor: `${colorB}33`, color: colorB }}>{polB.party || '무소속'}</span>
                       <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-600">{polB.role_type === 'MAYOR' ? '지자체장' : polB.role_type === 'EXTRA_PARLIAMENTARY' ? '원외인사' : '국회의원'}</span>

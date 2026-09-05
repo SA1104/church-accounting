@@ -32,6 +32,17 @@ const CommentsPanel = ({ entity, entityType, color }) => {
     fetchComments();
   }, [entity]);
 
+  const handleInteraction = async (commentId, type) => {
+    try {
+      const data = await apiClient(`/api/services/politics/community/${commentId}/${type}`, { method: 'POST' });
+      if (data?.success) {
+        setComments(prev => prev.map(c => c.id === commentId ? { ...c, [type + 's']: data[type + 's'] } : c));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!newComment.trim() || !entity) return;
@@ -137,7 +148,15 @@ const CommentsPanel = ({ entity, entityType, color }) => {
                   <button onClick={() => { setActionModal({ type: 'delete', comment: c }); setActionPassword(''); }} className="text-[10px] text-red-400 hover:text-red-300">삭제</button>
                 </div>
               </div>
-              <p className="text-sm text-slate-200 whitespace-pre-wrap">{c.content}</p>
+              <p className="text-sm text-slate-200 whitespace-pre-wrap mb-2">{c.content}</p>
+              <div className="flex justify-end gap-2 mt-1">
+                <button onClick={() => handleInteraction(c.id, 'like')} className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-indigo-400 transition-colors">
+                  👍 {c.likes || 0}
+                </button>
+                <button onClick={() => handleInteraction(c.id, 'dislike')} className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-red-400 transition-colors">
+                  👎 {c.dislikes || 0}
+                </button>
+              </div>
             </div>
           ))
         )}
