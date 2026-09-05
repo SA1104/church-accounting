@@ -52,13 +52,13 @@ async function runFallbackSync() {
   const dummies = [];
   
   // Keep the original specific dummies first
-  dummies.push({ HG_NM: '안철수', POLY_NM: '국민의힘', ORIG_NM: '성남시분당구갑', SEX_GBN_NM: '남', role_type: 'ASSEMBLY_MEMBER' });
-  dummies.push({ HG_NM: '이재명', POLY_NM: '더불어민주당', ORIG_NM: '인천 계양구을', SEX_GBN_NM: '남', role_type: 'ASSEMBLY_MEMBER' });
-  dummies.push({ HG_NM: '조국', POLY_NM: '조국혁신당', ORIG_NM: '비례대표', SEX_GBN_NM: '남', role_type: 'ASSEMBLY_MEMBER' });
-  dummies.push({ HG_NM: '이준석', POLY_NM: '개혁신당', ORIG_NM: '경기 화성시을', SEX_GBN_NM: '남', role_type: 'ASSEMBLY_MEMBER' });
-  dummies.push({ HG_NM: '오세훈', POLY_NM: '국민의힘', ORIG_NM: '서울특별시장', SEX_GBN_NM: '남', role_type: 'MAYOR' });
-  dummies.push({ HG_NM: '김동연', POLY_NM: '더불어민주당', ORIG_NM: '경기도지사', SEX_GBN_NM: '남', role_type: 'MAYOR' });
-  dummies.push({ HG_NM: '한동훈', POLY_NM: '국민의힘', ORIG_NM: '원외', SEX_GBN_NM: '남', role_type: 'EXTRA_PARLIAMENTARY' });
+  dummies.push({ HG_NM: '안철수', POLY_NM: '국민의힘', ORIG_NM: '성남시분당구갑', SEX_GBN_NM: '남', role_type: 'ASSEMBLY_MEMBER', BTH_DATE: '1962-02-26', MONA_CD: '9771196' });
+  dummies.push({ HG_NM: '이재명', POLY_NM: '더불어민주당', ORIG_NM: '인천 계양구을', SEX_GBN_NM: '남', role_type: 'ASSEMBLY_MEMBER', BTH_DATE: '1964-12-22', MONA_CD: '9771235' });
+  dummies.push({ HG_NM: '조국', POLY_NM: '조국혁신당', ORIG_NM: '비례대표', SEX_GBN_NM: '남', role_type: 'ASSEMBLY_MEMBER', BTH_DATE: '1965-04-06' });
+  dummies.push({ HG_NM: '이준석', POLY_NM: '개혁신당', ORIG_NM: '경기 화성시을', SEX_GBN_NM: '남', role_type: 'ASSEMBLY_MEMBER', BTH_DATE: '1985-03-31', MONA_CD: '9771286' });
+  dummies.push({ HG_NM: '오세훈', POLY_NM: '국민의힘', ORIG_NM: '서울특별시장', SEX_GBN_NM: '남', role_type: 'MAYOR', BTH_DATE: '1961-01-04' });
+  dummies.push({ HG_NM: '김동연', POLY_NM: '더불어민주당', ORIG_NM: '경기도지사', SEX_GBN_NM: '남', role_type: 'MAYOR', BTH_DATE: '1957-01-28' });
+  dummies.push({ HG_NM: '한동훈', POLY_NM: '국민의힘', ORIG_NM: '원외', SEX_GBN_NM: '남', role_type: 'EXTRA_PARLIAMENTARY', BTH_DATE: '1973-04-09' });
 
   // Generate the rest
   for(let i=0; i<43; i++) {
@@ -71,7 +71,8 @@ async function runFallbackSync() {
       POLY_NM: party,
       ORIG_NM: role === 'MAYOR' ? '지자체장' : (role === 'EXTRA_PARLIAMENTARY' ? '원외' : '지역구'),
       SEX_GBN_NM: Math.random() > 0.5 ? '남' : '여',
-      role_type: role
+      role_type: role,
+      BTH_DATE: `19${Math.floor(Math.random() * 30 + 50)}-0${Math.floor(Math.random() * 9 + 1)}-15`
     });
   }
 
@@ -88,20 +89,24 @@ async function processMembers(members) {
       const name = m.HG_NM; // 이름
       const party = m.POLY_NM; // 정당
       const gender = m.SEX_GBN_NM === '여' ? 'FEMALE' : 'MALE';
+      const birthDate = m.BTH_DATE || '1970-01-01'; // Fallback if API misses it
       
-      // We use Wikipedia default image if we don't scrape it individually
-      const defaultImage = `https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/User_icon_2.svg/200px-User_icon_2.svg.png`;
+      // If we have MONA_CD from API, we can get official photo, otherwise fallback
+      const photoUrl = m.MONA_CD 
+        ? `https://www.assembly.go.kr/photo/${m.MONA_CD}.jpg` 
+        : `https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/User_icon_2.svg/200px-User_icon_2.svg.png`;
+        
       const namuwikiUrl = `https://namu.wiki/w/${encodeURIComponent(name)}`;
       
       // Upsert into politics_politicians
       const insertQuery = `
-        INSERT INTO politics_politicians (id, name, profile_image_url, gender, party_name, namuwiki_url, created_at, updated_at)
-        VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, NOW(), NOW())
+        INSERT INTO politics_politicians (id, name, profile_image_url, gender, party_name, birth_date, namuwiki_url, created_at, updated_at)
+        VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, NOW(), NOW())
         ON CONFLICT (name) DO UPDATE 
-        SET party_name = $4, updated_at = NOW()
+        SET party_name = $4, birth_date = $5, profile_image_url = $2, updated_at = NOW()
         RETURNING id
       `;
-      const res = await client.query(insertQuery, [name, defaultImage, gender, party, namuwikiUrl]);
+      const res = await client.query(insertQuery, [name, photoUrl, gender, party, birthDate, namuwikiUrl]);
       const politicianId = res.rows[0].id;
       
       // Upsert into politics_annual_stats (Generate some random stats for now since we don't have wealth/attendance API yet)
