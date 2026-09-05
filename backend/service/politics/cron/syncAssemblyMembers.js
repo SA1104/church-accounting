@@ -60,22 +60,6 @@ async function runFallbackSync() {
   dummies.push({ HG_NM: '김동연', POLY_NM: '더불어민주당', ORIG_NM: '경기도지사', SEX_GBN_NM: '남', role_type: 'MAYOR', BTH_DATE: '1957-01-28' });
   dummies.push({ HG_NM: '한동훈', POLY_NM: '국민의힘', ORIG_NM: '원외', SEX_GBN_NM: '남', role_type: 'EXTRA_PARLIAMENTARY', BTH_DATE: '1973-04-09' });
 
-  // Generate the rest
-  for(let i=0; i<43; i++) {
-    const fn = firstNames[Math.floor(Math.random() * firstNames.length)];
-    const ln = lastNames[Math.floor(Math.random() * lastNames.length)];
-    const party = parties[Math.floor(Math.random() * parties.length)];
-    const role = roles[Math.floor(Math.random() * roles.length)];
-    dummies.push({
-      HG_NM: fn + ln,
-      POLY_NM: party,
-      ORIG_NM: role === 'MAYOR' ? '지자체장' : (role === 'EXTRA_PARLIAMENTARY' ? '원외' : '지역구'),
-      SEX_GBN_NM: Math.random() > 0.5 ? '남' : '여',
-      role_type: role,
-      BTH_DATE: `19${Math.floor(Math.random() * 30 + 50)}-0${Math.floor(Math.random() * 9 + 1)}-15`
-    });
-  }
-
   await processMembers(dummies);
 }
 
