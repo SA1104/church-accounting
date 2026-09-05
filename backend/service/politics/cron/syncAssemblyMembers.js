@@ -94,7 +94,7 @@ async function processMembers(members) {
       // If we have MONA_CD from API, we can get official photo, otherwise fallback
       const photoUrl = m.MONA_CD 
         ? `https://www.assembly.go.kr/photo/${m.MONA_CD}.jpg` 
-        : `https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/User_icon_2.svg/200px-User_icon_2.svg.png`;
+        : `https://ui-avatars.com/api/?name=${encodeURIComponent(m.HG_NM)}&background=random&color=fff&size=200`;
         
       const namuwikiUrl = `https://namu.wiki/w/${encodeURIComponent(name)}`;
       
