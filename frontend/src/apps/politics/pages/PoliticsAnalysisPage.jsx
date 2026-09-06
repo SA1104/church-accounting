@@ -416,7 +416,7 @@ export default function PoliticsAnalysisPage() {
               {viewMode === 'politician' ? (
                 polA ? (
                   <div className="flex flex-col items-center">
-                    <img src={polA.imageUrl} alt={polA.name} className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 mb-4 bg-white" style={{ borderColor: colorA }} />
+                    <img src={polA.imageUrl} alt={polA.name} className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 mb-4 bg-white" style={{ borderColor: colorA }} onError={(e) => { e.target.onerror = null; e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(polA.name) + '&background=random'; }} />
                     <h3 className="text-xl font-bold text-white">
                       {polA.namuwikiUrl ? <a href={polA.namuwikiUrl} target="_blank" rel="noreferrer" className="hover:underline">{polA.name}</a> : polA.name}
                     </h3>
@@ -502,7 +502,7 @@ export default function PoliticsAnalysisPage() {
               {viewMode === 'politician' ? (
                 polB ? (
                   <div className="flex flex-col items-center">
-                    <img src={polB.imageUrl} alt={polB.name} className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 mb-4 bg-white" style={{ borderColor: colorB, borderStyle: isSameParty ? 'dashed' : 'solid' }} />
+                    <img src={polB.imageUrl} alt={polB.name} className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 mb-4 bg-white" style={{ borderColor: colorB, borderStyle: isSameParty ? 'dashed' : 'solid' }} onError={(e) => { e.target.onerror = null; e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(polB.name) + '&background=random'; }} />
                     <h3 className="text-xl font-bold text-white">
                       {polB.namuwikiUrl ? <a href={polB.namuwikiUrl} target="_blank" rel="noreferrer" className="hover:underline">{polB.name}</a> : polB.name}
                     </h3>

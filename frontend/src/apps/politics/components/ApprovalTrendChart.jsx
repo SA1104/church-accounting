@@ -17,15 +17,15 @@ const ApprovalTrendChart = ({ entityA, entityB, colorA, colorB, isSameParty }) =
           const urlA = entityA.members 
             ? '/api/services/politics/ratings/party/' + encodeURIComponent(entityA.name)
             : '/api/services/politics/ratings/' + entityA.id;
-          const resA = await apiClient.get(urlA);
-          if (resA.data?.success) resultsA = resA.data.data;
+          const dataA = await apiClient(urlA);
+          if (dataA?.success) resultsA = dataA.data;
         }
         if (entityB) {
           const urlB = entityB.members 
             ? '/api/services/politics/ratings/party/' + encodeURIComponent(entityB.name)
             : '/api/services/politics/ratings/' + entityB.id;
-          const resB = await apiClient.get(urlB);
-          if (resB.data?.success) resultsB = resB.data.data;
+          const dataB = await apiClient(urlB);
+          if (dataB?.success) resultsB = dataB.data;
         }
         setDataA(resultsA);
         setDataB(resultsB);
