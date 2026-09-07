@@ -224,7 +224,7 @@ export default function PoliticsAnalysisPage() {
       { subject: '도덕성/청렴', A: pA?.stats?.pledge || pA?.dynamic_metrics?.morality_index || 70, B: pB?.stats?.pledge || pB?.dynamic_metrics?.morality_index || 70, id: 'morality_index', fullMark: 100 },
       { subject: '대권잠재력', A: pA?.stats?.approval || 50, B: pB?.stats?.approval || 50, id: 'approval', fullMark: 100 },
       { subject: '세대별 소구력', A: pA?.dynamic_metrics?.voter_expansion || 60, B: pB?.dynamic_metrics?.voter_expansion || 60, id: 'voter_expansion', fullMark: 100 },
-      { subject: '입법/행정', A: pA?.stats?.attendance || 85, B: pB?.stats?.attendance || 85, id: 'attendance', fullMark: 100 },
+      { subject: '입법 참여도', A: pA?.stats?.attendance || 85, B: pB?.stats?.attendance || 85, id: 'attendance', fullMark: 100 },
       { subject: '화제성(SNS)', A: pA?.stats?.buzz || pA?.dynamic_metrics?.sns_power || 50, B: pB?.stats?.buzz || pB?.dynamic_metrics?.sns_power || 50, id: 'sns_power', fullMark: 100 },
     ];
   };
@@ -253,7 +253,7 @@ export default function PoliticsAnalysisPage() {
       { subject: '도덕성/청렴', A: calcAvg(pA, 'morality_index'), B: calcAvg(pB, 'morality_index'), id: 'morality_index', fullMark: 100 },
       { subject: '대권잠재력', A: calcAvg(pA, 'approval'), B: calcAvg(pB, 'approval'), id: 'approval', fullMark: 100 },
       { subject: '세대별 소구력', A: calcAvg(pA, 'voter_expansion'), B: calcAvg(pB, 'voter_expansion'), id: 'voter_expansion', fullMark: 100 },
-      { subject: '입법/행정', A: calcAvg(pA, 'attendance'), B: calcAvg(pB, 'attendance'), id: 'attendance', fullMark: 100 },
+      { subject: '입법 참여도', A: calcAvg(pA, 'attendance'), B: calcAvg(pB, 'attendance'), id: 'attendance', fullMark: 100 },
       { subject: '화제성(SNS)', A: calcAvg(pA, 'sns_power'), B: calcAvg(pB, 'sns_power'), id: 'sns_power', fullMark: 100 },
     ];
   };
