@@ -1,7 +1,7 @@
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args)).catch(() => global.fetch(...args));
 const db = require('../../core/db');
 
-// Map categories to search keywords for Naver News API
+// Map categories to search keywords for Google News RSS
 const CATEGORY_KEYWORDS = {
   'stock': '주식 시장',
   'real_estate': '부동산 시장',
@@ -9,58 +9,45 @@ const CATEGORY_KEYWORDS = {
   'politics': '정치 정책'
 };
 
-async function fetchNaverNewsAPI(keyword) {
-  const clientId = process.env.NAVER_CLIENT_ID;
-  const clientSecret = process.env.NAVER_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    console.error('[News Fetcher] NAVER_CLIENT_ID or NAVER_CLIENT_SECRET is missing!');
-    return [];
-  }
-
+async function fetchGoogleNewsRSS(keyword) {
   try {
-    const encodedKeyword = encodeURIComponent(keyword);
-    let url = `https://openapi.naver.com/v1/search/news.json?query=${encodedKeyword}&display=20&sort=date`;
+    const encodedKeyword = encodeURIComponent(keyword + ' when:1d');
+    const url = `https://news.google.com/rss/search?q=${encodedKeyword}&hl=ko&gl=KR&ceid=KR:ko`;
     
-    // NCP API HUB typically uses these headers even for legacy APIs, or the legacy ones.
-    // We try the standard X-Naver-Client-Id first, if 401, we fallback to X-NCP-APIGW headers.
-    let res = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'X-Naver-Client-Id': clientId,
-        'X-Naver-Client-Secret': clientSecret
-      }
-    });
-
-    if (res.status === 401) {
-      console.log('[News Fetcher] X-Naver-Client-Id failed with 401. Trying NCP API HUB...');
-      const ncpUrl = `https://naverapihub.apigw.ntruss.com/search/v1/news?query=${encodedKeyword}&display=20&sort=date`;
-      res = await fetch(ncpUrl, {
-        method: 'GET',
-        headers: {
-          'X-NCP-APIGW-API-KEY-ID': clientId,
-          'X-NCP-APIGW-API-KEY': clientSecret
-        }
-      });
-    }
-
+    const res = await fetch(url);
     if (!res.ok) {
-      const errorText = await res.text();
-      console.error(`[News Fetcher] Naver API Error: ${res.status} - ${errorText}`);
+      console.error(`[News Fetcher] Google RSS Error: ${res.status}`);
       return [];
     }
 
-    const data = await res.json();
+    const text = await res.text();
+    const items = [];
+    const regex = /<item>([\s\S]*?)<\/item>/g;
+    let match;
     
-    // Naver News items have: title, originallink, link, description, pubDate
-    const items = data.items.map(item => ({
-      title: item.title.replace(/<[^>]*>?/gm, '').trim(), // strip HTML tags (Naver returns <b> tags for match)
-      link: item.link,
-      pubDate: new Date(item.pubDate),
-      description: item.description.replace(/<[^>]*>?/gm, '').trim()
-    }));
+    while ((match = regex.exec(text)) !== null) {
+      const itemXml = match[1];
+      const title = itemXml.match(/<title>([^<]+)<\/title>/)?.[1];
+      const link = itemXml.match(/<link>([^<]+)<\/link>/)?.[1];
+      const pubDate = itemXml.match(/<pubDate>([^<]+)<\/pubDate>/)?.[1];
+      let desc = itemXml.match(/<description>([\s\S]*?)<\/description>/)?.[1] || '';
+      
+      // Clean HTML from title and description
+      const cleanTitle = title ? title.replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/<[^>]*>?/gm, '').trim() : '';
+      const cleanDesc = desc ? desc.replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/<[^>]*>?/gm, '').trim() : '';
+      
+      if (cleanTitle && link) {
+        items.push({
+          title: cleanTitle,
+          link,
+          pubDate: new Date(pubDate || Date.now()),
+          description: cleanDesc
+        });
+      }
+    }
     
-    return items;
+    // Google returns many, limit to 20 like Naver did
+    return items.slice(0, 20);
   } catch (err) {
     console.error(`[News Fetcher] Failed to fetch news for ${keyword}:`, err);
     return [];
@@ -68,12 +55,12 @@ async function fetchNaverNewsAPI(keyword) {
 }
 
 async function fetchAndStoreCandidates() {
-  console.log('[News Fetcher] Starting to fetch news candidates from Naver...');
+  console.log('[News Fetcher] Starting to fetch news candidates from Google RSS...');
   let totalSaved = 0;
   
   for (const [category, keyword] of Object.entries(CATEGORY_KEYWORDS)) {
     console.log(`[News Fetcher] Fetching candidates for ${category}...`);
-    const articles = await fetchNaverNewsAPI(keyword);
+    const articles = await fetchGoogleNewsRSS(keyword);
     
     for (const article of articles) {
       // Check if it already exists to avoid duplicates
