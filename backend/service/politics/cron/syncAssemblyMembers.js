@@ -85,7 +85,10 @@ async function processMembers(members) {
     for (const m of members) {
       // Map API fields to DB columns (handles both ALLNAMEMBER and fallback formats)
       const name = m.NAAS_NM || m.HG_NM; // 이름
-      const party = m.PLPT_NM || m.POLY_NM; // 정당
+      let rawParty = m.PLPT_NM || m.POLY_NM || '무소속';
+      let party = rawParty.split('/').pop().trim(); // Take the most recent party
+      if (party === '국민의미래') party = '국민의힘';
+      if (party === '더불어민주연합') party = '더불어민주당';
       const rawGender = m.NTR_DIV || m.SEX_GBN_NM;
       const gender = rawGender === '여' ? 'FEMALE' : 'MALE';
       let birthDate = (m.BIRDY_DT || m.BTH_DATE || '1970-01-01').trim();
