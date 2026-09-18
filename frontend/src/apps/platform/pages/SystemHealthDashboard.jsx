@@ -240,6 +240,9 @@ export default function SystemHealthDashboard() {
                 <input type="checkbox" checked={selectedIds.has(c.id)} readOnly className="mt-1 h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-600 bg-slate-900" />
                 <div>
                   <h3 className="font-semibold text-slate-200">{c.title}</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs font-mono text-purple-400 bg-purple-900/30 px-1.5 py-0.5 rounded border border-purple-800">{new Date(c.pub_date || c.created_at).toLocaleString('ko-KR')}</span>
+                  </div>
                   <p className="text-xs text-slate-400 mt-1 line-clamp-2">{c.description}</p>
                   <a href={c.link} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="text-xs text-blue-400 hover:underline mt-2 inline-block">View Source</a>
                 </div>
