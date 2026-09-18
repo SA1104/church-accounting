@@ -19,18 +19,32 @@ async function syncAssemblyMembers() {
   }
 
   try {
-    // API endpoint for 22nd National Assembly members
-    const url = `https://open.assembly.go.kr/portal/openapi/ALLNAMEMBER?KEY=${apiKey}&Type=json&pIndex=1&pSize=300`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`API Error: ${response.status}`);
-    const data = await response.json();
-    
-    if (!data.ALLNAMEMBER || !data.ALLNAMEMBER[1]) {
-      throw new Error('Unexpected API response format');
+    let members = [];
+    let pIndex = 1;
+    let keepFetching = true;
+
+    while (keepFetching) {
+      const url = `https://open.assembly.go.kr/portal/openapi/ALLNAMEMBER?KEY=${apiKey}&Type=json&pIndex=${pIndex}&pSize=1000`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`API Error: ${response.status}`);
+      const data = await response.json();
+      
+      if (!data.ALLNAMEMBER || !data.ALLNAMEMBER[1] || !data.ALLNAMEMBER[1].row) {
+        break;
+      }
+      
+      const rows = data.ALLNAMEMBER[1].row;
+      if (rows.length === 0) break;
+      
+      // Filter for 22nd assembly members only
+      const currentMembers = rows.filter(m => m.GTELT_ERACO && m.GTELT_ERACO.includes('제22대'));
+      members = members.concat(currentMembers);
+      
+      if (rows.length < 1000) keepFetching = false;
+      pIndex++;
     }
-    
-    const members = data.ALLNAMEMBER[1].row;
-    console.log(`[Cron:Politics] Fetched ${members.length} members from National Assembly API.`);
+
+    console.log(`[Cron:Politics] Fetched ${members.length} current (22nd) members from National Assembly API.`);
     await processMembers(members);
     await logCronExecution('sync_assembly_members', 'SUCCESS', `Synced ${members.length} members`, Date.now() - startTime);
   } catch (error) {
