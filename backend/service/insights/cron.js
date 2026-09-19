@@ -86,7 +86,7 @@ async function runAutoPilotFallback() {
         // Fetch up to 10 unused candidates
         const candidatesRes = await query.all(`
           SELECT id FROM public.insight_candidates 
-          WHERE category = ? AND is_used = false 
+          WHERE category = ? AND is_used = false AND pub_date >= NOW() - INTERVAL '3 days'
           ORDER BY created_at DESC 
           LIMIT 10
         `, [category]);

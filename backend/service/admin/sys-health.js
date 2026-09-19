@@ -172,7 +172,7 @@ router.get('/metrics', async (req, res) => {
 router.get('/candidates', async (req, res) => {
   const { category } = req.query;
   try {
-    let sql = `SELECT id, category, title, link, pub_date, description, is_used, created_at FROM insight_candidates WHERE is_used = false`;
+    let sql = `SELECT id, category, title, link, pub_date, description, is_used, created_at FROM insight_candidates WHERE is_used = false AND pub_date >= NOW() - INTERVAL '3 days'`;
     const params = [];
     if (category) {
       sql += ` AND category = $1`;
