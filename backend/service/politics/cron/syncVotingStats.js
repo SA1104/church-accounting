@@ -94,6 +94,23 @@ async function syncVotingStats() {
     try {
       await client.query('BEGIN');
       
+      // Ensure table exists on production DB before inserting
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS politics_voting_records (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          politician_id INTEGER REFERENCES politics_politicians(id),
+          bill_id VARCHAR(50),
+          bill_no VARCHAR(50),
+          bill_name TEXT,
+          vote_date DATE,
+          vote_result VARCHAR(20),
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+          UNIQUE(politician_id, bill_id)
+        );
+      `);
+      await client.query(`ALTER TABLE politics_voting_records ENABLE ROW LEVEL SECURITY;`);
+      
       // Get current politicians to map names to IDs
       const polRes = await client.query('SELECT id, name FROM politics_politicians');
       const polMap = {};
