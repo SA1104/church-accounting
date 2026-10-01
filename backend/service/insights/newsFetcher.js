@@ -63,10 +63,10 @@ async function fetchAndStoreCandidates() {
     const articles = await fetchGoogleNewsRSS(keyword);
     
     for (const article of articles) {
-      // Check if it already exists to avoid duplicates
+      // Check if it already exists by link to avoid unique constraint violations
       const existsResult = await db.pool.query(
-        `SELECT id FROM public.insight_candidates WHERE category = $1 AND title = $2`, 
-        [category, article.title]
+        `SELECT id FROM public.insight_candidates WHERE link = $1`, 
+        [article.link]
       );
       const exists = existsResult.rows.length > 0;
       

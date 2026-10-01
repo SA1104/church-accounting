@@ -116,6 +116,18 @@ router.get('/metrics', async (req, res) => {
         is_used BOOLEAN DEFAULT false,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
+      CREATE TABLE IF NOT EXISTS politics_voting_records (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        politician_id INTEGER REFERENCES politics_politicians(id),
+        bill_id VARCHAR(50),
+        bill_no VARCHAR(50),
+        bill_name TEXT,
+        vote_date DATE,
+        vote_result VARCHAR(20),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        UNIQUE(politician_id, bill_id)
+      );
       CREATE TABLE IF NOT EXISTS platform_page_views (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         path VARCHAR(255) NOT NULL,
