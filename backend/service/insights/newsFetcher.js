@@ -3,11 +3,22 @@ const db = require('../../core/db');
 
 // Map categories to search keywords for Google News RSS
 const CATEGORY_KEYWORDS = {
-  'stock': '주식 시장',
-  'real_estate': '부동산 시장',
-  'economy': '거시 경제',
-  'politics': '정치 정책'
+  'stock': '(코스피 OR 코스닥 OR 국내증시 OR 주식시장) -Vietnam.vn -IDNFinancials',
+  'real_estate': '(부동산 시장 OR 집값 OR 전세값 OR 분양 시장) -Vietnam.vn -IDNFinancials',
+  'economy': '(기준금리 OR 환율 OR 소비자물가 OR 한국은행 OR 경제성장률 OR 무역수지) -Vietnam.vn -IDNFinancials',
+  'politics': '(국회 OR 여야 OR 대통령실 OR 정당 OR 국정감사) -Vietnam.vn -IDNFinancials'
 };
+
+const BLOCKED_SOURCES = [
+  'vietnam.vn',
+  'idnfinancials',
+  'calgary roughnecks'
+];
+
+function isBlockedArticle(title = '', desc = '', link = '', source = '') {
+  const combined = `${title} ${desc} ${link} ${source}`.toLowerCase();
+  return BLOCKED_SOURCES.some(blocked => combined.includes(blocked));
+}
 
 async function fetchGoogleNewsRSS(keyword) {
   try {
@@ -30,13 +41,14 @@ async function fetchGoogleNewsRSS(keyword) {
       const title = itemXml.match(/<title>([^<]+)<\/title>/)?.[1];
       const link = itemXml.match(/<link>([^<]+)<\/link>/)?.[1];
       const pubDate = itemXml.match(/<pubDate>([^<]+)<\/pubDate>/)?.[1];
+      const source = itemXml.match(/<source[^>]*>([^<]+)<\/source>/)?.[1] || '';
       let desc = itemXml.match(/<description>([\s\S]*?)<\/description>/)?.[1] || '';
       
       // Clean HTML from title and description
       const cleanTitle = title ? title.replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/<[^>]*>?/gm, '').trim() : '';
       const cleanDesc = desc ? desc.replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/<[^>]*>?/gm, '').trim() : '';
       
-      if (cleanTitle && link) {
+      if (cleanTitle && link && !isBlockedArticle(cleanTitle, cleanDesc, link, source)) {
         items.push({
           title: cleanTitle,
           link,
@@ -57,6 +69,26 @@ async function fetchGoogleNewsRSS(keyword) {
 async function fetchAndStoreCandidates() {
   console.log('[News Fetcher] Starting to fetch news candidates from Google RSS...');
   let totalSaved = 0;
+
+  try {
+    const cleanupRes = await db.pool.query(`
+      DELETE FROM public.insight_candidates
+      WHERE is_used = false
+        AND (
+          title ILIKE '%Vietnam.vn%'
+          OR description ILIKE '%Vietnam.vn%'
+          OR link ILIKE '%vietnam.vn%'
+          OR title ILIKE '%IDNFinancials%'
+          OR description ILIKE '%IDNFinancials%'
+          OR title ILIKE '%Calgary Roughnecks%'
+        )
+    `);
+    if (cleanupRes.rowCount > 0) {
+      console.log(`[News Fetcher] Cleaned up ${cleanupRes.rowCount} foreign/spam candidate articles.`);
+    }
+  } catch (cleanupErr) {
+    console.error('[News Fetcher] Failed to clean up foreign/spam candidates:', cleanupErr.message);
+  }
   
   for (const [category, keyword] of Object.entries(CATEGORY_KEYWORDS)) {
     console.log(`[News Fetcher] Fetching candidates for ${category}...`);

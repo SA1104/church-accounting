@@ -87,6 +87,7 @@ async function runAutoPilotFallback() {
         const candidatesRes = await query.all(`
           SELECT id FROM public.insight_candidates 
           WHERE category = ? AND is_used = false AND pub_date >= NOW() - INTERVAL '3 days'
+            AND title NOT ILIKE '%Vietnam.vn%' AND title NOT ILIKE '%IDNFinancials%' AND title NOT ILIKE '%Calgary Roughnecks%'
           ORDER BY created_at DESC 
           LIMIT 10
         `, [category]);
