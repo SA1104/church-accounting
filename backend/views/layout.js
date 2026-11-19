@@ -22,7 +22,7 @@ const CALCULATORS = [
   { slug: 'policy-funds', short: '정책자금 · 저금리 대환 매칭', name: '소상공인 정책자금 · 4.5% 대환대출 · 스마트상점 보조금 매칭기', iconKey: 'bank', desc: '업종·업력·매출 조건에 맞는 정책자금을 매칭하고 고금리 대환 이자 절감액과 보조금 자부담을 계산합니다.', category: 'policy-funds-grants' }
 ];
 
-const ASSET_V = '20261119e';
+const ASSET_V = '20261120a';
 
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -84,7 +84,7 @@ function gnb(categories, current) {
           <ul class="dd" id="dd-bible" role="menu">
             <li><a href="/calendar" role="menuitem"><span class="ico-box-sm">${icon('clock', 16)}</span><span><strong>사업자 12개월 생존 캘린더</strong><small>월별 부가세·종소세·정책자금 오픈 데드라인</small></span></a></li>
             ${catItems}
-            <li class="dd-all"><a href="/bible">실전 바이블 20편 전체 보기 →</a></li>
+            <li class="dd-all"><a href="/bible">실전 바이블 ${categories.length ? '전체' : ''} 보기 →</a></li>
           </ul>
         </li>
       </ul>

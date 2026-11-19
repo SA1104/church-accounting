@@ -1,6 +1,6 @@
 'use strict';
 const { ZONE_ARCHETYPES, DATA_PIPELINE_SPEC } = require('../data/commercial-architecture');
-const { STARTUP_PROFILES } = require('../data/startup-profiles');
+const { STARTUP_PROFILES, STARTUP_GROUPS } = require('../data/startup-profiles');
 const { esc, breadcrumbHtml, breadcrumbLd, faqHtml, faqLd } = require('./layout');
 const { icon } = require('./icons');
 
@@ -36,9 +36,9 @@ function commercialView(q) {
             ${ZONE_ARCHETYPES.map((z) => `<option value="${esc(z.id)}"${z.id === zoneId ? ' selected' : ''}>${esc(z.name)}</option>`).join('')}
           </select>
         </div>
-        <div class="field"><label for="cm-biz">창업 · 운영 업종</label>
+        <div class="field"><label for="cm-biz">창업 · 운영 업종 (30대 실전 업종)</label>
           <select id="cm-biz">
-            ${STARTUP_PROFILES.slice(0, 8).map((p) => `<option value="${esc(p.id)}"${p.id === profId ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}
+            ${STARTUP_GROUPS.filter((g) => g.id !== 'all').map((g) => `<optgroup label="${esc(g.label)}">${STARTUP_PROFILES.filter((p) => p.group === g.id).map((p) => `<option value="${esc(p.id)}"${p.id === profId ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</optgroup>`).join('')}
           </select>
         </div>
         <div class="field"><span class="label">분석 반경</span>
@@ -129,7 +129,7 @@ function commercialView(q) {
 <script>
 (function(){
   var ZONES=${JSON.stringify(ZONE_ARCHETYPES).replace(/</g, '\\u003c')};
-  var PROFS=${JSON.stringify(STARTUP_PROFILES.slice(0, 8).map((p) => ({ id: p.id, name: p.name }))).replace(/</g, '\\u003c')};
+  var PROFS=${JSON.stringify(STARTUP_PROFILES.map((p) => ({ id: p.id, name: p.name, group: p.group }))).replace(/</g, '\\u003c')};
   var zSel=document.getElementById('cm-zone'), bSel=document.getElementById('cm-biz'), rBox=document.getElementById('cm-radius');
   function update(){
     var z=ZONES.find(function(x){return x.id===zSel.value;})||ZONES[0];

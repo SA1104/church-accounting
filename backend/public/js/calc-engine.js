@@ -835,6 +835,16 @@
         var P = v.loan * 10000;
         return [['실질 연 금융비용률', pct(eff, 2), 'good'], ['연 이자(이차보전 후)', won(P * (v.rate - v.sub) / 100)], ['연 보증료', won(P * v.gfee / 100)], ['연 총 금융비용', won(P * eff / 100), 'warn']];
       }
+    },
+    'apr-trap': {
+      inputs: [['amt', '매회 선정산·급전 이용액', 200, 10000, 100, '만원'], ['fee', '건당 선공제 수수료율', 0.1, 3.0, 0.05, '%'], ['days', '정산 앞당김 일수', 3, 45, 1, '일'], ['alt', '대체 한도대출·보증서 연금리', 2.5, 8.5, 0.1, '%']],
+      calc: function (v) {
+        var apr = (v.fee / Math.max(1, v.days)) * 365;
+        var P = v.amt * 10000;
+        var annFee = P * (apr / 100);
+        var altFee = P * (v.alt / 100);
+        return [['연환산 실질금리(APR)', pct(apr, 2), apr >= 12 ? 'bad' : (apr >= 7 ? 'warn' : 'good')], ['반복 이용 시 연 수수료', won(annFee), 'bad'], ['저금리 한도대출 연 이자', won(altFee), 'good'], ['전환 시 연간 절감액', won(Math.max(0, annFee - altFee)), 'good']];
+      }
     }
   };
 

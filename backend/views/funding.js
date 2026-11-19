@@ -156,7 +156,40 @@ function fundingView(q) {
   </section>
 
   <section class="sec">
-    <div class="sec-head"><h2>최신 핵심 정책자금 · 보조금 총람표</h2><a href="/category/policy-funds-grants">정책자금 심층 바이블 5편 →</a></div>
+    <div class="card" id="rate-gap-sim">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+        <div>
+          <span class="pill">실시간 금융비용 격차 시뮬레이션</span>
+          <h2 class="card-h" style="margin:6px 0 0;font-size:20px">같은 금액을 빌릴 때, 어디서 빌리느냐에 따라 아끼는 현금</h2>
+        </div>
+        <strong class="tnum" style="font-size:15px;color:var(--safe)" id="rg-save-headline">고금리 대비 최대 2,736만원 절약</strong>
+      </div>
+      <div class="kpi-grid" style="margin-bottom:14px">
+        <div class="field" style="border:0">
+          <label for="rg-amt">필요 자금 규모: <strong class="tnum" id="rg-amt-lbl">8,000만원</strong></label>
+          <input type="range" id="rg-amt" min="1000" max="30000" step="500" value="8000">
+        </div>
+        <div class="field" style="border:0">
+          <span class="label">자금 사용 예정 기간 (중도상환수수료 자동 반영)</span>
+          <div class="seg" id="rg-term">
+            <label class="seg-opt"><input type="radio" name="rgterm" value="0.123"><span>45일 단기 브릿지</span></label>
+            <label class="seg-opt"><input type="radio" name="rgterm" value="1"><span>1년 운전자금</span></label>
+            <label class="seg-opt"><input type="radio" name="rgterm" value="3" checked><span>3년 확장·시설</span></label>
+          </div>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="rate-board tnum">
+          <thead><tr><th>조달 창구</th><th>대표 실질 금리</th><th>중도상환수수료</th><th>월평균 이자</th><th>선택 기간 총 금융비용</th><th>고금리 대비 절감액</th></tr></thead>
+          <tbody id="rg-tbody"></tbody>
+        </table>
+      </div>
+      <p class="footnote-meta">※ 45일 단기 브릿지 선택 시 일반 건별 담보대출의 중도상환수수료(약 0.9% 일할)까지 합산하여 마이너스통장·증권담보 대비 실제 유불리를 보여줍니다.</p>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-head"><h2>최신 핵심 정책자금 · 보조금 총람표</h2><a href="/category/policy-funds-grants">정책자금·대출 심층 바이블 전체 →</a></div>
     <div class="table-scroll">
       <table class="rate-board">
         <thead><tr><th>사업명</th><th>주관 기관</th><th>지원 한도</th><th>금리 · 조건</th><th>상환 기간</th><th>접수 창구</th></tr></thead>
@@ -176,6 +209,37 @@ function fundingView(q) {
 
   <section class="sec">
     ${miniCalc({ type: 'guarantee-fee', title: '보증서 보증료 + 지자체 이차보전 반영 실질 금리 3초 계산기', values: { loan: 5000, rate: 4.4, gfee: 0.9, sub: 2.0 }, cta: { href: '/calculators/policy-funds', label: '정책자금·대환대출 정밀 매칭기 열기' } })}
+    ${miniCalc({ type: 'apr-trap', title: '선정산 · 일수수료(하루 0.04%) ‘연환산 실질금리’ 함정 3초 판독기', values: { amt: 4000, fee: 0.8, days: 20, alt: 3.5 }, cta: { href: '/bible/early-settlement-factoring-apr-trap', label: '선정산 연환산 금리 탈출 공식 읽기' } })}
+  </section>
+
+  <section class="sec">
+    <div class="sec-head"><h2>매출은 잘 나오는데 왜 부결될까? — 심사 거절 7대 사유 & 사전 통과 해법</h2></div>
+    <div class="table-scroll">
+      <table class="rate-board">
+        <thead><tr><th>단골 부결 사유</th><th>전산 스크리닝 감점 원리</th><th>접수 전 합법적 통과 해법</th></tr></thead>
+        <tbody>
+          <tr><td><strong>1. 세무서 구두 분납 중인 미납 세금</strong></td><td>공식 징수유예 승인서 없이는 전산상 ‘체납자’로 즉시 자동 탈락</td><td>소액 체납은 단기 여유자금으로 먼저 완납해 ‘완납증명서’ 확보 후 접수</td></tr>
+          <tr><td><strong>2. 최근 3개월 현금서비스 · 카드 리볼빙</strong></td><td>금액이 적어도 초단기 유동성 위기 차주로 분류되어 한도 대폭 삭감</td><td>전액 상환 및 리볼빙 해지 후 신용정보원 반영(약 5영업일) 뒤 신청</td></tr>
+          <tr><td><strong>3. 카드론 · 저축은행 선실행 후 보증 신청</strong></td><td>제2금융 고금리 차입으로 개인신용점수 급락 및 다중채무 필터 작동</td><td>순서 엄수(보증서 → 직접대출 → 시중은행), 기보유 시 4.5% 대환 선행</td></tr>
+          <tr><td><strong>4. 무상임대차 · 전대차 동의서 누락</strong></td><td>실제 사업 영위 공간의 권리 안정성 미흡으로 현장 실사 반려</td><td>적정 차임 정식 임대차계약(확정일자) 또는 임대인 전대동의서 구비</td></tr>
+          <tr><td><strong>5. 시설자금 · 보조금 ‘선결제’ 후 청구</strong></td><td>기지급 공사대금·중고 직거래는 정책 시설자금 집행 대상에서 원천 제외</td><td>반드시 비교견적서로 보증·공고 승인 먼저 받은 뒤 세금계산서 정식 집행</td></tr>
+          <tr><td><strong>6. 결산 재무제표상 과다 인출 · 자본잠식</strong></td><td>복식부기 사업장 결산서상 순자산 마이너스 시 기업평가 등급 하락</td><td>세무대리인과 결산 전 가수금·대표자 인출 계정 정리 및 최근 부가세 소명</td></tr>
+          <tr><td><strong>7. 신용점수 700점 이하 일반 창구 접수</strong></td><td>시중은행 프라임 신용 모형에 넣으면 부결 이력만 누적</td><td>처음부터 소진공 취약차주 특례보증 · 사업자 햇살론 전용 트랙으로 직행</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-head"><h2>사업자 대출 · 한도 증액 · 브릿지 전략 심층 바이블 (8편)</h2><a href="/category/policy-funds-grants">전체 보기 →</a></div>
+    <div class="a-grid">
+      <a class="a-card card" href="/bible/business-loan-approval-limit-guide"><span class="a-cat">${icon('bank', 14)} 한도 2배 공식</span><h3>개인사업자 대출 한도 2배 늘리는 실전 공식: 보증서·직접대출·가맹점 결합법</h3><p>연매출 2억 사업장이 역순 실행 대신 정석 3단 결합으로 1억 2천만원을 연 3%대에 확보하는 순서와 계산법.</p></a>
+      <a class="a-card card" href="/bible/bank-securities-collateral-bridge-loan"><span class="a-cat">${icon('bank', 14)} 급전·금융권 비교</span><h3>사업자 급전·확장자금 금리 비교: 시중은행 · 인터넷은행 · 증권사 담보 · 카드론</h3><p>45일 단기 브릿지 사용 시 중도상환수수료까지 합산한 실질 비용과 증권 예탁담보 안전 활용 수칙.</p></a>
+      <a class="a-card card" href="/bible/credit-score-dsr-business-loan-rejection"><span class="a-cat">${icon('shield', 14)} 부결 방어·복구</span><h3>매출은 높은데 사업자 대출이 거절되는 7가지 이유와 신용점수 700점대 통과 전략</h3><p>억울한 세금 분납 탈락을 막고 접수 30일 전 신용점수를 40~80점 복구하는 실전 프로토콜.</p></a>
+      <a class="a-card card" href="/bible/early-settlement-factoring-apr-trap"><span class="a-cat">${icon('alert', 14)} 선정산 함정 탈출</span><h3>셀러·배달 선정산 수수료 ‘하루 0.04%’의 진실: 연환산 금리 14.6% 계산과 탈출 공식</h3><p>매달 빠져나가는 선정산 수수료를 연 3~5%대 보증 운전자금·마이너스통장으로 전환해 연 450만원 아끼는 법.</p></a>
+      <a class="a-card card" href="/bible/regional-credit-guarantee-loan"><span class="a-cat">${icon('bank', 14)} 특례보증 정석</span><h3>지역신용보증재단 특례보증: 보증료·이차보전 넣은 실질 금리 계산법</h3><p>은행 금리에 보증료를 더하고 지자체 이차보전을 뺀 진짜 금융비용과 만기 연장 대비책.</p></a>
+      <a class="a-card card" href="/bible/refinance-loan-4-5-percent"><span class="a-cat">${icon('trendUp', 14)} 금리 갈아타기</span><h3>소상공인 저금리 대환대출 연 4.5%: 고금리 사업자대출 이자 절감 계산</h3><p>연 7% 이상 고금리 사업자대출을 최대 5,000만원까지 연 4.5% 고정금리로 대환할 때의 절감 효과.</p></a>
+    </div>
   </section>
 
   <section class="sec">
@@ -241,6 +305,44 @@ function fundingView(q) {
 </div>
 <script>
 (function(){
+  var rgAmt=document.getElementById('rg-amt'), rgTerm=document.getElementById('rg-term'), rgBody=document.getElementById('rg-tbody');
+  var CHANNELS=[
+    {name:'1순위 · 지자체 이차보전 + 지역신보 보증', rate:2.8, prepay:0, tag:'최저금리 권장'},
+    {name:'2순위 · 소진공 · 중진공 정책자금', rate:3.5, prepay:0, tag:'한도 분리 유리'},
+    {name:'3순위 · 제1금융권 부동산 담보대출', rate:4.6, prepay:0.9, tag:'장기 확장 적합'},
+    {name:'4순위 · 증권사 예탁증권 담보 브릿지', rate:6.2, prepay:0, tag:'당일·단기 급전 최적'},
+    {name:'5순위 · 제1금융·인터넷은행 마이너스통장', rate:6.5, prepay:0, tag:'수시 입출금 편리'},
+    {name:'주의 · 제2금융 신용·카드론·유료선정산', rate:14.2, prepay:0, tag:'신용하락 주의'}
+  ];
+  function fmtWon(v){return Math.round(v).toLocaleString('ko-KR')+'원';}
+  function renderGap(){
+    if(!rgAmt||!rgBody)return;
+    var man=parseFloat(rgAmt.value)||8000;
+    var P=man*10000;
+    var yrs=3;
+    rgTerm.querySelectorAll('input').forEach(function(i){if(i.checked)yrs=parseFloat(i.value);});
+    document.getElementById('rg-amt-lbl').textContent=man.toLocaleString('ko-KR')+'만원';
+    var worstTotal=P*(0.142*yrs);
+    var bestTotal=P*(0.028*yrs);
+    var maxSave=Math.max(0, worstTotal-bestTotal);
+    document.getElementById('rg-save-headline').textContent='고금리 대비 최대 '+fmtWon(maxSave)+' 절약';
+    rgBody.innerHTML=CHANNELS.map(function(c,idx){
+      var interest=P*(c.rate/100)*yrs;
+      var prepayFee=(yrs<3&&c.prepay>0)?P*(c.prepay/100)*((3-yrs)/3):0;
+      var tot=interest+prepayFee;
+      var mAvg=P*(c.rate/100)/12;
+      var saved=worstTotal-tot;
+      var isLast=idx===CHANNELS.length-1;
+      return '<tr><td><strong>'+c.name+'</strong><span class="detail-sub">'+c.tag+'</span></td>'
+        +'<td><strong>연 '+c.rate.toFixed(1)+'%</strong></td>'
+        +'<td>'+(prepayFee>0?fmtWon(prepayFee)+' (조기상환)':'0원 (면제)')+'</td>'
+        +'<td>'+fmtWon(mAvg)+'</td>'
+        +'<td><strong style="color:'+(isLast?'var(--bad)':'var(--text)')+'">'+fmtWon(tot)+'</strong></td>'
+        +'<td style="font-weight:800;color:'+(isLast?'var(--text-3)':(saved>=0?'var(--good)':'var(--bad)'))+'">'+(isLast?'비교 기준':(saved>=0?'−'+fmtWon(saved)+' 절감':'+'+fmtWon(Math.abs(saved))))+'</td></tr>';
+    }).join('');
+  }
+  if(rgAmt){rgAmt.addEventListener('input',renderGap);rgTerm.addEventListener('change',renderGap);renderGap();}
+
   var dc=document.getElementById('funding-doc-chk');
   if(dc){
     dc.addEventListener('change',function(){

@@ -122,8 +122,14 @@ equal(sm.sunkStartup, 2520 + 2800 + 1500 + 72, '보증금 제외 매몰 투자�
 equal(sm.loanNeeded, 9892 - 6000, '자기자본 6,000만원 차감 후 필요 대출액 3,892만원 일치');
 equal(sm.months.length, 12, '12개월 계절 시뮬레이션 배열 길이 12');
 equal(sm.bestMonth.month === 7 && sm.worstMonth.month === 1, true, '테이크아웃 커피 성수기(7월)·비수기(1월) 계절 피크 판독 일치');
+equal(STARTUP_PROFILES.length, 30, '창업 풀코스 30대 세부 업종 프로파일 전수 등록 확인');
+const allProfValid = STARTUP_PROFILES.every((prof) => {
+  const res = E.startupMaster({ profile: prof.id, season: 1 }, STARTUP_PROFILES);
+  return Number.isFinite(res.totalStartup) && Number.isFinite(res.annualCashFlow) && res.months.length === 12 && Array.isArray(prof.tips) && prof.tips.length >= 4;
+});
+equal(allProfValid, true, '30대 전 업종 12개월 현금흐름·세금·원리금 무결성 검산 완료');
 
-console.log('\n=== 8. 사업자 대출 가승인·한도·금리사다리 진단기 검산 ===');
+console.log('\n=== 8. 사업자 대출 가승인·한도·금리사다리 & 선정산 APR 검산 ===');
 const ldBlock = E.loanDiagnose({ arrears: 1, sales: 30000, credit: 'high' });
 equal(ldBlock.grade, 'danger', '세금 체납 시 즉시 보류 판정');
 equal(ldBlock.netAdditionalLimit, 0, '세금 체납 시 추가 한도 0원');
@@ -131,6 +137,9 @@ const ldOk = E.loanDiagnose({ purpose: 'expand', sales: 20000, credit: 'high', c
 equal(ldOk.grade, 'safe', '우량 신용 + 부동산 담보 보유 시 우수 판정');
 equal(ldOk.collateralCap, 14000, '부동산 담보 2억 × LTV 70% = 1억 4,000만원 여력 산출');
 approx(ldOk.refiAnnualSave, 40000000 * (8.5 - 4.5) / 100, 1, '기존 8.5% 4,000만원 -> 4.5% 대환 시 연 160만원 이자 절감');
+const aprMini = E.mini('apr-trap', { amt: 4000, fee: 0.8, days: 20, alt: 3.5 });
+equal(aprMini[0][1], '14.6%', '선정산 20일 0.8% 수수료 -> 연환산 실질금리 14.60% 정확 산출');
+equal(aprMini[3][1], '4,440,000원', '4,000만원 선정산 대신 3.5% 전환 시 연간 444만원 절감 일치');
 
 console.log(`\n========================================`);
 console.log(` MATH AUDIT: ${passed} PASSED, ${failed} FAILED`);

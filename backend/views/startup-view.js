@@ -1,6 +1,6 @@
 'use strict';
 const E = require('../public/js/calc-engine.js');
-const { STARTUP_PROFILES } = require('../data/startup-profiles');
+const { STARTUP_PROFILES, STARTUP_GROUPS } = require('../data/startup-profiles');
 const { esc, CALCULATORS, breadcrumbHtml, breadcrumbLd, faqHtml, faqLd, abs, SITE } = require('./layout');
 const { icon } = require('./icons');
 const facts = require('../data/facts');
@@ -78,10 +78,16 @@ function startupMasterView(q, ctx) {
   const crumbs = [{ name: '홈', path: '/' }, { name: '창업 풀코스 설계', path: '/calculators/startup-master' }];
 
   const form = `
-<fieldset><legend>Step 1. 창업 희망 업종 선택 (특성·계절성 자동 세팅)</legend>
+<fieldset><legend>Step 1. 창업 희망 업종 선택 (30대 실전 업종 · 계절성 자동 세팅)</legend>
   <input type="hidden" name="profile" data-bind="profile" value="${esc(s.profile)}">
+  <div class="prof-toolbar">
+    <input type="search" class="prof-search" placeholder="업종 빠른 검색 (예: 커피, 초밥, 코인세탁, 필라테스, 편의점, 마라탕...)" aria-label="창업 업종 검색" data-prof-search>
+    <div class="prof-chips" role="tablist" aria-label="업종군 필터" data-prof-groups>
+      ${STARTUP_GROUPS.map((g, idx) => `<button type="button" class="prof-chip${idx === 0 ? ' active' : ''}" data-group-filter="${esc(g.id)}">${esc(g.label)}</button>`).join('')}
+    </div>
+  </div>
   <div class="profile-grid" data-profile-grid>
-    ${STARTUP_PROFILES.map((p) => `<button type="button" class="prof-btn${p.id === s.profile ? ' active' : ''}" data-pick-profile="${esc(p.id)}"><span>${esc(p.name)}</span><small>${esc(p.group)} · 통상원가 ${p.cogsPct}%</small></button>`).join('')}
+    ${STARTUP_PROFILES.map((p) => `<button type="button" class="prof-btn${p.id === s.profile ? ' active' : ''}" data-pick-profile="${esc(p.id)}" data-prof-group="${esc(p.group)}" data-prof-name="${esc(p.name)}"><span>${esc(p.name)}</span><small>${esc(p.group)} · 통상원가 ${p.cogsPct}% · ${p.pyeong}평 표준</small></button>`).join('')}
   </div>
   <p class="plan-note" data-season-note>${esc(prof.seasonNote)}</p>
 </fieldset>
@@ -215,6 +221,34 @@ function startupMasterView(q, ctx) {
       </div>
     </div>
   </section>
+
+  <section class="sec">
+    <div class="sec-head"><h2>30대 핵심 창업 업종별 초기자금 · 원가율 · 계절 편차 총람표</h2></div>
+    <p class="sec-desc">원하시는 업종 이름을 클릭하면 해당 업종의 현장 표준 임대료·시설비·12개월 계절지수가 위 시뮬레이터에 즉시 세팅됩니다.</p>
+    <div class="table-scroll">
+      <table class="rate-board tnum">
+        <thead><tr><th>업종군 · 세부 업종</th><th>표준 평수</th><th>추정 총창업비(보증금 포함)</th><th>식자재·상품 원가율</th><th>최고/최저 계절 편차</th><th>현장 통상 수익 기준</th></tr></thead>
+        <tbody>
+          ${STARTUP_PROFILES.map((p) => {
+            const estInterior = Math.round(p.pyeong * p.interiorPerPyeong);
+            const estKiosk = Math.max(0, (p.kioskCount || 0) * (p.kioskUnitManwon || 0) - Math.min(Math.round((p.kioskCount || 0) * (p.kioskUnitManwon || 0) * 0.7), 500));
+            const estTotal = p.deposit + estInterior + p.equip + p.premium + estKiosk;
+            const maxS = Math.max(...p.seasonality);
+            const minS = Math.min(...p.seasonality);
+            return `<tr>
+              <td><a href="/calculators/startup-master?profile=${encodeURIComponent(p.id)}"><strong>${esc(p.name)}</strong></a><span class="detail-sub">${esc(p.group)}</span></td>
+              <td>${p.pyeong}평</td>
+              <td><strong>${manwon(estTotal)}</strong><span class="detail-sub">보증금 ${manwon(p.deposit)} 포함</span></td>
+              <td>${p.cogsPct}%</td>
+              <td>${Math.round(minS * 100)}% ~ ${Math.round(maxS * 100)}%</td>
+              <td style="font-size:13px">${esc(p.benchMargin)}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
   ${faqHtml(faq)}
 </div>
 <script>window.__STARTUP_PROFILES__=${JSON.stringify(STARTUP_PROFILES).replace(/</g, '\\u003c')};</script>`;

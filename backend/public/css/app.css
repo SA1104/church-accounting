@@ -182,7 +182,14 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 
 .footnote-meta { font-size: 12.5px; color: var(--text-3); margin-top: 8px; }
 
 /* Startup Master & Funding & Commercial Lab */
-.profile-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; margin-bottom: 8px; }
+.prof-toolbar { display: grid; gap: 8px; margin-bottom: 10px; }
+.prof-search { width: 100%; border: 1px solid var(--line-2); border-radius: 9px; background: var(--bg); padding: 8px 11px; font: inherit; font-size: 13px; color: var(--text); }
+.prof-search:focus { outline: none; border-color: var(--brand); }
+.prof-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.prof-chip { padding: 5px 9px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--bg); font-size: 12px; font-weight: 700; color: var(--text-2); cursor: pointer; }
+.prof-chip.active, .prof-chip:hover { background: var(--brand); border-color: var(--brand); color: #fff; }
+.profile-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; margin-bottom: 8px; max-height: 295px; overflow-y: auto; padding-right: 3px; }
+.prof-btn[hidden] { display: none !important; }
 .prof-btn { text-align: left; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--bg); cursor: pointer; font-size: 13px; font-weight: 700; color: var(--text-2); transition: .12s; }
 .prof-btn small { display: block; font-size: 11px; color: var(--text-3); font-weight: 500; }
 .prof-btn.active, .prof-btn:hover { border-color: var(--brand); background: var(--brand-soft); color: var(--brand-ink); }

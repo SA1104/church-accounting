@@ -22,7 +22,8 @@ const EXPECTED_CATS = ['delivery-store-profit', 'ecommerce-seller-lab', 'policy-
 const EXPECTED_LEGAL = ['about', 'privacy-policy', 'terms-of-service', 'contact'];
 const EXPECTED_ARTICLES = [
   'baemin-sangsaeng-fee-2026', 'delivery-app-fee-comparison', 'delivery-menu-price-formula', 'food-cost-ratio-packaging', 'restaurant-breakeven-daily-orders',
-  'break-even-roas-formula', 'coupang-rocket-growth-vs-wing', 'smartstore-fee-structure-2026', 'china-sourcing-landed-cost', 'return-rate-margin-killer',
+  'break-even-roas-formula', 'coupang-rocket-growth-vs-wing', 'smartstore-fee-structure-2026', 'china-sourcing-landed-cost', 'return-rate-margin-killer', 'early-settlement-factoring-apr-trap',
+  'business-loan-approval-limit-guide', 'bank-securities-collateral-bridge-loan', 'credit-score-dsr-business-loan-rejection',
   'soho-policy-fund-2026-guide', 'refinance-loan-4-5-percent', 'smart-store-tech-subsidy', 'hope-return-package-closure', 'regional-credit-guarantee-loan',
   'weekly-holiday-pay-15-hours', 'employer-insurance-cost-2026', 'table-order-kiosk-payback', 'simplified-vs-general-vat', 'franchise-startup-payback'
 ];
@@ -159,8 +160,12 @@ async function main() {
     const delivPage = await fetchRes(baseUrl, '/calculators/delivery-margin?biz=chicken');
     assert(delivPage.status === 200 && delivPage.text.includes('data-biz-feedback') && delivPage.text.includes('data-apply-biz') && delivPage.text.includes('치킨·피자·야식'), 'Screenshot 2 Fix: Delivery Industry Live Diagnostics & Preset Fill');
 
-    const masterPage = await fetchRes(baseUrl, '/calculators/startup-master?profile=unmanned-retail');
-    assert(masterPage.status === 200 && masterPage.text.includes('season12') && masterPage.text.includes('무인 아이스크림'), 'Startup Master 12-Month Seasonality & Deposit/Interior/Loan Flow');
+    const masterPage = await fetchRes(baseUrl, '/calculators/startup-master?profile=coin-laundry');
+    const profBtnCount = (masterPage.text.match(/data-pick-profile="/g) || []).length;
+    assert(masterPage.status === 200 && profBtnCount === 30 && masterPage.text.includes('season12') && masterPage.text.includes('무인 코인세탁소'), 'Startup Master 30 Industry Profiles & 12-Month Seasonality', `profiles=${profBtnCount}`);
+
+    const fundPage = await fetchRes(baseUrl, '/funding');
+    assert(fundPage.status === 200 && fundPage.text.includes('id="rate-gap-sim"') && fundPage.text.includes('data-mini="apr-trap"') && fundPage.text.includes('business-loan-approval-limit-guide'), 'Funding Hub: 6-Channel Rate Gap Sim + APR Trap + Rejection Matrix');
 
     // Check 2027 Year Mode Preset on Labor Calculator
     const y2027Check = await fetchRes(baseUrl, '/calculators/labor-automation?year=2027');

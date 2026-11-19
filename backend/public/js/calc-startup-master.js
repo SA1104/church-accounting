@@ -64,10 +64,38 @@
       });
     },
     render: function (s, h) {
-      // Wire profile buttons once
+      // Wire profile buttons & 30-profile filter/search once
       var grid = h.rootEl.querySelector('[data-profile-grid]');
       if (grid && !grid._wired) {
         grid._wired = true;
+        var activeGroup = 'all';
+        var searchInput = h.rootEl.querySelector('[data-prof-search]');
+        var groupWrap = h.rootEl.querySelector('[data-prof-groups]');
+
+        function filterProfiles() {
+          var q = searchInput ? searchInput.value.trim().toLowerCase() : '';
+          grid.querySelectorAll('[data-pick-profile]').forEach(function (btn) {
+            var g = btn.getAttribute('data-prof-group') || '';
+            var nm = (btn.getAttribute('data-prof-name') || '').toLowerCase();
+            var matchGroup = activeGroup === 'all' || g === activeGroup;
+            var matchQuery = !q || nm.indexOf(q) >= 0 || g.toLowerCase().indexOf(q) >= 0;
+            btn.hidden = !(matchGroup && matchQuery);
+          });
+        }
+
+        if (searchInput) searchInput.addEventListener('input', filterProfiles);
+        if (groupWrap) {
+          groupWrap.addEventListener('click', function (e) {
+            var gBtn = e.target.closest('[data-group-filter]');
+            if (!gBtn) return;
+            activeGroup = gBtn.getAttribute('data-group-filter') || 'all';
+            groupWrap.querySelectorAll('[data-group-filter]').forEach(function (b) {
+              b.classList.toggle('active', b === gBtn);
+            });
+            filterProfiles();
+          });
+        }
+
         grid.addEventListener('click', function (e) {
           var btn = e.target.closest('[data-pick-profile]');
           if (!btn) return;

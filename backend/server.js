@@ -162,7 +162,7 @@ app.get('/calculators', (req, res) => {
 });
 
 const CALC_ROUTES = {
-  'startup-master': { view: startupView.startupMasterView, current: 'startup-master', title: '창업 풀코스 A-to-Z 시뮬레이터 — 업종별 초기자금 · 12개월 계절 손익 · 대출원리금 통합 설계', desc: '10대 창업 업종별 보증금·인테리어·권리금·스마트상점 국비보조, 계절별 12개월 매출 변동, 부가세·종합소득세, 정책자금 대출 원리금까지 1년 실수익을 빈틈없이 계산합니다.' },
+  'startup-master': { view: startupView.startupMasterView, current: 'startup-master', title: '창업 풀코스 A-to-Z 시뮬레이터 — 30대 업종 초기자금 · 12개월 계절 손익 · 대출원리금 통합 설계', desc: '30대 창업 업종별 보증금·인테리어·권리금·스마트상점 국비보조, 계절별 12개월 매출 변동, 부가세·종합소득세, 정책자금 대출 원리금까지 1년 실수익을 빈틈없이 계산합니다.' },
   'delivery-margin': { view: calcViews.delivery, title: '배달앱 진짜 순수익 계산기 — 배민·쿠팡이츠·요기요 수수료 & 목표 마진 메뉴가 역산', desc: '업종별 표준 원가율 비교와 함께 배민 상생요금제·쿠팡이츠·요기요 수수료, 배달비, 결제수수료, 부가세를 뺀 1주문 순수익과 목표 마진 메뉴 가격을 즉시 계산합니다.' },
   'seller-roas': { view: calcViews.seller, title: '셀러 마진 & 손익분기 ROAS 계산기 — 스마트스토어·쿠팡 로켓그로스·윙', desc: '위안화·달러 환율 연동 사입원가, 스마트스토어·쿠팡 수수료, 반품 손실을 반영해 광고 전 순마진, 손익분기 ROAS, 최대 CPA, 손익분기 CPC를 판독합니다.' },
   'policy-funds': { view: calcViews.policy, title: '소상공인 정책자금 매칭기 — 4.5% 대환대출 · 스마트상점 보조금 계산', desc: '업종·업력·매출·고금리 대출로 소진공·중진공·지역신보·희망리턴패키지 지원사업을 매칭하고 4.5% 대환 이자 절감액과 스마트상점 자부담을 계산합니다.' },
@@ -302,7 +302,7 @@ app.use('/api', express.json({ limit: '12kb', type: ['application/json', 'text/p
 app.get('/api/version', (req, res) => {
   res.set('Cache-Control', 'no-store').json({
     app: 'BoozaThink 2.0',
-    version: '2.3.0',
+    version: '2.4.0',
     simulators: layout.CALCULATORS.length,
     articles: content.articles.length,
     branch: process.env.RENDER_GIT_BRANCH || 'main',

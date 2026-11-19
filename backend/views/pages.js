@@ -76,7 +76,7 @@ function home(ctx) {
     <a class="cat-calc card" href="/calculators/${masterCalc.slug}" style="padding:26px">
       <span class="ico-box">${icon(masterCalc.iconKey, 22)}</span>
       <div>
-        <span class="pill">10대 업종 계절지수 · 보증금/인테리어 · 세금 · 대출원리금 올인원</span>
+        <span class="pill">30대 업종 계절지수 · 보증금/인테리어 · 세금 · 대출원리금 올인원</span>
         <h3 style="margin:7px 0 5px;font-size:20px">${esc(masterCalc.name)}</h3>
         <p style="margin:0;color:var(--text-2);font-size:14.5px">업종을 선택하면 시장 통상 원가율과 성수기·비수기 12개월 매출 파동, 스마트상점 키오스크 국비보조, 부가세·종소세, 정책자금 대출 원리금 상환 후 실제로 손에 쥐는 1년 현금흐름과 집객 팁까지 한 번에 시뮬레이션합니다.</p>
       </div>
