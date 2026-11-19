@@ -1,0 +1,8 @@
+{
+  "name": "vite",
+  "version": "5.99.0",
+  "private": true,
+  "bin": {
+    "vite": "./cli.js"
+  }
+}
