@@ -4,6 +4,7 @@ const rates = require('../lib/rates');
 const facts = require('../data/facts');
 const { esc, breadcrumbHtml, breadcrumbLd, faqHtml, faqLd, abs, SITE } = require('./layout');
 const { icon } = require('./icons');
+const { miniCalc } = require('./pages');
 
 const fmt = E.fmt, won = E.won, manwon = E.manwon;
 
@@ -173,6 +174,31 @@ function fundingView(q) {
     </div>
   </section>
 
+  <section class="sec">
+    ${miniCalc({ type: 'guarantee-fee', title: '보증서 보증료 + 지자체 이차보전 반영 실질 금리 3초 계산기', values: { loan: 5000, rate: 4.4, gfee: 0.9, sub: 2.0 }, cta: { href: '/calculators/policy-funds', label: '정책자금·대환대출 정밀 매칭기 열기' } })}
+  </section>
+
+  <section class="sec">
+    <div class="card" id="funding-doc-chk">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <h2 class="card-h" style="margin:0">보증재단 · 소진공 · 시중은행 방문 전 필수 서류 9종 원클릭 준비표</h2>
+        <span class="pill tnum" id="fd-chk-badge">준비 완료 0 / 9</span>
+      </div>
+      <p class="note" style="margin:6px 0 12px">모든 공공 증명서는 접수일 기준 <strong>최근 1개월 이내 발급분(주민등록번호 뒷자리 공개 설정)</strong>이어야 반려되지 않습니다. 방문 전 미리 체크해 두세요.</p>
+      <ul class="detail-chk">
+        <li><label><input type="checkbox"><span><strong>사업자등록증명원</strong><span class="detail-sub">발급처: 홈택스 / 정부24 · 단순 사본이 아닌 최근 1개월 내 발급된 ‘증명원’ 지참 권장</span></span></label></li>
+        <li><label><input type="checkbox"><span><strong>국세 납세증명서 + 지방세 납세증명서 (완납증명)</strong><span class="detail-sub">발급처: 홈택스(국세) / 정부24·위택스(지방세) · 체납액이 단 1만원이라도 있으면 심사 자동 거절</span></span></label></li>
+        <li><label><input type="checkbox"><span><strong>부가가치세 과세표준증명원 (최근 1~3개년)</strong><span class="detail-sub">발급처: 홈택스 · 면세사업자는 ‘면세사업자 수입금액증명원’으로 대체</span></span></label></li>
+        <li><label><input type="checkbox"><span><strong>소득금액증명원 (종합소득세 신고자용)</strong><span class="detail-sub">발급처: 홈택스 · 5월 종소세 신고 확정분 반영 시점(통상 7월 이후) 확인</span></span></label></li>
+        <li><label><input type="checkbox"><span><strong>사업장 및 거주지 임대차계약서 사본 (확정일자부)</strong><span class="detail-sub">자가 소유 사업장인 경우 인터넷등기소 부동산 등기사항전부증명서로 대체</span></span></label></li>
+        <li><label><input type="checkbox"><span><strong>상시근로자 확인 서류 (4대사회보험 사업장 가입자명부)</strong><span class="detail-sub">발급처: 4대사회보험 정보연계센터(4insure.or.kr) · 무직원이면 ‘가입내역 없음’ 확인서 발급</span></span></label></li>
+        <li><label><input type="checkbox"><span><strong>금융거래확인서 (기존 고금리 대출 4.5% 대환 신청 시)</strong><span class="detail-sub">발급처: 기존 대출 금융사 앱/창구 · 대출 취급일, 현재 적용 금리(연 7% 이상), 잔액 명시 필수</span></span></label></li>
+        <li><label><input type="checkbox"><span><strong>주민등록등본 · 초본(과거 주소 변동 포함) 및 신분증</strong><span class="detail-sub">발급처: 정부24 · 보증재단 현장 실사 및 대표자 본인 대조용</span></span></label></li>
+        <li><label><input type="checkbox"><span><strong>시설자금·스마트상점 신청 시: 비교견적서 · 도면 · 사업계획서</strong><span class="detail-sub">주의: 반드시 선정·보증 승인 이후에 계약을 진행해야 하며 기지급 공사대금은 시설자금 제외</span></span></label></li>
+      </ul>
+    </div>
+  </section>
+
   <section class="sec prose">
     <h2>같은 매출인데 왜 옆 가게 사장님은 한도가 5,000만원 더 나올까? (한도 증액 5원칙)</h2>
     <ol>
@@ -215,6 +241,15 @@ function fundingView(q) {
 </div>
 <script>
 (function(){
+  var dc=document.getElementById('funding-doc-chk');
+  if(dc){
+    dc.addEventListener('change',function(){
+      var t=dc.querySelectorAll('input[type="checkbox"]').length;
+      var d=dc.querySelectorAll('input[type="checkbox"]:checked').length;
+      var b=document.getElementById('fd-chk-badge');
+      if(b)b.textContent='준비 완료 '+d+' / '+t;
+    });
+  }
   var f=document.getElementById('funding-consult-form');
   if(!f)return;
   var btn=document.getElementById('fc-btn'), st=document.getElementById('fc-toast');

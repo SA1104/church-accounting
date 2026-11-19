@@ -1,6 +1,7 @@
 'use strict';
 const facts = require('../data/facts');
 const { icon } = require('./icons');
+const { getCurrentAndNextMonth } = require('../data/calendar-events');
 
 const SITE = {
   url: (process.env.SITE_URL || 'https://boozathink.com').replace(/\/$/, ''),
@@ -21,7 +22,7 @@ const CALCULATORS = [
   { slug: 'policy-funds', short: '정책자금 · 저금리 대환 매칭', name: '소상공인 정책자금 · 4.5% 대환대출 · 스마트상점 보조금 매칭기', iconKey: 'bank', desc: '업종·업력·매출 조건에 맞는 정책자금을 매칭하고 고금리 대환 이자 절감액과 보조금 자부담을 계산합니다.', category: 'policy-funds-grants' }
 ];
 
-const ASSET_V = '20261119d';
+const ASSET_V = '20261119e';
 
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -80,7 +81,11 @@ function gnb(categories, current) {
         <li><a href="/commercial-area"${current === 'commercial' ? ' aria-current="page"' : ''}>상권·입지 Lab</a></li>
         <li class="has-dd">
           <button class="dd-btn" aria-expanded="false" aria-haspopup="true" aria-controls="dd-bible" style="color:var(--text-2)">실전 바이블 <span aria-hidden="true">▾</span></button>
-          <ul class="dd" id="dd-bible" role="menu">${catItems}<li class="dd-all"><a href="/bible">실전 바이블 20편 전체 보기 →</a></li></ul>
+          <ul class="dd" id="dd-bible" role="menu">
+            <li><a href="/calendar" role="menuitem"><span class="ico-box-sm">${icon('clock', 16)}</span><span><strong>사업자 12개월 생존 캘린더</strong><small>월별 부가세·종소세·정책자금 오픈 데드라인</small></span></a></li>
+            ${catItems}
+            <li class="dd-all"><a href="/bible">실전 바이블 20편 전체 보기 →</a></li>
+          </ul>
         </li>
       </ul>
     </nav>
@@ -90,6 +95,17 @@ function gnb(categories, current) {
     </div>
   </div>
 </header>`;
+}
+
+function seasonBar() {
+  const { current } = getCurrentAndNextMonth();
+  return `<div class="season-bar" role="region" aria-label="이달의 사업자 필수 일정">
+  <div class="container season-inner">
+    <span class="season-pill">${current.month}월 세무·자금 체크</span>
+    <span class="season-msg">${esc(current.headline)}</span>
+    <a class="season-link" href="/calendar">12개월 전체 일정표 →</a>
+  </div>
+</div>`;
 }
 
 function footer(categories) {
@@ -102,11 +118,11 @@ function footer(categories) {
       <p>창업 초기부터 매장 운영, 세무, 확장 자금 조달까지 — 현장 사업·금융 실무자의 경험과 정밀 데이터 계산 엔진을 결합해 진심을 담아 만든 의사결정 연구소입니다. 입력하신 개별 수치는 서버에 저장되지 않습니다.</p>
     </div>
     <div class="f-col"><h3>핵심 시뮬레이터</h3><ul>${CALCULATORS.slice(0, 5).map((c) => `<li><a href="/calculators/${c.slug}">${esc(c.short)}</a></li>`).join('')}<li><a href="/calculators">전체 계산기 보기</a></li></ul></div>
-    <div class="f-col"><h3>자금 · 상권 · 바이블</h3><ul><li><a href="/funding">사업자 대출 · 정책자금 라운지</a></li><li><a href="/commercial-area">상권 · 입지 컨설팅 Lab</a></li>${categories.map((c) => `<li><a href="/category/${c.slug}">${esc(c.name)}</a></li>`).join('')}</ul></div>
+    <div class="f-col"><h3>자금 · 상권 · 캘린더</h3><ul><li><a href="/funding">사업자 대출 · 정책자금 라운지</a></li><li><a href="/commercial-area">상권 · 입지 컨설팅 Lab</a></li><li><a href="/calendar">12개월 세무·자금 생존 캘린더</a></li>${categories.map((c) => `<li><a href="/category/${c.slug}">${esc(c.name)}</a></li>`).join('')}</ul></div>
     <div class="f-col"><h3>연구소 안내</h3><ul><li><a href="/about">연구소 철학 & 데이터 원칙</a></li><li><a href="/privacy-policy">개인정보처리방침</a></li><li><a href="/terms-of-service">이용약관 · 면책고지</a></li><li><a href="/contact">제휴 · 오류 제보</a></li><li><a href="/llms.txt">데이터 팩트시트 (llms.txt)</a></li></ul></div>
   </div>
   <div class="footer-src">
-    <p><strong>공식 데이터 출처 및 각주</strong> · 소상공인시장진흥공단 · 공정거래위원회 · 국세청 · 고용노동부(현행 및 차기 확정 최저임금 고시 반영) · 한국은행·은행연합회·금융투자협회 공시 지표 · 법제처(상가건물 임대차보호법) · 중소기업중앙회 (최신 검증 기준일 ${facts.VERIFIED_AT})</p>
+    <p><strong>공식 데이터 출처 및 각주</strong> · 소상공인시장진흥공단 · 공정거래위원회 · 국세청 · 고용노동부(현행 및 차기 확정 최저임금 고시 반영) · 한국은행·은행연합회·금융투자협회 공시 지표 · 법제처(상가건물 임대차보호법) · 중소기업중앙회 (최신 검증 기준일 ${facts.VERIFIED_AT} · 51개 핵심 수식 자동 검산 완료)</p>
     <p class="f-legal">본 플랫폼의 시뮬레이션 결과는 최신 공개 법령·고시 요율에 기반한 참고용 추정치이며 세무·노무·법률·금융 자문이나 대출 승인을 보장하지 않습니다. 중요한 의사결정 전에는 반드시 계약서·공고문 확인 및 전문가 상담을 진행하세요. · <a href="/about">소개</a> · <a href="/privacy-policy">개인정보처리방침</a> · <a href="/terms-of-service">이용약관</a> · <a href="/contact">문의</a></p>
     <p class="f-copy">© ${year} BoozaThink Lab. Crafted with field experience & precision modeling.</p>
   </div>
@@ -182,6 +198,7 @@ ${opts.skipAnalytics ? '' : externalTrackingHead()}
 <body class="${opts.bodyClass || ''}">
 <a class="skip" href="#main">본문 바로가기</a>
 ${gnb(categories, opts.current)}
+${opts.skipAnalytics ? '' : seasonBar()}
 <main id="main" class="main">
 ${opts.body}
 </main>

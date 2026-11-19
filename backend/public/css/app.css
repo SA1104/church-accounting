@@ -403,9 +403,25 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 
 .inq-url { font-size: 12px; color: var(--text-3); margin: 0 0 4px; }
 .inq-msg { margin: 0; font-size: 14px; white-space: pre-wrap; }
 
+/* Survival Calendar & Field Checklists */
+.cal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.cal-card { display: flex; flex-direction: column; gap: 10px; }
+.cal-card.cal-cur { border: 2px solid var(--brand); box-shadow: 0 10px 28px color-mix(in srgb, var(--brand) 14%, transparent); }
+.cal-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.cal-m { font-size: 22px; font-weight: 900; color: var(--brand-ink); letter-spacing: -0.03em; }
+.cal-card h3 { margin: 0; font-size: 16px; line-height: 1.45; }
+.cal-list { margin: 0; padding-left: 18px; font-size: 13.5px; color: var(--text-2); display: grid; gap: 5px; }
+.cal-trap { padding: 10px 12px; border-radius: 10px; background: var(--bg-soft); border: 1px solid var(--line); font-size: 13px; color: var(--text-2); line-height: 1.55; }
+.detail-chk { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 8px; }
+.detail-chk li label { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); cursor: pointer; font-size: 13.5px; line-height: 1.5; transition: border-color .15s, background .15s; }
+.detail-chk li label:hover { border-color: var(--brand); }
+.detail-chk input[type="checkbox"] { margin-top: 3px; width: 17px; height: 17px; accent-color: var(--brand); flex-shrink: 0; }
+.detail-chk li label:has(input:checked) { background: color-mix(in srgb, var(--brand) 7%, var(--bg)); border-color: color-mix(in srgb, var(--brand) 38%, var(--line)); }
+.detail-sub { display: block; font-size: 12.5px; color: var(--text-3); margin-top: 2px; }
+
 /* Responsive */
 @media (max-width: 1080px) {
-  .calc-grid, .calc-grid-6 { grid-template-columns: repeat(2, 1fr); }
+  .calc-grid, .calc-grid-6, .cal-grid { grid-template-columns: repeat(2, 1fr); }
   .admin-kpis { grid-template-columns: repeat(3, 1fr); }
   .admin-two { grid-template-columns: 1fr; }
   .logo-sub, .logo-sep { display: none; }
@@ -431,7 +447,7 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 
 @media (max-width: 600px) {
   body { font-size: 15.5px; }
   .container { padding: 0 16px; }
-  .calc-grid, .calc-grid-6, .a-grid, .why-grid { grid-template-columns: 1fr; }
+  .calc-grid, .calc-grid-6, .cal-grid, .a-grid, .why-grid { grid-template-columns: 1fr; }
   .admin-kpis { grid-template-columns: repeat(2, 1fr); }
   .season-msg { display: none; }
   .card { padding: 18px; }

@@ -73,6 +73,15 @@
       h.setBreakdown(r.price, r.breakdown);
       h.setChart('waterfall', h.waterfallSvg(r.price, r.breakdown));
 
+      var bPack = Math.round(s.pack * (s.market === 'cp-rg' ? 1.7 : 1.15));
+      var bRes = E.seller(Object.assign({}, s, { unit: s.unit * 2, ship: s.ship * 2, price: Math.round(s.price * 2 * 0.95), pack: bPack }), fx);
+      h.setHtml('bundleCompare',
+        '상세페이지 기본 옵션을 <strong>2개 묶음(5% 할인 · ' + E.won(bRes.price) + ')</strong>으로 유도하면 포장·택배비가 1회분(' + E.won(bPack) + ')만 지출되어 주문당 광고 전 순마진이 <strong class="tnum">' +
+        E.won(r.preAd) + ' → ' + E.won(bRes.preAd) + '</strong>으로 뛰고, 손익분기 ROAS 커트라인은 <strong class="tnum">' +
+        (r.beRoas ? E.pct(r.beRoas, 0) : '-') + ' → ' + (bRes.beRoas ? E.pct(bRes.beRoas, 0) : '-') +
+        '</strong>로 낮아져 광고 효율이 크게 개선됩니다.'
+      );
+
       return {
         benchPayload: r.beRoas ? { calculator: 'seller-roas', industry: 'online', break_even_roas: r.beRoas } : null,
         receipt: {

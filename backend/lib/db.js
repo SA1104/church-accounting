@@ -352,6 +352,7 @@ function classifyPageType(p) {
   if (p === '/calculators') return 'calc-index';
   if (p === '/funding') return 'funding';
   if (p === '/commercial-area') return 'commercial';
+  if (p === '/calendar') return 'calendar';
   if (p.startsWith('/bible/')) return 'bible';
   if (p === '/bible') return 'bible-index';
   if (p.startsWith('/category/')) return 'category';

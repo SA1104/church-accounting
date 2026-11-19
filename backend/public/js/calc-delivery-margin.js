@@ -103,6 +103,18 @@
         (r.goalOrders ? E.fmt(r.goalOrders) + '건' : '-') + '</strong> 주문이 필요합니다.'
       );
 
+      var pDisc = Math.min(2000, Math.round(r.price * 0.1));
+      var pRes = E.delivery(Object.assign({}, s, { price: r.price - pDisc, fee: Math.min(s.fee, 6.8), dfee: 0, promo: 0 }));
+      var diff = Math.round(pRes.net - r.net);
+      h.setHtml('pickupCompare',
+        '포장(픽업) 고객에게 <strong class="tnum">' + E.won(pDisc) +
+        '</strong> 즉시 할인을 걸어주더라도 사장님 부담 배달비(<strong class="tnum">' + E.won(r.dfee) +
+        '</strong>)가 굳기 때문에 포장 1주문 순수익은 <strong class="tnum">' + E.won(pRes.net) +
+        '</strong>으로 배달 주문보다 건당 <strong class="tnum" style="color:' + (diff >= 0 ? 'var(--safe)' : 'var(--danger)') + '">' +
+        (diff >= 0 ? '+' + E.won(diff) : E.won(diff)) + '</strong> ' +
+        (diff >= 0 ? '더 남습니다. 매장 전면과 영수증에 픽업 할인을 적극 홍보하세요.' : '차이가 납니다.')
+      );
+
       return {
         benchPayload: { calculator: 'delivery-margin', industry: spec.benchInd || 'food', net_margin_pct: r.margin },
         receipt: {

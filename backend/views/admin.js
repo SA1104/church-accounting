@@ -26,6 +26,7 @@ function resolvePageTitle(pathStr, ctx) {
   if (pathStr === '/calculators') return '전체 시뮬레이터 허브';
   if (pathStr === '/funding') return '[자금라운지] 사업자 대출 · 정책자금 전략 라운지';
   if (pathStr === '/commercial-area') return '[상권Lab] 상권 · 입지 컨설팅 Lab';
+  if (pathStr === '/calendar') return '[생존캘린더] 사업자 12개월 세무·자금 캘린더';
   if (pathStr === '/bible') return '실전 바이블 전체 목록';
   if (pathStr.startsWith('/calculators/')) {
     const slug = pathStr.slice('/calculators/'.length);

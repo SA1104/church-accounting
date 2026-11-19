@@ -137,6 +137,8 @@ function startupMasterView(q, ctx) {
     <div class="hl"><span>부족 자금 (필요 대출액)</span><strong>${o('loanNeeded', manwon(r.loanNeeded))}</strong></div>
     <div><span>월 대출 이자 (첫달 기준)</span><strong>${o('mInterest', won(r.monthlyInterestKRW))}</strong></div>
     <div><span>월 원리금 상환액 (${o('loanYrsTxt', r.loanYears + '년 분할')})</span><strong>${o('mDebt', won(r.monthlyDebtServiceKRW))}</strong></div>
+    <div><span>월매출 대비 임대·관리비율</span><strong>${o('rentRatioOut', pct(r.annualSalesKRW > 0 ? ((r.rent + r.maint) * 10000 * 12 / r.annualSalesKRW) * 100 : 0) + (r.annualSalesKRW > 0 && ((r.rent + r.maint) * 10000 * 12 / r.annualSalesKRW) * 100 <= 12 ? ' (안정)' : ' (주의)'))}</strong></div>
+    <div><span>영업이익 대비 원리금 부담률</span><strong>${o('dscrOut', r.annualOpProfit > 0 ? pct((r.monthlyDebtServiceKRW * 12 / r.annualOpProfit) * 100) : '영업적자')}</strong></div>
   </div>
   <p class="footnote-meta">※ 부족한 창업자금을 가장 낮은 금리 순서로 조달하는 방법은 <a href="/funding">사업자 대출 · 정책자금 라운지</a>에서 바로 진단하실 수 있습니다.</p>
 </div>
@@ -163,6 +165,24 @@ function startupMasterView(q, ctx) {
   <h2 class="card-h">업종 통상 마진 기준 & 손님을 더 부르는 현장 운영 디테일</h2>
   <p class="killer-text" data-out="benchMargin">${esc(prof.benchMargin)}</p>
   <ul class="tip-list" data-out-html="tips" style="margin-top:12px">${prof.tips.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>
+</div>
+
+<div class="card" data-startup-chk>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+    <h2 class="card-h" style="margin:0">초보 창업자가 견적서에서 가장 많이 빠뜨리는 숨은 비용 8대 점검표</h2>
+    <span class="pill tnum" data-chk-count>점검 완료 0 / 8</span>
+  </div>
+  <p class="note" style="margin:6px 0 10px">인테리어 ‘평당 단가’에는 아래 별도 공사가 빠져 있는 경우가 대부분입니다. 계약 전 하나씩 직접 체크해 예산 구멍(통상 1,500만~3,000만 원)을 막으세요.</p>
+  <ul class="detail-chk">
+    <li><label><input type="checkbox"><span><strong>전기 승압 공사비 (한전 불입금 + 내선 증설)</strong><span class="detail-sub">커피머신·오븐·튀김기·냉동고가 들어가는 매장은 기본 5kW로 부족합니다. 15~30kW 증설 시 kW당 약 15~22만 원 별도 발생.</span></span></label></li>
+    <li><label><input type="checkbox"><span><strong>도시가스 배관 인입 · 계량기 등급 증설비</strong><span class="detail-sub">기존 상가에 가스 배관이 없거나 용량이 작으면 인입 공사비로 150만~400만 원이 추가될 수 있습니다.</span></span></label></li>
+    <li><label><input type="checkbox"><span><strong>천장형 냉난방기 · 주방 급배기 후드/닥트 입상관</strong><span class="detail-sub">고깃집·치킨·로스터리 매장은 옥상 입상 닥트 및 제연기 미설치 시 오픈 직후 냄새 민원으로 재시공하는 사례가 많습니다.</span></span></label></li>
+    <li><label><input type="checkbox"><span><strong>건축물대장 용도(제1·2종 근린생활시설) 및 정화조 용량</strong><span class="detail-sub">일반소매점 자리를 음식점·카페로 바꿀 때 정화조 인원 용량이 부족하면 영업신고 자체가 반려됩니다. 임대차 계약 전 필히 확인.</span></span></label></li>
+    <li><label><input type="checkbox"><span><strong>기존 점포 철거 · 폐기물 반출 및 추후 원상복구 범위</strong><span class="detail-sub">계약서 특약에 ‘현 시설 상태 인도’ 문구를 넣지 않으면 폐업 시 이전 임차인이 해둔 시설까지 철거해 줘야 하는 폭탄을 맞습니다.</span></span></label></li>
+    <li><label><input type="checkbox"><span><strong>외부 전면 간판 · 어닝 · 유리 시트지 · 도로점용 허가</strong><span class="detail-sub">인테리어 본견적에서 외부 사인물이 별도인지, 지자체 돌출간판 규격 제한 구역인지 반드시 확인하세요.</span></span></label></li>
+    <li><label><input type="checkbox"><span><strong>POS · 인터넷 · CCTV · 정수기 ‘무상 지원’ 위약금 독소조항</strong><span class="detail-sub">기기 무상 임대를 조건으로 3년 약정 및 중도 해지 시 수백만 원 위약금을 물리는 계약을 피하고 단말기 공기계 구매와 비교하세요.</span></span></label></li>
+    <li><label><input type="checkbox"><span><strong>초도 식자재·포장재 발주비 + 최소 3개월 비상 운전자금</strong><span class="detail-sub">오픈 날 통장 잔고가 0원이면 첫 비수기에 무너집니다. 최소 월세+원리금 3~6개월치를 별도 계좌에 남겨 두세요.</span></span></label></li>
+  </ul>
 </div>`;
 
   const faq = [

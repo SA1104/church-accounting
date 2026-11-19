@@ -17,6 +17,7 @@ const calcViews = require('./views/calculators');
 const startupView = require('./views/startup-view');
 const fundingViews = require('./views/funding');
 const commercialViews = require('./views/commercial');
+const calendarViews = require('./views/calendar');
 const pages = require('./views/pages');
 const seo = require('./views/seo');
 const adminViews = require('./views/admin');
@@ -117,7 +118,20 @@ app.get('/funding', (req, res) => {
     bodyClass: 'page-calc',
     current: 'funding',
     noCache: Object.keys(req.query).length > 0,
-    scripts: ['/js/calc-engine.js?v=' + layout.ASSET_V, '/js/calc-core.js?v=' + layout.ASSET_V, '/js/calc-loan-diagnose.js?v=' + layout.ASSET_V]
+    scripts: ['/js/calc-engine.js?v=' + layout.ASSET_V, '/js/mini-calc.js?v=' + layout.ASSET_V, '/js/calc-core.js?v=' + layout.ASSET_V, '/js/calc-loan-diagnose.js?v=' + layout.ASSET_V]
+  });
+});
+
+// 사업자 12개월 세무·노무·정책자금 생존 캘린더
+app.get('/calendar', (req, res) => {
+  const v = calendarViews.calendarView();
+  send(res, {
+    title: '사업자 12개월 세무 · 노무 · 정책자금 생존 캘린더 — 월별 신고 기한 & 공고 오픈 일정',
+    description: '1월·7월 부가가치세, 2월 면세 현황신고, 3월 스마트상점 보조금, 5월 종합소득세, 8월 최저임금 고시, 11월 중간예납, 12월 노란우산 절세 마감까지 1년 12개월 사업자 필수 데드라인 캘린더.',
+    path: '/calendar',
+    jsonld: v.jsonld,
+    body: v.body,
+    current: 'calendar'
   });
 });
 
@@ -288,7 +302,7 @@ app.use('/api', express.json({ limit: '12kb', type: ['application/json', 'text/p
 app.get('/api/version', (req, res) => {
   res.set('Cache-Control', 'no-store').json({
     app: 'BoozaThink 2.0',
-    version: '2.2.0',
+    version: '2.3.0',
     simulators: layout.CALCULATORS.length,
     articles: content.articles.length,
     branch: process.env.RENDER_GIT_BRANCH || 'main',

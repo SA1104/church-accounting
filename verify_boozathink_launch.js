@@ -126,6 +126,7 @@ async function main() {
       '/',
       '/funding',
       '/commercial-area',
+      '/calendar',
       '/calculators',
       ...EXPECTED_CALCS.map((s) => `/calculators/${s}`),
       ...EXPECTED_CATS.map((s) => `/category/${s}`),

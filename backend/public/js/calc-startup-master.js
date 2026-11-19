@@ -93,6 +93,20 @@
       h.setOut('mInterest', E.won(r.monthlyInterestKRW));
       h.setOut('loanYrsTxt', r.loanYears + '년 분할');
       h.setOut('mDebt', E.won(r.monthlyDebtServiceKRW));
+      var occPct = r.annualSalesKRW > 0 ? ((r.rent + r.maint) * 10000 * 12 / r.annualSalesKRW) * 100 : 0;
+      h.setOut('rentRatioOut', E.pct(occPct) + (occPct <= 12 ? ' (안정)' : (occPct <= 16 ? ' (주의)' : ' (위험)')));
+      h.setOut('dscrOut', r.annualOpProfit > 0 ? E.pct((r.monthlyDebtServiceKRW * 12 / r.annualOpProfit) * 100) : '영업적자');
+
+      var chkBox = h.rootEl.querySelector('[data-startup-chk]');
+      if (chkBox && !chkBox._wired) {
+        chkBox._wired = true;
+        chkBox.addEventListener('change', function () {
+          var tot = chkBox.querySelectorAll('input[type="checkbox"]').length;
+          var done = chkBox.querySelectorAll('input[type="checkbox"]:checked').length;
+          var badge = chkBox.querySelector('[data-chk-count]');
+          if (badge) badge.textContent = '점검 완료 ' + done + ' / ' + tot;
+        });
+      }
 
       h.setOut('bestM', r.bestMonth.month + '월');
       h.setOut('bestVal', E.won(r.bestMonth.cashFlow));

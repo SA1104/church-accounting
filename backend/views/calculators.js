@@ -147,7 +147,14 @@ ${range('goal', '월 목표 순익', 0, 30000000, 100000, s.goal, '원')}
 <div class="kpi-grid tnum"><div><span>월 주문</span><strong>${o('monthlyOrders', fmt(r.monthlyOrders) + '건')}</strong></div><div><span>월 예상 매출</span><strong>${o('monthlyRevenue', won(r.monthlyRevenue))}</strong></div><div><span>고정비 차감</span><strong>${o('fixed', won(r.fixed))}</strong></div><div class="hl"><span>월 실제 순수익</span><strong>${o('monthlyNet', won(r.monthlyNet))}</strong></div></div>
 <div class="chart" data-chart="monthly" role="img" aria-label="월 매출 대비 순수익 비교 막대"></div></div>
 <div class="card killer"><h2 class="card-h">목표 마진 달성 메뉴가 역산</h2><p class="killer-text" data-out-html="killer">사장님이 목표 순마진율 <strong>${pct(r.target, 0)}</strong>를 남기려면, 배달앱 메뉴 가격을 <strong class="tnum">${r.targetPrice ? won(r.targetPrice) : '수수료 구조상 달성 불가'}</strong>으로 세팅하거나 원가·배달비에서 <strong class="tnum">${won(r.saveNeeded)}</strong>을 절감해야 합니다.</p>
-<p class="killer-text sub" data-out-html="killer2">월 순익 <strong>${won(r.goal)}</strong>이 목표라면 메뉴가 <strong class="tnum">${r.goalPrice ? won(r.goalPrice) : '-'}</strong> 또는 하루 <strong class="tnum">${r.goalOrders ? fmt(r.goalOrders) + '건' : '-'}</strong> 주문이 필요합니다.</p></div>`;
+<p class="killer-text sub" data-out-html="killer2">월 순익 <strong>${won(r.goal)}</strong>이 목표라면 메뉴가 <strong class="tnum">${r.goalPrice ? won(r.goalPrice) : '-'}</strong> 또는 하루 <strong class="tnum">${r.goalOrders ? fmt(r.goalOrders) + '건' : '-'}</strong> 주문이 필요합니다.</p></div>
+<div class="card"><h2 class="card-h">현장 손익 디테일 — 배달 정가 판매 vs 포장(픽업) 할인 역전 비교</h2>
+<p class="killer-text sub" style="margin:0" data-out-html="pickupCompare">${(() => {
+  const pDisc = Math.min(2000, Math.round(r.price * 0.1));
+  const pRes = E.delivery({ ...s, price: r.price - pDisc, fee: Math.min(s.fee, 6.8), dfee: 0, promo: 0 });
+  const diff = Math.round(pRes.net - r.net);
+  return `포장(픽업) 고객에게 <strong class="tnum">${won(pDisc)}</strong> 즉시 할인을 걸어주더라도 사장님 부담 배달비(<strong class="tnum">${won(r.dfee)}</strong>)가 굳기 때문에 포장 1주문 순수익은 <strong class="tnum">${won(pRes.net)}</strong>으로 배달 주문보다 오히려 건당 <strong class="tnum" style="color:${diff >= 0 ? 'var(--safe)' : 'var(--danger)'}">${diff >= 0 ? '+' + won(diff) : won(diff)}</strong> ${diff >= 0 ? '더 남습니다. 매장 전면과 영수증에 픽업 할인을 적극 홍보하세요.' : '차이가 납니다.'}`;
+})()}</p></div>`;
   const guide = `
 <h2>배달앱 순수익은 이렇게 계산됩니다</h2>
 <p>배달 매출 2만 원짜리 주문 한 건이 들어오면 플랫폼은 판매가 기준으로 중개이용료를 떼고, 결제대행(PG)사는 결제수수료를 떼며, 플랫폼 배달은 업주 부담 배달비를 별도로 정산합니다. 일반과세자라면 고객 결제가의 1/11은 국가에 납부할 부가세 매출세액이므로 사장님 몫이 아닙니다. 여기에 식자재와 보온팩·용기·일회용 수저 원가까지 빼야 비로소 실제 남는 순수익이 드러납니다.</p>
@@ -219,7 +226,13 @@ ${range('cvr', '구매 전환율 (CVR)', 0.1, 20, 0.1, s.cvr, '%')}
 <div class="wide"><span>광고 후 개당 순이익</span><strong>${o('postAd', won(r.postAd))}</strong></div>
 </div></div>
 <div class="card"><h2 class="card-h">판매가 분해 워터폴</h2><div class="chart" data-chart="waterfall" role="img" aria-label="판매가 구성 워터폴 차트"></div>
-<table class="mini-table tnum" data-table="breakdown"><tbody>${r.breakdown.map((b) => `<tr><th>${esc(b.label)}</th><td>${won(b.value)}</td><td>${pct(r.price ? b.value / r.price * 100 : 0)}</td></tr>`).join('')}</tbody></table></div>`;
+<table class="mini-table tnum" data-table="breakdown"><tbody>${r.breakdown.map((b) => `<tr><th>${esc(b.label)}</th><td>${won(b.value)}</td><td>${pct(r.price ? b.value / r.price * 100 : 0)}</td></tr>`).join('')}</tbody></table></div>
+<div class="card killer"><h2 class="card-h">셀러 객단가 디테일 — 단품 1개 vs 2개 묶음(5% 할인) 옵션 마진 점프</h2>
+<p class="killer-text sub" style="margin:0" data-out-html="bundleCompare">${(() => {
+  const bPack = Math.round(s.pack * (s.market === 'cp-rg' ? 1.7 : 1.15));
+  const bRes = E.seller({ ...s, unit: s.unit * 2, ship: s.ship * 2, price: Math.round(s.price * 2 * 0.95), pack: bPack }, fx);
+  return `상세페이지 기본 옵션을 <strong>2개 묶음(5% 할인 · ${won(bRes.price)})</strong>으로 유도하면 포장·택배비가 1회분(${won(bPack)})만 지출되어 주문당 광고 전 순마진이 <strong class="tnum">${won(r.preAd)} → ${won(bRes.preAd)}</strong>으로 뛰고, 손익분기 ROAS 커트라인은 <strong class="tnum">${r.beRoas ? pct(r.beRoas, 0) : '-'} → ${bRes.beRoas ? pct(bRes.beRoas, 0) : '-'}</strong>로 낮아져 광고 효율이 크게 개선됩니다.`;
+})()}</p></div>`;
   const guide = `
 <h2>손익분기 ROAS란 무엇이고 왜 셀러의 생명선인가</h2>
 <p>광고 관리자 화면에 ROAS 300%가 찍히더라도 상품의 광고 전 순마진율이 25%라면 손익분기 ROAS는 400%이므로 실제로는 광고할수록 적자입니다. 캠페인을 켜기 전에 내 상품의 손익분기 ROAS와 손익분기 CPC를 먼저 확정해야 현금이 새지 않습니다.</p>
