@@ -1,41 +1,23 @@
 {
-  "name": "church-accounting-backend",
-  "version": "1.0.0",
-  "description": "Church Accounting & Audit Management System Backend",
+  "name": "boozathink",
+  "version": "2.0.0",
+  "private": true,
+  "description": "BoozaThink 2.0 — 사장님·셀러 손익 & 정책자금 인텔리전스 플랫폼 (SSR Express)",
   "main": "server.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js",
-    "build": "echo Skipping frontend build on Render, using committed dist folder",
-    "stock:krx:health": "node service/stock/cli/syncKrxOpenApi.js health",
-    "stock:krx:sync-master": "node service/stock/cli/syncKrxOpenApi.js sync-master",
-    "stock:krx:sync-daily": "node service/stock/cli/syncKrxOpenApi.js sync-daily",
-    "stock:fsc:health": "node service/stock/cli/syncFsc.js health",
-    "stock:fsc:sync-master": "node service/stock/cli/syncFsc.js sync-master",
-    "stock:fsc:sync-daily": "node service/stock/cli/syncFsc.js sync-daily",
-    "test:auth": "node tests/auth/resendConfirmation.test.js",
-    "test:stock": "node tests/stock/postgresAdapter.test.js && node tests/stock/StockRepository.test.js && node tests/stock/publicApiContracts.test.js && node tests/stock/providerContracts.test.js && node tests/stock/publicApiIntegration.test.js",
-    "test:contracts": "node tests/stock/publicApiContracts.test.js && node tests/stock/providerContracts.test.js"
+    "dev": "node --watch server.js",
+    "check:articles": "node scripts/check_articles.js",
+    "migrate": "node scripts/migrate.js",
+    "verify": "node ../verify_boozathink_launch.js"
   },
   "dependencies": {
-    "@simplewebauthn/server": "^13.3.2",
-    "@supabase/supabase-js": "^2.108.2",
-    "adm-zip": "^0.5.17",
-    "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
+    "compression": "^1.8.0",
     "dotenv": "^16.4.5",
-    "exceljs": "^4.4.0",
-    "express": "^4.19.2",
-    "express-rate-limit": "^8.6.2",
-    "jsonwebtoken": "^9.0.2",
-    "multer": "^1.4.5-lts.1",
-    "node-cron": "^4.6.0",
-    "pg": "^8.22.0",
-    "tesseract.js": "^5.0.5",
-    "ws": "^8.21.0"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.0",
-    "supertest": "^7.2.2"
+    "express": "^4.21.2",
+    "pg": "^8.13.1"
   }
 }

@@ -1,9 +1,0 @@
-{
-  "id": "sample",
-  "name": "Sample Plugin",
-  "version": "0.1.0",
-  "description": "Booza Think Plugin Loader test plugin",
-  "serviceType": "utility",
-  "enabled": true,
-  "routes": ["/health"]
-}
