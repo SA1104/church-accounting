@@ -4,6 +4,13 @@
   var E = window.BTEngine, C = window.BTCalc;
   if (!E || !C) return;
 
+  var BIZ_PRESETS = {
+    food: { ticket: 18000, varpct: 48 },
+    cafe: { ticket: 9500, varpct: 34 },
+    retail: { ticket: 15000, varpct: 70 },
+    service: { ticket: 55000, varpct: 18 }
+  };
+
   function recoveryCrossSvg(cum, payback) {
     var W = 560, H = 215, padL = 62, padR = 20, padT = 22, padB = 30;
     var pw = W - padL - padR, ph = H - padT - padB;
@@ -31,13 +38,19 @@
       '<text x="' + xOf(24).toFixed(1) + '" y="' + (H - 8) + '" text-anchor="middle">2년(계약만기)</text>' +
       '<text x="' + xOf(36).toFixed(1) + '" y="' + (H - 8) + '" text-anchor="end">3년</text>' +
       '<text x="' + (padL - 6) + '" y="' + (padT + 8) + '" text-anchor="end">' + shortLabel + '</text>' +
-      '<text x="' + (W - padR) + '" y="' + (padT + 12) + '" text-anchor="end" font-weight="700">🔴 초기 매몰창업비  🟢 누적 영업순익</text>' +
+      '<text x="' + (W - padR) + '" y="' + (padT + 12) + '" text-anchor="end" font-weight="700">-- 매몰창업비(적색) · 실선 누적순익(녹색)</text>' +
       '</svg>';
   }
 
   C.mount({
     slug: 'store-rent-breakeven',
     defaults: { region: 'seoul', deposit: 5000, rent: 300, maint: 80, labor: 450, biz: 'food', ticket: 18000, varpct: 48, days: 26, orders: 45, sunk: 8000 },
+    onBeforeCalc: function (s, changedKey) {
+      if (changedKey === 'biz' && BIZ_PRESETS[s.biz]) {
+        s.ticket = BIZ_PRESETS[s.biz].ticket;
+        s.varpct = BIZ_PRESETS[s.biz].varpct;
+      }
+    },
     render: function (s, h) {
       var r = E.storeLease(s);
       h.setHeroStatus(r.status);
@@ -48,11 +61,11 @@
       h.setOut('convDep', E.manwon(r.convertedDeposit));
       h.setOut('regName', r.regionName);
       h.setOut('regCap', E.manwon(r.regionCap));
-      h.setOut('capBadge', r.underCap ? '🟢 법정 5% 상한 보호' : '🔴 5% 상한 미적용(초과)');
+      h.setOut('capBadge', r.underCap ? '법정 5% 상한 보호 대상' : '5% 상한 미적용(초과)');
       h.setOut('maxRent5', E.fmt(r.maxRentNext5Pct, 1) + '만원 (+' + E.fmt(r.maxRentHike5Pct, 1) + '만)');
       h.setOut('leaseNote', r.underCap
         ? '환산보증금 기준 이하이므로 재계약 시 임대료 증액 5% 상한, 10년 계약갱신요구권, 권리금 회수기회 보호, 대항력이 모두 적용됩니다.'
-        : '⚠️ 기준액을 ' + E.fmt(r.overAmount) + '만원 초과했습니다! 10년 계약갱신요구권과 권리금 보호는 여전히 적용되지만, 재계약 시 5% 임대료 인상 상한 제한이 적용되지 않으므로 특약 조항을 반드시 확인하세요.');
+        : '기준액을 ' + E.fmt(r.overAmount) + '만원 초과했습니다. 10년 계약갱신요구권과 권리금 보호는 여전히 적용되지만, 재계약 시 5% 임대료 인상 상한 제한이 적용되지 않으므로 특약 조항을 반드시 확인하세요.');
 
       h.setOut('ordTxt', r.dailyOrders + '건×' + r.days + '일');
       h.setOut('expSales', E.won(r.expMonthlySales));
@@ -82,8 +95,8 @@
             ['= 권리금·시설(' + E.manwon(r.sunkStartup) + ') 회수', pbTxt, true]
           ],
           noteLines: [
-            r.underCap ? '⚖️ 5% 임대료 상한 · 10년 갱신요구권 모두 보호' : '⚠️ 환산보증금 초과: 10년 갱신은 적용, 5% 상한 제외 주의',
-            '💡 월매출 대비 월세+관리비 비중: ' + E.pct(r.rentRatioPct) + (r.rentRatioPct <= 10 ? ' (안정)' : r.rentRatioPct <= 15 ? ' (주의)' : ' (위험)')
+            r.underCap ? '5% 임대료 상한 · 10년 갱신요구권 모두 보호' : '환산보증금 초과: 10년 갱신은 적용, 5% 상한 제외 주의',
+            '월매출 대비 월세+관리비 비중: ' + E.pct(r.rentRatioPct) + (r.rentRatioPct <= 10 ? ' (안정)' : r.rentRatioPct <= 15 ? ' (주의)' : ' (위험)')
           ]
         }
       };

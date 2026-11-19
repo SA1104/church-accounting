@@ -1,25 +1,27 @@
 'use strict';
 const facts = require('../data/facts');
+const { icon } = require('./icons');
 
 const SITE = {
   url: (process.env.SITE_URL || 'https://boozathink.com').replace(/\/$/, ''),
   name: 'BoozaThink',
-  tagline: '사장님·셀러 손익 연구소',
-  description: '배달앱 순수익, 스마트스토어·쿠팡 손익분기 ROAS, 소상공인 정책자금 매칭, 2026·2027 최저임금 주휴수당 절벽과 무인화 원금회수, 부가세·종합소득세, 상가 환산보증금·손익분기점까지. 700만 사장님과 셀러를 위한 6대 손익 시뮬레이터 & 바이블.',
+  tagline: '사장님·셀러 손익 & 자금 연구소',
+  description: '창업 초기 보증금·인테리어·계절별 1년 수익 시뮬레이션부터 배달앱 순수익, 셀러 손익분기 ROAS, 주휴수당·무인화, 부가세·종소세, 상가 환산보증금, 사업자 대출·정책자금 비교까지. 현장 경험과 정밀 데이터로 만든 사업자 의사결정 플랫폼.',
   email: 'contact@boozathink.com',
   locale: 'ko_KR'
 };
 
 const CALCULATORS = [
-  { slug: 'delivery-margin', short: '배달앱 순수익 계산기', name: '배민·쿠팡이츠·요기요 배달앱 진짜 순수익 & 목표 마진 메뉴가 역산기', icon: '🛵', desc: '중개수수료·배달비·결제수수료·부가세를 뺀 1주문 순수익과 목표 마진 메뉴가를 역산합니다.', category: 'delivery-store-profit' },
-  { slug: 'seller-roas', short: '셀러 손익분기 ROAS', name: '스마트스토어·쿠팡(로켓그로스/윙) 셀러 마진 & 손익분기 ROAS 계산기', icon: '📦', desc: '실시간 환율 사입원가부터 마켓 수수료·반품까지 반영한 손익분기 ROAS와 최대 CPA를 판독합니다.', category: 'ecommerce-seller-lab' },
-  { slug: 'policy-funds', short: '정책자금·대환 1분 매칭', name: '소상공인 정책자금·4.5% 대환대출·스마트상점 보조금 1분 매칭기', icon: '🏦', desc: '업종·업력·매출로 정책자금·상반기 본공고 대상을 매칭하고 대환 이자 절감액과 보조금 자부담을 계산합니다.', category: 'policy-funds-grants' },
-  { slug: 'labor-automation', short: '주휴수당 절벽 & 무인화', name: '2026·2027 최저시급 주휴수당 절벽 vs 테이블오더 무인화 원금회수 계산기', icon: '🧾', desc: '2026(10,320원)·2027 확정(10,700원) 기준 주 15시간 인건비 절벽과 무인기기 원금회수 개월 수를 비교합니다.', category: 'labor-tax-franchise' },
-  { slug: 'vat-income-tax', short: '부가세·종소세·실수령', name: '개인사업자 부가세(간이·일반) & 5월 종합소득세·노란우산 실수령 계산기', icon: '💰', desc: '간이·일반 부가세 비교부터 종합소득세 8단계 세율, 노란우산 절세액, 세후 월 실수령액까지 한 번에 계산합니다.', category: 'labor-tax-franchise' },
-  { slug: 'store-rent-breakeven', short: '상가 월세·환산보증금·BEP', name: '상가 월세·환산보증금 5% 상한 판독 & 매장 손익분기점·권리금 회수 계산기', icon: '🏪', desc: '상가임대차보호법 환산보증금(5% 상한 여부), 일매출 손익분기점(BEP), 권리금·인테리어 회수 개월 수를 진단합니다.', category: 'delivery-store-profit' }
+  { slug: 'startup-master', short: '창업 풀코스 A-to-Z 설계', name: '업종별 창업 초기자금 · 12개월 계절 손익 · 대출원리금 통합 시뮬레이터', iconKey: 'compass', desc: '업종 선택부터 보증금·인테리어·원가·수수료·키오스크 보조금·세금·대출 이자까지 1년 실수익을 빈틈없이 설계합니다.', category: 'delivery-store-profit', featured: true },
+  { slug: 'delivery-margin', short: '배달앱 순수익 · 메뉴가 역산', name: '배민·쿠팡이츠·요기요 배달앱 진짜 순수익 & 목표 마진 메뉴가 역산기', iconKey: 'delivery', desc: '업종별 표준 원가율 비교와 함께 중개·결제수수료, 배달비, 부가세를 뺀 1주문 순수익과 목표 메뉴가를 역산합니다.', category: 'delivery-store-profit' },
+  { slug: 'seller-roas', short: '셀러 마진 · 손익분기 ROAS', name: '스마트스토어·쿠팡(로켓그로스/윙) 셀러 마진 & 손익분기 ROAS 계산기', iconKey: 'parcel', desc: '환율 연동 사입원가부터 마켓 수수료·반품 손실까지 반영한 손익분기 ROAS와 최대 허용 CPA를 판독합니다.', category: 'ecommerce-seller-lab' },
+  { slug: 'labor-automation', short: '주휴수당 절벽 · 무인화 회수', name: '알바 주휴수당 15시간 절벽 vs 테이블오더·키오스크 원금회수 계산기', iconKey: 'clock', desc: '최신 최저임금·4대보험 고시 기준 주 15시간 인건비 절벽과 무인기기 도입 시 원금회수 개월 수를 비교합니다.', category: 'labor-tax-franchise' },
+  { slug: 'vat-income-tax', short: '부가세 · 종소세 · 세후 실수령', name: '개인사업자 부가세(간이·일반) & 종합소득세·노란우산 실수령 계산기', iconKey: 'tax', desc: '간이·일반 부가세 비교부터 종합소득세 8단계 세율, 노란우산 절세액, 세후 월 실수령액까지 통합 계산합니다.', category: 'labor-tax-franchise' },
+  { slug: 'store-rent-breakeven', short: '상가 환산보증금 · 손익분기', name: '상가 월세·환산보증금 5% 상한 판독 & 매장 손익분기점·권리금 회수 계산기', iconKey: 'store', desc: '상가임대차보호법 환산보증금(5% 상한 여부), 일매출 손익분기점(BEP), 권리금·시설비 회수 기간을 진단합니다.', category: 'delivery-store-profit' },
+  { slug: 'policy-funds', short: '정책자금 · 저금리 대환 매칭', name: '소상공인 정책자금 · 4.5% 대환대출 · 스마트상점 보조금 매칭기', iconKey: 'bank', desc: '업종·업력·매출 조건에 맞는 정책자금을 매칭하고 고금리 대환 이자 절감액과 보조금 자부담을 계산합니다.', category: 'policy-funds-grants' }
 ];
 
-const ASSET_V = '20261119c';
+const ASSET_V = '20261119d';
 
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -57,29 +59,33 @@ function faqHtml(faq, title) {
 }
 
 function gnb(categories, current) {
-  const calcItems = CALCULATORS.map((c) => `<li><a href="/calculators/${c.slug}" role="menuitem"><span class="dd-ico" aria-hidden="true">${c.icon}</span><span><strong>${esc(c.short)}</strong><small>${esc(c.desc)}</small></span></a></li>`).join('');
-  const catLinks = categories.map((c) => `<li><a href="/category/${c.slug}"${current === 'cat:' + c.slug ? ' aria-current="page"' : ''}>${esc(c.short)}</a></li>`).join('');
-  const season = facts.getSeasonContext();
+  const partCalcs = CALCULATORS.filter((c) => !c.featured);
+  const calcItems = partCalcs.map((c) => `<li><a href="/calculators/${c.slug}" role="menuitem"><span class="ico-box-sm">${icon(c.iconKey, 17)}</span><span><strong>${esc(c.short)}</strong><small>${esc(c.desc)}</small></span></a></li>`).join('');
+  const catItems = categories.map((c) => `<li><a href="/category/${c.slug}" role="menuitem"><span class="ico-box-sm">${icon('book', 16)}</span><span><strong>${esc(c.name)}</strong><small>${esc(c.description)}</small></span></a></li>`).join('');
   return `
-<div class="season-bar"><div class="container season-inner"><span class="season-pill">${esc(season.badge)}</span><span class="season-msg">${esc(season.headline)}</span><a class="season-link" href="/calculators/labor-automation?year=2027">2027 인건비 미리 계산 →</a></div></div>
 <header class="gnb" id="top">
   <div class="gnb-inner">
     <a class="logo" href="/" aria-label="BoozaThink 홈">
       <span class="logo-mark" aria-hidden="true">B</span>
-      <span class="logo-text"><strong>BoozaThink</strong><span class="logo-sep">|</span><span class="logo-sub">사장님·셀러 손익 연구소</span></span>
+      <span class="logo-text"><strong>BoozaThink</strong><span class="logo-sep">|</span><span class="logo-sub">사업자 손익·자금 연구소</span></span>
     </a>
     <nav class="gnb-nav" id="gnb-nav" aria-label="주요 메뉴">
       <ul class="gnb-list">
+        <li><a href="/calculators/startup-master"${current === 'startup-master' ? ' aria-current="page"' : ''}>창업 풀코스 설계</a></li>
         <li class="has-dd">
-          <button class="dd-btn" aria-expanded="false" aria-haspopup="true" aria-controls="dd-calc">6대 실전 계산기 <span aria-hidden="true">▾</span></button>
-          <ul class="dd" id="dd-calc" role="menu">${calcItems}<li class="dd-all"><a href="/calculators">전체 계산기 보기 →</a></li></ul>
+          <button class="dd-btn" aria-expanded="false" aria-haspopup="true" aria-controls="dd-calc">부분별 손익 계산기 <span aria-hidden="true">▾</span></button>
+          <ul class="dd" id="dd-calc" role="menu">${calcItems}<li class="dd-all"><a href="/calculators">전체 시뮬레이터 한눈에 보기 →</a></li></ul>
         </li>
-        ${catLinks}
-        <li class="gnb-bible"><a href="/bible">바이블</a></li>
+        <li><a href="/funding"${current === 'funding' ? ' aria-current="page"' : ''}>사업자 대출·정책자금</a></li>
+        <li><a href="/commercial-area"${current === 'commercial' ? ' aria-current="page"' : ''}>상권·입지 Lab</a></li>
+        <li class="has-dd">
+          <button class="dd-btn" aria-expanded="false" aria-haspopup="true" aria-controls="dd-bible" style="color:var(--text-2)">실전 바이블 <span aria-hidden="true">▾</span></button>
+          <ul class="dd" id="dd-bible" role="menu">${catItems}<li class="dd-all"><a href="/bible">실전 바이블 20편 전체 보기 →</a></li></ul>
+        </li>
       </ul>
     </nav>
     <div class="gnb-actions">
-      <button class="icon-btn" id="theme-toggle" type="button" aria-label="다크 모드 전환" title="라이트/다크 모드"><span class="i-sun" aria-hidden="true">☀️</span><span class="i-moon" aria-hidden="true">🌙</span></button>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="다크 모드 전환" title="라이트/다크 모드"><span class="i-sun">${icon('sun', 17)}</span><span class="i-moon">${icon('moon', 17)}</span></button>
       <button class="icon-btn menu-btn" id="menu-toggle" type="button" aria-label="메뉴 열기" aria-expanded="false" aria-controls="gnb-nav">☰</button>
     </div>
   </div>
@@ -93,28 +99,24 @@ function footer(categories) {
   <div class="footer-inner">
     <div class="f-brand">
       <a class="logo" href="/"><span class="logo-mark" aria-hidden="true">B</span><span class="logo-text"><strong>BoozaThink</strong></span></a>
-      <p>대한민국 700만 자영업자·1인 창업가·이커머스 셀러를 위한 실전 손익 & 정책자금 인텔리전스 플랫폼. 모든 계산은 브라우저에서 즉시 수행되며 민감한 입력값은 서버에 저장되지 않습니다.</p>
+      <p>창업 초기부터 매장 운영, 세무, 확장 자금 조달까지 — 현장 사업·금융 실무자의 경험과 정밀 데이터 계산 엔진을 결합해 진심을 담아 만든 의사결정 연구소입니다. 입력하신 개별 수치는 서버에 저장되지 않습니다.</p>
     </div>
-    <div class="f-col"><h3>6대 실전 계산기</h3><ul>${CALCULATORS.map((c) => `<li><a href="/calculators/${c.slug}">${esc(c.short)}</a></li>`).join('')}</ul></div>
-    <div class="f-col"><h3>카테고리</h3><ul>${categories.map((c) => `<li><a href="/category/${c.slug}">${esc(c.name)}</a></li>`).join('')}</ul></div>
-    <div class="f-col"><h3>연구소</h3><ul><li><a href="/about">BoozaThink 소개</a></li><li><a href="/privacy-policy">개인정보처리방침</a></li><li><a href="/terms-of-service">이용약관</a></li><li><a href="/contact">제휴·오류 제보</a></li><li><a href="/llms.txt">AI 팩트시트 (llms.txt)</a></li></ul></div>
+    <div class="f-col"><h3>핵심 시뮬레이터</h3><ul>${CALCULATORS.slice(0, 5).map((c) => `<li><a href="/calculators/${c.slug}">${esc(c.short)}</a></li>`).join('')}<li><a href="/calculators">전체 계산기 보기</a></li></ul></div>
+    <div class="f-col"><h3>자금 · 상권 · 바이블</h3><ul><li><a href="/funding">사업자 대출 · 정책자금 라운지</a></li><li><a href="/commercial-area">상권 · 입지 컨설팅 Lab</a></li>${categories.map((c) => `<li><a href="/category/${c.slug}">${esc(c.name)}</a></li>`).join('')}</ul></div>
+    <div class="f-col"><h3>연구소 안내</h3><ul><li><a href="/about">연구소 철학 & 데이터 원칙</a></li><li><a href="/privacy-policy">개인정보처리방침</a></li><li><a href="/terms-of-service">이용약관 · 면책고지</a></li><li><a href="/contact">제휴 · 오류 제보</a></li><li><a href="/llms.txt">데이터 팩트시트 (llms.txt)</a></li></ul></div>
   </div>
   <div class="footer-src">
-    <p><strong>데이터 기준 출처</strong> · 소상공인시장진흥공단 · 공정거래위원회 · 국세청 · 고용노동부(2026·2027 최저임금 고시) · 국민건강보험공단 · 법제처(상가임대차보호법) · 중소기업중앙회 노란우산 (검증일 ${facts.VERIFIED_AT})</p>
-    <p class="f-legal">본 사이트의 시뮬레이션 결과는 공개 법령·고시 요율에 기반한 일반 참고용 추정치이며 세무·노무·법률·금융 자문이 아닙니다. 실제 정산액·세액·대출 조건은 계약서, 공고문, 전문가 상담으로 최종 확인하세요. · <a href="/about">소개</a> · <a href="/privacy-policy">개인정보처리방침</a> · <a href="/terms-of-service">이용약관</a> · <a href="/contact">문의</a></p>
-    <p class="f-copy">© ${year} BoozaThink. All rights reserved.</p>
+    <p><strong>공식 데이터 출처 및 각주</strong> · 소상공인시장진흥공단 · 공정거래위원회 · 국세청 · 고용노동부(현행 및 차기 확정 최저임금 고시 반영) · 한국은행·은행연합회·금융투자협회 공시 지표 · 법제처(상가건물 임대차보호법) · 중소기업중앙회 (최신 검증 기준일 ${facts.VERIFIED_AT})</p>
+    <p class="f-legal">본 플랫폼의 시뮬레이션 결과는 최신 공개 법령·고시 요율에 기반한 참고용 추정치이며 세무·노무·법률·금융 자문이나 대출 승인을 보장하지 않습니다. 중요한 의사결정 전에는 반드시 계약서·공고문 확인 및 전문가 상담을 진행하세요. · <a href="/about">소개</a> · <a href="/privacy-policy">개인정보처리방침</a> · <a href="/terms-of-service">이용약관</a> · <a href="/contact">문의</a></p>
+    <p class="f-copy">© ${year} BoozaThink Lab. Crafted with field experience & precision modeling.</p>
   </div>
 </footer>`;
 }
 
 function externalTrackingHead() {
   const out = [];
-  if (process.env.GOOGLE_SITE_VERIFICATION) {
-    out.push(`<meta name="google-site-verification" content="${esc(process.env.GOOGLE_SITE_VERIFICATION)}">`);
-  }
-  if (process.env.NAVER_SITE_VERIFICATION) {
-    out.push(`<meta name="naver-site-verification" content="${esc(process.env.NAVER_SITE_VERIFICATION)}">`);
-  }
+  if (process.env.GOOGLE_SITE_VERIFICATION) out.push(`<meta name="google-site-verification" content="${esc(process.env.GOOGLE_SITE_VERIFICATION)}">`);
+  if (process.env.NAVER_SITE_VERIFICATION) out.push(`<meta name="naver-site-verification" content="${esc(process.env.NAVER_SITE_VERIFICATION)}">`);
   if (process.env.GA_MEASUREMENT_ID) {
     const gid = esc(process.env.GA_MEASUREMENT_ID.trim());
     out.push(`<script async src="https://www.googletagmanager.com/gtag/js?id=${gid}"></script>`);

@@ -1,6 +1,6 @@
 'use strict';
 /**
- * BoozaThink 2.1 Launch & AdSense Gatekeeper (verify_boozathink_launch.js)
+ * BoozaThink 2.2 Launch & AdSense Gatekeeper (verify_boozathink_launch.js)
  * Usage:
  *   node verify_boozathink_launch.js                       # Runs math suite + local SSR/API/link/AdSense audit
  *   node verify_boozathink_launch.js https://boozathink.com # Runs full audit against live production domain
@@ -10,6 +10,7 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 
 const EXPECTED_CALCS = [
+  'startup-master',
   'delivery-margin',
   'seller-roas',
   'policy-funds',
@@ -83,10 +84,11 @@ async function fetchRes(baseUrl, urlPath, opts) {
 
 async function main() {
   // 0. Statutory Math Unit Test Suite
-  console.log('0) Statutory Tax / Labor / Lease Math Suite');
+  console.log('0) Statutory Tax / Labor / Lease / Startup / Loan Math Suite');
   try {
-    execFileSync(process.execPath, [path.join(__dirname, 'backend', 'scripts', 'verify_math.js')], { stdio: 'pipe' });
-    assert(true, 'verify_math.js (40 statutory formulas across 6 simulators)', '40/40 exact match');
+    const out = execFileSync(process.execPath, [path.join(__dirname, 'backend', 'scripts', 'verify_math.js')], { encoding: 'utf8' });
+    const m = /(\d+)\s+PASSED,\s+(\d+)\s+FAILED/.exec(out);
+    assert(m && Number(m[2]) === 0 && Number(m[1]) >= 51, 'verify_math.js (51 statutory & financial formulas)', m ? `${m[1]} PASSED, ${m[2]} FAILED` : 'exact match');
   } catch (e) {
     assert(false, 'verify_math.js failed', e.message);
   }
@@ -107,7 +109,7 @@ async function main() {
   }
 
   console.log(`\n============================================================`);
-  console.log(` BoozaThink 2.1 Gatekeeper — Target: ${baseUrl}`);
+  console.log(` BoozaThink 2.2 Gatekeeper — Target: ${baseUrl}`);
   console.log(`============================================================\n`);
 
   try {
@@ -118,10 +120,12 @@ async function main() {
     try { hcJson = JSON.parse(hc.text); } catch (e) { hcJson = null; }
     assert(hc.status === 200 && hcJson && hcJson.status === 'healthy', 'GET /__platform_health_check__', `HTTP ${hc.status} ${hc.text.trim()}`);
 
-    // 2. Core Pages, 6 Calculators, 4 Categories, Legal, SEO/GEO & AdSense Readiness
-    console.log('\n2) Core Routes (6 Simulators), 2026-2027 Transition & AdSense Readiness');
+    // 2. Core Pages, 7 Calculators, Funding Lounge, Commercial Lab, Categories, Legal & UI Bug Fixes
+    console.log('\n2) Core Routes (7 Simulators + Funding Lounge + Commercial Lab) & UI Integrity');
     const corePages = [
       '/',
+      '/funding',
+      '/commercial-area',
       '/calculators',
       ...EXPECTED_CALCS.map((s) => `/calculators/${s}`),
       ...EXPECTED_CATS.map((s) => `/category/${s}`),
@@ -136,23 +140,35 @@ async function main() {
       const hasTitle = /<title>[^<]{8,}<\/title>/.test(r.text);
       const hasDesc = /<meta name="description" content="[^"]{30,}">/.test(r.text);
       const hasCanon = /<link rel="canonical" href="https:\/\/boozathink\.com/.test(r.text);
+      const visibleText = stripTags(r.text);
+      const noUndefined = !/\bundefined\b/.test(visibleText);
       const ldMatches = [...r.text.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
       let ldValid = ldMatches.length > 0;
       for (const lm of ldMatches) {
         try { JSON.parse(lm[1]); } catch (e) { ldValid = false; }
       }
-      assert(r.status === 200 && hasTitle && hasDesc && hasCanon && ldValid, `SSR Page ${p}`, `HTTP ${r.status}, JSON-LD=${ldMatches.length}`);
+      assert(r.status === 200 && hasTitle && hasDesc && hasCanon && ldValid && noUndefined, `SSR Page ${p}`, `HTTP ${r.status}, JSON-LD=${ldMatches.length}, noUndefined=${noUndefined}`);
       extractInternalUrls(r.text).forEach((u) => discoveredInternalLinks.add(u));
     }
 
+    // Verify Screenshot 1 CSS Fix & Screenshot 2 Industry Feedback Box
+    const cssRes = await fetchRes(baseUrl, '/css/app.css');
+    assert(cssRes.status === 200 && cssRes.text.includes('.field > label.switch') && cssRes.text.includes('flex: 0 0 44px'), 'Screenshot 1 Fix: Toggle Switch Flex Specificity (.field > label.switch)');
+
+    const delivPage = await fetchRes(baseUrl, '/calculators/delivery-margin?biz=chicken');
+    assert(delivPage.status === 200 && delivPage.text.includes('data-biz-feedback') && delivPage.text.includes('data-apply-biz') && delivPage.text.includes('치킨·피자·야식'), 'Screenshot 2 Fix: Delivery Industry Live Diagnostics & Preset Fill');
+
+    const masterPage = await fetchRes(baseUrl, '/calculators/startup-master?profile=unmanned-retail');
+    assert(masterPage.status === 200 && masterPage.text.includes('season12') && masterPage.text.includes('무인 아이스크림'), 'Startup Master 12-Month Seasonality & Deposit/Interior/Loan Flow');
+
     // Check 2027 Year Mode Preset on Labor Calculator
     const y2027Check = await fetchRes(baseUrl, '/calculators/labor-automation?year=2027');
-    assert(y2027Check.status === 200 && y2027Check.text.includes('value="10700"') && y2027Check.text.includes('제2026-60호'), '2027 Minimum Wage (10,700원) & Pension (10%) Preset', 'year=2027 verified');
+    assert(y2027Check.status === 200 && y2027Check.text.includes('value="10700"') && y2027Check.text.includes('제2026-60호'), 'Next-Year Statutory Wage (10,700원) & Pension (10%) Footnote');
 
     // Check AdSense Isolation on /admin & Contact Form on /contact & Privacy Disclosures
     const adminLogin = await fetchRes(baseUrl, '/admin');
     const xRobots = adminLogin.headers.get('x-robots-tag') || '';
-    assert(adminLogin.status === 200 && xRobots.includes('noindex') && adminLogin.text.includes('noindex, nofollow'), 'Site-Kit /admin Isolation (X-Robots-Tag: noindex)', xRobots);
+    assert(adminLogin.status === 200 && xRobots.includes('noindex') && adminLogin.text.includes('noindex, nofollow') && !/\bundefined\b/.test(stripTags(adminLogin.text)), 'Site-Kit /admin Isolation (X-Robots-Tag: noindex)', xRobots);
 
     const contactPage = await fetchRes(baseUrl, '/contact');
     assert(contactPage.text.includes('id="contact-form"') && contactPage.text.includes('/api/biz/contact'), 'AdSense E-E-A-T Working Contact Form (/contact)');
@@ -164,16 +180,16 @@ async function main() {
     const sm = await fetchRes(baseUrl, '/sitemap.xml');
     const smCount = (sm.text.match(/<loc>/g) || []).length;
     assert(
-      sm.status === 200 && smCount >= 36 && sm.text.includes('/calculators/vat-income-tax') && sm.text.includes('/calculators/store-rent-breakeven') && !sm.text.includes('/admin'),
+      sm.status === 200 && smCount >= 39 && sm.text.includes('/calculators/startup-master') && sm.text.includes('/funding') && sm.text.includes('/commercial-area') && !sm.text.includes('/admin'),
       'GET /sitemap.xml',
-      `${smCount} URLs indexed (6 calculators + 20 bibles, /admin excluded)`
+      `${smCount} URLs indexed (7 calculators + funding + commercial-area + 20 bibles, /admin excluded)`
     );
 
     const rb = await fetchRes(baseUrl, '/robots.txt');
     assert(rb.status === 200 && rb.text.includes('Mediapartners-Google') && rb.text.includes('Disallow: /admin'), 'GET /robots.txt', 'Mediapartners-Google allowed, /admin disallowed');
 
     const llms = await fetchRes(baseUrl, '/llms.txt');
-    assert(llms.status === 200 && llms.text.includes('10,700원') && llms.text.includes('환산보증금') && llms.text.includes('노란우산공제'), 'GET /llms.txt', `${llms.size} bytes (2026-2027 facts)`);
+    assert(llms.status === 200 && llms.text.includes('/funding') && llms.text.includes('/commercial-area') && llms.text.includes('startup-master'), 'GET /llms.txt', `${llms.size} bytes`);
 
     const llmsFull = await fetchRes(baseUrl, '/llms-full.txt');
     assert(llmsFull.status === 200 && llmsFull.size > 80000, 'GET /llms-full.txt', `${llmsFull.size} bytes`);
@@ -184,13 +200,14 @@ async function main() {
       const p = `/bible/${slug}`;
       const r = await fetchRes(baseUrl, p);
       const pureChars = extractArticlePureLength(r.text);
+      const noUndef = !/\bundefined\b/.test(stripTags(r.text));
       const tables = (r.text.match(/<table/g) || []).length;
       const hasMini = /data-mini="[a-z-]+"/.test(r.text);
       const hasCases = r.text.includes('case-fail') && r.text.includes('case-success');
       const faqCount = (r.text.match(/class="faq-item"/g) || []).length;
       const hasTrust = r.text.includes('class="trust-box"') && r.text.includes('/privacy-policy') && r.text.includes('/terms-of-service');
       assert(
-        r.status === 200 && pureChars >= 3000 && tables >= 2 && hasMini && hasCases && faqCount >= 4 && hasTrust,
+        r.status === 200 && noUndef && pureChars >= 3000 && tables >= 2 && hasMini && hasCases && faqCount >= 4 && hasTrust,
         `Bible ${slug}`,
         `chars=${pureChars}, tables=${tables}, mini=${hasMini}, faq=${faqCount}`
       );
@@ -206,28 +223,32 @@ async function main() {
     }
     assert(brokenLinks.length === 0, 'Zero Broken Internal Links & Assets', brokenLinks.length ? brokenLinks.join(', ') : `${discoveredInternalLinks.size} checked, 0 broken`);
 
-    // 5. FX Bus, Benchmark API (New Simulators) & Beacon Collector
-    console.log('\n5) Real-time FX, 6-Simulator Benchmark & Analytics Beacon API');
+    // 5. FX Bus, Market Lending Rates API, Benchmark API & Beacon Collector
+    console.log('\n5) Real-time FX, Market Lending Rates, 7-Simulator Benchmark & Analytics API');
     const fxRes = await fetchRes(baseUrl, '/api/fx');
     const fxJson = JSON.parse(fxRes.text);
     assert(fxRes.status === 200 && fxJson.CNY > 100 && fxJson.USD > 900, 'GET /api/fx', `mode=${fxJson.mode}, CNY=${fxJson.CNY}, USD=${fxJson.USD}`);
 
-    const bmTax = await fetchRes(baseUrl, '/api/biz/benchmark', {
+    const ratesRes = await fetchRes(baseUrl, '/api/rates');
+    const ratesJson = JSON.parse(ratesRes.text);
+    assert(ratesRes.status === 200 && Array.isArray(ratesJson.bands) && ratesJson.bands.length >= 7, 'GET /api/rates (Bank/Securities/Policy Rates)', `bands=${ratesJson.bands.length}, bokBase=${ratesJson.bokBaseRate}%`);
+
+    const bmStartup = await fetchRes(baseUrl, '/api/biz/benchmark', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ calculator: 'vat-income-tax', industry: 'food', eff_tax_rate: 6.4 })
+      body: JSON.stringify({ calculator: 'startup-master', industry: 'food', net_margin_pct: 19.5 })
     });
-    const bmTaxJson = JSON.parse(bmTax.text);
-    assert(bmTax.status === 200 && bmTaxJson.ok === true && typeof bmTaxJson.topPercent === 'number', 'POST /api/biz/benchmark (vat-income-tax)', `storage=${bmTaxJson.storage}, top=${bmTaxJson.topPercent}%`);
+    const bmStartupJson = JSON.parse(bmStartup.text);
+    assert(bmStartup.status === 200 && bmStartupJson.ok === true && typeof bmStartupJson.topPercent === 'number', 'POST /api/biz/benchmark (startup-master)', `storage=${bmStartupJson.storage}, top=${bmStartupJson.topPercent}%`);
 
     const colRes = await fetchRes(baseUrl, '/api/biz/collect', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/131.0' },
-      body: JSON.stringify({ mode: 'enter', vid: 'verifytest1234', path: '/calculators/vat-income-tax', ref: 'https://www.google.com/', scroll: 45, dwell: 0 })
+      body: JSON.stringify({ mode: 'enter', vid: 'verifyv220test', path: '/funding', ref: 'https://www.google.com/', scroll: 52, dwell: 0 })
     });
     assert(colRes.status === 204, 'POST /api/biz/collect (Analytics Beacon)', `HTTP ${colRes.status}`);
 
-    // 6. Supabase RLS Verification across ALL public tables (including new analytics & inquiry tables!)
+    // 6. Supabase RLS Verification across ALL public tables
     console.log('\n6) Supabase (booza-think) Row Level Security Audit');
     const ddlHasRls = db.MIGRATION_SQL.includes('ALTER TABLE public.biz_simulator_runs ENABLE ROW LEVEL SECURITY') &&
       db.MIGRATION_SQL.includes('ALTER TABLE public.biz_page_events ENABLE ROW LEVEL SECURITY') &&

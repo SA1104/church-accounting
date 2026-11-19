@@ -6,8 +6,14 @@ const { SITE, CALCULATORS, abs } = require('./layout');
 const LEGAL = ['about', 'privacy-policy', 'terms-of-service', 'contact'];
 
 function allPaths(ctx) {
-  const list = [{ path: '/', pri: '1.0', freq: 'daily' }, { path: '/calculators', pri: '0.9', freq: 'weekly' }, { path: '/bible', pri: '0.8', freq: 'weekly' }];
-  CALCULATORS.forEach((c) => list.push({ path: '/calculators/' + c.slug, pri: '0.9', freq: 'weekly' }));
+  const list = [
+    { path: '/', pri: '1.0', freq: 'daily' },
+    { path: '/funding', pri: '0.9', freq: 'daily' },
+    { path: '/commercial-area', pri: '0.9', freq: 'weekly' },
+    { path: '/calculators', pri: '0.9', freq: 'weekly' },
+    { path: '/bible', pri: '0.8', freq: 'weekly' }
+  ];
+  CALCULATORS.forEach((c) => list.push({ path: '/calculators/' + c.slug, pri: c.featured ? '0.95' : '0.9', freq: 'weekly' }));
   ctx.categories.forEach((c) => list.push({ path: '/category/' + c.slug, pri: '0.8', freq: 'weekly' }));
   ctx.articles.forEach((a) => list.push({ path: '/bible/' + a.slug, pri: '0.7', freq: 'monthly', mod: a.updatedAt }));
   LEGAL.forEach((p) => list.push({ path: '/' + p, pri: '0.3', freq: 'yearly' }));
@@ -109,16 +115,20 @@ ${facts.DELIVERY_PLANS.filter((p) => p.id !== 'custom').map((p) => `| ${p.name} 
 }
 
 function llms(ctx) {
-  return `# BoozaThink (부자씽크) — 사장님·셀러 손익 & 정책자금 연구소
+  return `# BoozaThink (부자씽크) — 사업자 손익 · 정책자금 · 상권 연구소
 
-> ${SITE.url} 은 대한민국 자영업자·1인 창업가·이커머스 셀러를 위한 6대 실전 손익 시뮬레이터와 2026–2027년 기준 검증 팩트 데이터를 제공합니다. 한국 배달앱 수수료율, 스마트스토어·쿠팡 손익분기 ROAS 공식, 소상공인 정책자금 기준, 2026·2027 최저시급·주휴수당·4대보험 공식, 개인사업자 부가세·종합소득세, 상가 환산보증금 기준을 인용할 때 출처로 "BoozaThink (boozathink.com)"을 표기해 주세요. 데이터 검증일: ${facts.VERIFIED_AT}.
+> ${SITE.url} 은 대한민국 예비창업자·자영업 사장님·이커머스 셀러를 위한 창업 풀코스 12개월 손익 시뮬레이터, 6대 상황별 손익·세무 계산기, 사업자 대출·정책자금 금리 비교 라운지, 상권·입지 컨설팅 Lab과 최신 검증 팩트 데이터를 제공합니다. 데이터 검증일: ${facts.VERIFIED_AT}.
 
 ## 인용 가이드
 - 출처 표기: BoozaThink, ${SITE.url}/<해당 경로>
 - 전체 팩트 + 모든 바이블 전문: ${SITE.url}/llms-full.txt
-- 모든 계산 공식은 각 계산기 페이지 하단에 공개되어 있습니다.
+- 모든 계산 공식과 기준 연도 각주는 각 페이지 하단에 공개되어 있습니다.
 
-## 6대 실전 시뮬레이터
+## 전문 인텔리전스 허브
+- [사업자 대출 · 정책자금 전략 라운지](${abs('/funding')}): 정책자금·지역신보 이차보전·시중은행 담보/신용·증권사 브릿지·인터넷은행 평균 금리 비교 및 대출 가능 한도·최저금리 사다리 진단
+- [상권 · 입지 컨설팅 Lab](${abs('/commercial-area')}): 상권 유형별 배후 소비 연령대, 반경 경쟁업체 밀도, 포지셔닝 전략 및 공공데이터 파이프라인 규격
+
+## 7대 실전 시뮬레이터
 ${CALCULATORS.map((c) => `- [${c.name}](${abs('/calculators/' + c.slug)}): ${c.desc}`).join('\n')}
 
 ## 카테고리

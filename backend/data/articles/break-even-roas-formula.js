@@ -35,7 +35,7 @@ module.exports = {
 <tr><td><strong>개당 총변동비</strong></td><td><strong>15,489</strong></td><td><strong>51.6%</strong></td></tr>
 <tr><td><strong>광고 전 개당 순마진</strong></td><td><strong>14,511</strong></td><td><strong>48.4%</strong></td></tr>
 </tbody></table>
-<div class="callout warn">⚠️ 일반과세자라면 판매가에 포함된 부가세(매출세액)에서 매입세액을 뺀 납부분도 사실상 변동비입니다. 이 예시는 이해를 돕기 위해 부가세를 제외했으므로, 실제 판단 시에는 (판매가 − 과세 매입액) ÷ 11 정도를 추가 비용으로 잡아 보수적으로 보시길 권합니다.</div>`
+<div class="callout warn">일반과세자라면 판매가에 포함된 부가세(매출세액)에서 매입세액을 뺀 납부분도 사실상 변동비입니다. 이 예시는 이해를 돕기 위해 부가세를 제외했으므로, 실제 판단 시에는 (판매가 − 과세 매입액) ÷ 11 정도를 추가 비용으로 잡아 보수적으로 보시길 권합니다.</div>`
     },
     {
       heading: '2단계: 손익분기 ROAS 공식과 마진율별 본전 기준표',

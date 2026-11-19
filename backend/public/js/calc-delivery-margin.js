@@ -15,10 +15,22 @@
     'custom': '사장님 계약서상 요율을 직접 입력'
   };
 
+  var userEditedPriceCost = false;
+
   C.mount({
     slug: 'delivery-margin',
     defaults: { plan: 'baemin-78', price: 20000, fee: 7.8, dfee: 3400, card: 3, cost: 7000, promo: 0, vat: 1, biz: 'food', orders: 40, days: 26, fixed: 3000000, target: 25, goal: 5000000 },
     onBeforeCalc: function (s, changedKey, h) {
+      if (changedKey === 'price' || changedKey === 'cost') {
+        userEditedPriceCost = true;
+      }
+      if (changedKey === 'biz') {
+        var bSpec = (E.DELIVERY_BIZ_SPECS && E.DELIVERY_BIZ_SPECS[s.biz]) || null;
+        if (bSpec && !userEditedPriceCost) {
+          s.price = bSpec.avgPrice;
+          s.cost = bSpec.avgCost;
+        }
+      }
       if (changedKey === 'plan') {
         var p = E.DELIVERY_PLANS[s.plan];
         if (p && s.plan !== 'custom') { s.fee = p.fee; s.dfee = p.dfee; }
@@ -32,11 +44,41 @@
       if (noteEl && PLAN_NOTES[s.plan]) noteEl.textContent = PLAN_NOTES[s.plan];
     },
     render: function (s, h) {
+      var applyBtn = h.rootEl.querySelector('[data-apply-biz]');
+      if (applyBtn && !applyBtn._wired) {
+        applyBtn._wired = true;
+        applyBtn.addEventListener('click', function () {
+          var specNow = (E.DELIVERY_BIZ_SPECS && E.DELIVERY_BIZ_SPECS[s.biz]) || E.DELIVERY_BIZ_SPECS.food;
+          if (!specNow) return;
+          userEditedPriceCost = false;
+          var fPrice = document.getElementById('f-price');
+          var fCost = document.getElementById('f-cost');
+          if (fPrice) fPrice.value = specNow.avgPrice;
+          if (fCost) {
+            fCost.value = specNow.avgCost;
+            s.price = specNow.avgPrice;
+            fCost.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        });
+      }
+
       var r = E.delivery(s);
+      var spec = (E.DELIVERY_BIZ_SPECS && E.DELIVERY_BIZ_SPECS[s.biz]) || E.DELIVERY_BIZ_SPECS.food;
+      var curCogsPct = r.price > 0 ? (r.cost / r.price) * 100 : 0;
+      var cogsStatus = curCogsPct > spec.cogsRange[1]
+        ? '업종 평균 대비 원가율 높음 (' + curCogsPct.toFixed(1) + '%)'
+        : (curCogsPct < spec.cogsRange[0] ? '업종 평균 대비 원가율 우수 (' + curCogsPct.toFixed(1) + '%)' : '업종 적정 원가율 범위 (' + curCogsPct.toFixed(1) + '%)');
+
+      var bTitle = h.rootEl.querySelector('[data-biz-title]');
+      var bTip = h.rootEl.querySelector('[data-biz-tip]');
+      if (bTitle) bTitle.textContent = spec.name + ' 통상 원가율 ' + spec.cogsRange[0] + '~' + spec.cogsRange[1] + '% (현재 ' + curCogsPct.toFixed(1) + '%)';
+      if (bTip) bTip.textContent = spec.tip;
+
       h.setHeroStatus(r.net >= 0 ? (r.margin >= 15 ? 'safe' : 'caution') : 'danger');
       h.setOut('net', E.won(r.net));
       h.setOut('margin', E.pct(r.margin));
       h.setOut('planName', r.planName);
+      h.setOut('bizJudge', cogsStatus);
       h.setOut('monthlyOrders', E.fmt(r.monthlyOrders) + '건');
       h.setOut('monthlyRevenue', E.won(r.monthlyRevenue));
       h.setOut('fixed', E.won(r.fixed));
@@ -62,10 +104,10 @@
       );
 
       return {
-        benchPayload: { calculator: 'delivery-margin', industry: s.biz || 'food', net_margin_pct: r.margin },
+        benchPayload: { calculator: 'delivery-margin', industry: spec.benchInd || 'food', net_margin_pct: r.margin },
         receipt: {
           filename: 'boozathink-delivery-receipt.png',
-          subtitle: '배달앱 1주문 손익 진단 · ' + r.planName,
+          subtitle: '배달앱 1주문 손익 진단 · ' + spec.name + ' · ' + r.planName,
           heroLabel: '1주문 실제 순수익',
           heroValue: E.won(r.net) + ' (' + E.pct(r.margin) + ')',
           heroSub: '월 예상 실순익 ' + E.won(r.monthlyNet) + ' (일 ' + s.orders + '건 × ' + s.days + '일)',
@@ -81,8 +123,8 @@
             ['월 고정비 차감후 순익', E.won(r.monthlyNet), true]
           ],
           noteLines: [
-            '🎯 목표마진 ' + E.pct(r.target, 0) + ' 달성 메뉴가: ' + (r.targetPrice ? E.won(r.targetPrice) : '불가'),
-            '💡 필요 원가·배달비 절감액: ' + E.won(r.saveNeeded)
+            '목표마진 ' + E.pct(r.target, 0) + ' 달성 메뉴가: ' + (r.targetPrice ? E.won(r.targetPrice) : '불가'),
+            '필요 원가·배달비 절감액: ' + E.won(r.saveNeeded)
           ]
         }
       };

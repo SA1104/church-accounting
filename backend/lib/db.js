@@ -11,8 +11,9 @@ let Pool = null;
 try { ({ Pool } = require('pg')); } catch (e) { Pool = null; }
 
 const TARGET_PROJECT_REF = 'feifwkwxqpipyozgqcfg';
-const CALCS = ['delivery-margin', 'seller-roas', 'policy-funds', 'labor-automation', 'vat-income-tax', 'store-rent-breakeven'];
+const CALCS = ['startup-master', 'delivery-margin', 'seller-roas', 'policy-funds', 'labor-automation', 'vat-income-tax', 'store-rent-breakeven'];
 const METRICS = {
+  'startup-master': { col: 'net_margin_pct', label: '세후 순수익률', unit: '%', higherIsBetter: true, seed: { mean: 17.5, sd: 6.8 } },
   'delivery-margin': { col: 'net_margin_pct', label: '순마진율', unit: '%', higherIsBetter: true, seed: { mean: 16.8, sd: 7.5 } },
   'seller-roas': { col: 'break_even_roas', label: '손익분기 ROAS', unit: '%', higherIsBetter: false, seed: { mean: 410, sd: 160 } },
   'policy-funds': { col: 'monthly_saving_krw', label: '월 이자·보조 절감액', unit: '원', higherIsBetter: true, seed: { mean: 118000, sd: 70000 } },
@@ -41,7 +42,7 @@ const DDL_STEPS = [
   `ALTER TABLE public.biz_simulator_runs ADD COLUMN IF NOT EXISTS eff_tax_rate NUMERIC(8,2)`,
   `ALTER TABLE public.biz_simulator_runs ADD COLUMN IF NOT EXISTS rent_ratio_pct NUMERIC(8,2)`,
   `ALTER TABLE public.biz_simulator_runs DROP CONSTRAINT IF EXISTS biz_simulator_runs_calculator_check`,
-  `ALTER TABLE public.biz_simulator_runs ADD CONSTRAINT biz_simulator_runs_calculator_check CHECK (calculator IN ('delivery-margin','seller-roas','policy-funds','labor-automation','vat-income-tax','store-rent-breakeven'))`,
+  `ALTER TABLE public.biz_simulator_runs ADD CONSTRAINT biz_simulator_runs_calculator_check CHECK (calculator IN ('startup-master','delivery-margin','seller-roas','policy-funds','labor-automation','vat-income-tax','store-rent-breakeven'))`,
   `CREATE INDEX IF NOT EXISTS biz_simulator_runs_calc_ind_idx ON public.biz_simulator_runs (calculator, industry, created_at DESC)`,
 
   `CREATE TABLE IF NOT EXISTS public.biz_page_events (
@@ -349,6 +350,8 @@ function classifyPageType(p) {
   if (p === '/') return 'home';
   if (p.startsWith('/calculators/')) return 'calculator';
   if (p === '/calculators') return 'calc-index';
+  if (p === '/funding') return 'funding';
+  if (p === '/commercial-area') return 'commercial';
   if (p.startsWith('/bible/')) return 'bible';
   if (p === '/bible') return 'bible-index';
   if (p.startsWith('/category/')) return 'category';
@@ -433,7 +436,7 @@ async function collectEvent(payload, reqMeta) {
 
 /* ───────── /contact 문의·오류 제보 저장 ───────── */
 async function createInquiry(body) {
-  const category = ['error', 'policy', 'partnership', 'general'].includes(body.category) ? body.category : 'general';
+  const category = ['error', 'policy', 'partnership', 'funding-consult', 'commercial-unlock', 'general'].includes(body.category) ? body.category : 'general';
   const email = String(body.email || '').trim().slice(0, 120);
   const pageUrl = String(body.page_url || '').trim().slice(0, 300);
   const message = String(body.message || '').trim().slice(0, 3000);

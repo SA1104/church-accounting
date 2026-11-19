@@ -15,7 +15,7 @@
         return '<li><label><input type="checkbox"> ' + esc(d) + '</label></li>';
       }).join('');
       return '<li class="prog"><div class="prog-head"><span class="prog-rank">' + (i + 1) + '</span><h3>' + esc(name) + '</h3><span class="fit" title="조건 적합도">' + m.fit + '%</span></div>' +
-        '<p class="prog-why">✅ ' + esc(m.why) + '</p>' +
+        '<p class="prog-why">' + esc(m.why) + '</p>' +
         '<dl class="prog-dl"><div><dt>지원 한도</dt><dd>' + esc(p.limit) + '</dd></div><div><dt>금리·조건</dt><dd>' + esc(p.rate) + '</dd></div><div><dt>기간</dt><dd>' + esc(p.term) + '</dd></div><div><dt>신청처</dt><dd>' + esc(p.where) + '</dd></div></dl>' +
         '<details class="docs"><summary>필요 서류 체크리스트 (' + (p.docs ? p.docs.length : 0) + ')</summary><ul class="checklist">' + docs + '</ul></details></li>';
     }).join('');
@@ -60,7 +60,7 @@
         benchPayload: { calculator: 'policy-funds', industry: s.ind || 'food', monthly_saving_krw: Math.round(r.monthlyBenefit), matched_programs: r.matches.length },
         receipt: {
           filename: 'boozathink-policy-funds-receipt.png',
-          subtitle: '2026 정책자금·보조금 매칭 진단서',
+          subtitle: '정책자금·대환대출·보조금 매칭 진단서',
           heroLabel: '매칭된 핵심 지원사업',
           heroValue: r.matches.length + '건 매칭',
           heroSub: '연 이자절감 ' + E.won(r.refinance.annual) + ' · 국비보조 ' + E.fmt(r.smart.subsidy) + '만원',

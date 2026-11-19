@@ -15,7 +15,7 @@
       var noteEl = h.rootEl.querySelector('[data-tax-note]');
       if (noteEl) {
         noteEl.textContent = r.forcedGeneral
-          ? '⚠️ 연매출 1억 400만원 이상(또는 간이 배제업종)은 일반과세자로 자동 전환됩니다.'
+          ? '연매출 1억 400만원 이상(또는 간이 배제업종)은 일반과세자로 자동 전환됩니다.'
           : '직전 연 공급대가 1억 400만원 미만 개인사업자는 간이과세 적용 대상입니다 (4,800만원 미만 부가세 납부면제).';
       }
 
@@ -61,8 +61,8 @@
             ['= 월 환산 실수령액', E.won(r.cashNetMonthly), true]
           ],
           noteLines: [
-            '☂️ 노란우산 절세액: 연 ' + E.won(r.umbTaxSaved) + ' (공제 ' + E.won(r.umbDeduct) + ')',
-            '💡 일반과세 시 부가세 ' + E.won(Math.max(0, r.vatGeneral)) + ' / 간이 ' + (r.vatSimplified == null ? '불가' : E.won(r.vatSimplified))
+            '노란우산 절세액: 연 ' + E.won(r.umbTaxSaved) + ' (공제 ' + E.won(r.umbDeduct) + ')',
+            '일반과세 시 부가세 ' + E.won(Math.max(0, r.vatGeneral)) + ' / 간이 ' + (r.vatSimplified == null ? '불가' : E.won(r.vatSimplified))
           ]
         }
       };

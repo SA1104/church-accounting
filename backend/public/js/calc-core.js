@@ -96,7 +96,7 @@
     return '<svg viewBox="0 0 ' + W + ' ' + H + '" aria-hidden="true">' +
       '<line x1="' + padL + '" y1="' + (padT + ph) + '" x2="' + (W - padR) + '" y2="' + (padT + ph) + '" stroke="currentColor" stroke-opacity="0.2"/>' +
       '<line x1="' + x15.toFixed(1) + '" y1="' + padT + '" x2="' + x15.toFixed(1) + '" y2="' + (padT + ph) + '" stroke="#ef4444" stroke-dasharray="4,3" stroke-width="1.5"/>' +
-      '<text x="' + (x15 + 5).toFixed(1) + '" y="' + (padT + 12) + '" fill="#ef4444" font-weight="800">⚡ 주 15시간 절벽</text>' +
+      '<text x="' + (x15 + 5).toFixed(1) + '" y="' + (padT + 12) + '" fill="#ef4444" font-weight="800">주 15시간 절벽</text>' +
       '<path d="' + d + '" fill="none" stroke="#3182f6" stroke-width="2.5" stroke-linejoin="round"/>' +
       marker(cutH, '#0e9f6e', '도입후 ' + cutH + 'h') +
       marker(curH, '#1b64da', '현재 ' + curH + 'h') +
@@ -137,7 +137,7 @@
       '<text x="' + xOf(24).toFixed(1) + '" y="' + (H - 8) + '" text-anchor="middle">2년</text>' +
       '<text x="' + xOf(36).toFixed(1) + '" y="' + (H - 8) + '" text-anchor="end">3년(36개월)</text>' +
       '<text x="' + (padL - 6) + '" y="' + (padT + 8) + '" text-anchor="end">' + shortWon(maxV) + '</text>' +
-      '<text x="' + (W - padR) + '" y="' + (padT + 12) + '" text-anchor="end" font-weight="700">🔴 현행 인건비  🟢 무인화 도입후</text>' +
+      '<text x="' + (W - padR) + '" y="' + (padT + 12) + '" text-anchor="end" font-weight="700">-- 현행 인건비(적색) · 실선 무인화 도입후(녹색)</text>' +
       '</svg>';
   }
 
@@ -483,7 +483,7 @@
         if (root.BTTrack) root.BTTrack('copy_link', { calculator: config.slug });
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(url).then(function () {
-            showToast('✅ 내 매장 시뮬레이션 링크가 복사되었습니다!');
+            showToast('내 매장 시뮬레이션 링크가 복사되었습니다.');
           }).catch(function () { fallbackCopy(url); });
         } else {
           fallbackCopy(url);
@@ -498,7 +498,7 @@
       ta.style.opacity = '0';
       document.body.appendChild(ta);
       ta.select();
-      try { document.execCommand('copy'); showToast('✅ 시뮬레이션 링크가 복사되었습니다!'); } catch (e) {}
+      try { document.execCommand('copy'); showToast('시뮬레이션 링크가 복사되었습니다.'); } catch (e) {}
       document.body.removeChild(ta);
     }
 
@@ -508,7 +508,7 @@
         if (lastResult && lastResult.receipt) {
           if (root.BTTrack) root.BTTrack('download_receipt', { calculator: config.slug });
           downloadReceipt(lastResult.receipt);
-          showToast('🧾 손익 진단 영수증 PNG 이미지를 저장했습니다!');
+          showToast('손익 진단 영수증 PNG 이미지를 저장했습니다.');
         }
       });
     }

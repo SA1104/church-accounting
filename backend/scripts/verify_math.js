@@ -112,6 +112,26 @@ const stOver = E.storeLease({ region: 'metro-overcrowded', deposit: 10000, rent:
 equal(stOver.convertedDeposit, 70000, '환산보증금 7억원');
 equal(stOver.underCap, false, '과밀억제·부산 기준(6.9억) 초과 정확 판정');
 
+console.log('\n=== 7. 창업 풀코스 A-to-Z & 12개월 계절 시뮬레이터 검산 ===');
+const { STARTUP_PROFILES } = require('../data/startup-profiles');
+const sm = E.startupMaster({ profile: 'takeout-coffee', season: 1, kiosk: 1, subsidy: 1, own: 6000, loantype: 'policy', loanrate: 3.5, loanyears: 5 }, STARTUP_PROFILES);
+// 보증금 3000 + 인테리어(12*210=2520) + 설비 2800 + 권리금 1500 + 키오스크 자부담(240 - 168 = 72) = 9892만원
+equal(sm.kioskSubsidy, 168, '키오스크 240만 × 70% = 168만원 스마트상점 국비 차감');
+equal(sm.totalStartup, 3000 + 2520 + 2800 + 1500 + 72, '총 소요 창업자금 9,892만원 합산 일치');
+equal(sm.sunkStartup, 2520 + 2800 + 1500 + 72, '보증금 제외 매몰 투자금 6,892만원 일치');
+equal(sm.loanNeeded, 9892 - 6000, '자기자본 6,000만원 차감 후 필요 대출액 3,892만원 일치');
+equal(sm.months.length, 12, '12개월 계절 시뮬레이션 배열 길이 12');
+equal(sm.bestMonth.month === 7 && sm.worstMonth.month === 1, true, '테이크아웃 커피 성수기(7월)·비수기(1월) 계절 피크 판독 일치');
+
+console.log('\n=== 8. 사업자 대출 가승인·한도·금리사다리 진단기 검산 ===');
+const ldBlock = E.loanDiagnose({ arrears: 1, sales: 30000, credit: 'high' });
+equal(ldBlock.grade, 'danger', '세금 체납 시 즉시 보류 판정');
+equal(ldBlock.netAdditionalLimit, 0, '세금 체납 시 추가 한도 0원');
+const ldOk = E.loanDiagnose({ purpose: 'expand', sales: 20000, credit: 'high', collateral: 'realestate', colval: 20000, debt: 4000, debtrate: 8.5, arrears: 0, emp: 'lt5' });
+equal(ldOk.grade, 'safe', '우량 신용 + 부동산 담보 보유 시 우수 판정');
+equal(ldOk.collateralCap, 14000, '부동산 담보 2억 × LTV 70% = 1억 4,000만원 여력 산출');
+approx(ldOk.refiAnnualSave, 40000000 * (8.5 - 4.5) / 100, 1, '기존 8.5% 4,000만원 -> 4.5% 대환 시 연 160만원 이자 절감');
+
 console.log(`\n========================================`);
 console.log(` MATH AUDIT: ${passed} PASSED, ${failed} FAILED`);
 console.log(`========================================`);

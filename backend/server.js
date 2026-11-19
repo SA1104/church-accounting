@@ -14,10 +14,14 @@ const compression = require('compression');
 const content = require('./data');
 const layout = require('./views/layout');
 const calcViews = require('./views/calculators');
+const startupView = require('./views/startup-view');
+const fundingViews = require('./views/funding');
+const commercialViews = require('./views/commercial');
 const pages = require('./views/pages');
 const seo = require('./views/seo');
 const adminViews = require('./views/admin');
 const fx = require('./lib/fx');
+const rates = require('./lib/rates');
 const db = require('./lib/db');
 const facts = require('./data/facts');
 
@@ -91,7 +95,7 @@ function send(res, opts, status) {
 app.get('/', (req, res) => {
   const v = pages.home(content);
   send(res, {
-    fullTitle: 'BoozaThink | 사장님·셀러 손익 연구소 — 배달앱 순수익·손익분기 ROAS·부가세·정책자금 계산기',
+    fullTitle: 'BoozaThink | 창업 풀코스 손익 설계 · 사업자 대출·정책자금 · 배달·셀러·세무 연구소',
     description: layout.SITE.description,
     path: '/',
     jsonld: v.jsonld,
@@ -101,12 +105,42 @@ app.get('/', (req, res) => {
   });
 });
 
+// 사업자 대출 · 정책자금 전략 라운지
+app.get('/funding', (req, res) => {
+  const v = fundingViews.fundingView(req.query);
+  send(res, {
+    title: '사업자 대출 · 정책자금 전략 라운지 — 금융권 평균 금리 비교 & 최저금리 한도 진단',
+    description: '정책자금·지역신보 이차보전·4.5% 대환·제1금융권 담보/신용·증권사 담보대출·인터넷은행 평균 금리를 비교하고, 내 사업장 조건의 대출 가능 한도와 가장 이자가 싼 조달 순서를 진단합니다.',
+    path: '/funding',
+    jsonld: v.jsonld,
+    body: v.body,
+    bodyClass: 'page-calc',
+    current: 'funding',
+    noCache: Object.keys(req.query).length > 0,
+    scripts: ['/js/calc-engine.js?v=' + layout.ASSET_V, '/js/calc-core.js?v=' + layout.ASSET_V, '/js/calc-loan-diagnose.js?v=' + layout.ASSET_V]
+  });
+});
+
+// 상권 · 입지 컨설팅 Lab
+app.get('/commercial-area', (req, res) => {
+  const v = commercialViews.commercialView(req.query);
+  send(res, {
+    title: '상권 · 입지 · 경쟁점 컨설팅 Lab — 배후 연령대 분포 & 반경 경쟁밀도 진단',
+    description: '입점 상권 유형과 업종·반경을 선택하면 주요 소비 연령대 분포, 피크타임, 반경 내 동종 경쟁업체 밀도와 차별화 포지셔닝 전략을 진단합니다.',
+    path: '/commercial-area',
+    jsonld: v.jsonld,
+    body: v.body,
+    current: 'commercial',
+    noCache: Object.keys(req.query).length > 0
+  });
+});
+
 // 계산기 목록
 app.get('/calculators', (req, res) => {
   const v = calcViews.index(content);
   send(res, {
-    title: '사장님·셀러 6대 실전 손익·세무·정책자금 계산기',
-    description: '배달앱 순수익, 스마트스토어·쿠팡 손익분기 ROAS, 소상공인 정책자금 매칭, 2026·2027 주휴수당 절벽·무인화 회수, 부가세·종소세 실수령, 상가 환산보증금·BEP 계산기.',
+    title: '창업 풀코스 설계 & 6대 상황별 손익·세무·정책자금 계산기',
+    description: '업종별 12개월 계절 손익 창업 풀코스 설계부터 배달앱 순수익, 스마트스토어·쿠팡 손익분기 ROAS, 정책자금 매칭, 주휴수당 절벽·무인화 회수, 부가세·종소세 실수령, 상가 환산보증금·BEP 계산기.',
     path: '/calculators',
     jsonld: v.jsonld,
     body: v.body
@@ -114,11 +148,12 @@ app.get('/calculators', (req, res) => {
 });
 
 const CALC_ROUTES = {
-  'delivery-margin': { view: calcViews.delivery, title: '배달앱 진짜 순수익 계산기 — 배민·쿠팡이츠·요기요 수수료 & 목표 마진 메뉴가 역산', desc: '배민 상생요금제 7.8%·6.8%·2.0%, 쿠팡이츠 9.8%, 요기요 9.7% 수수료와 배달비·결제수수료·부가세를 뺀 1주문 순수익과 목표 마진 메뉴 가격을 즉시 계산합니다.' },
-  'seller-roas': { view: calcViews.seller, title: '셀러 마진 & 손익분기 ROAS 계산기 — 스마트스토어·쿠팡 로켓그로스·윙', desc: '위안화·달러 실시간 환율 사입원가, 스마트스토어·쿠팡 수수료, 반품 손실을 반영해 광고 전 순마진, 손익분기 ROAS, 최대 CPA, 손익분기 CPC를 신호등으로 판독합니다.' },
-  'policy-funds': { view: calcViews.policy, title: '소상공인 정책자금 1분 매칭기 — 4.5% 대환대출·스마트상점 보조금 계산', desc: '업종·업력·매출·고금리 대출로 소진공·중진공·지역신보·희망리턴패키지 지원사업을 매칭하고 4.5% 대환 이자 절감액과 스마트상점 자부담을 계산합니다.' },
-  'labor-automation': { view: calcViews.labor, title: '2026·2027 최저시급 주휴수당 절벽 vs 테이블오더 무인화 원금회수 계산기', desc: '2026 현행(10,320원)과 2027 확정(10,700원·국민연금 10%) 기준 주 14.5시간 vs 15시간 인건비 절벽과 무인기기 원금회수 개월 수를 비교합니다.' },
-  'vat-income-tax': { view: calcViews.vatIncome, title: '개인사업자 부가세(간이·일반) & 5월 종합소득세·노란우산 실수령 계산기', desc: '간이·일반과세 부가가치세 비교(4,800만 면제·1억400만 기준·카드 1.3% 공제)부터 종합소득세 8단계 누진세율, 노란우산 절세액, 세후 월 실수령액까지 통합 계산합니다.' },
+  'startup-master': { view: startupView.startupMasterView, current: 'startup-master', title: '창업 풀코스 A-to-Z 시뮬레이터 — 업종별 초기자금 · 12개월 계절 손익 · 대출원리금 통합 설계', desc: '10대 창업 업종별 보증금·인테리어·권리금·스마트상점 국비보조, 계절별 12개월 매출 변동, 부가세·종합소득세, 정책자금 대출 원리금까지 1년 실수익을 빈틈없이 계산합니다.' },
+  'delivery-margin': { view: calcViews.delivery, title: '배달앱 진짜 순수익 계산기 — 배민·쿠팡이츠·요기요 수수료 & 목표 마진 메뉴가 역산', desc: '업종별 표준 원가율 비교와 함께 배민 상생요금제·쿠팡이츠·요기요 수수료, 배달비, 결제수수료, 부가세를 뺀 1주문 순수익과 목표 마진 메뉴 가격을 즉시 계산합니다.' },
+  'seller-roas': { view: calcViews.seller, title: '셀러 마진 & 손익분기 ROAS 계산기 — 스마트스토어·쿠팡 로켓그로스·윙', desc: '위안화·달러 환율 연동 사입원가, 스마트스토어·쿠팡 수수료, 반품 손실을 반영해 광고 전 순마진, 손익분기 ROAS, 최대 CPA, 손익분기 CPC를 판독합니다.' },
+  'policy-funds': { view: calcViews.policy, title: '소상공인 정책자금 매칭기 — 4.5% 대환대출 · 스마트상점 보조금 계산', desc: '업종·업력·매출·고금리 대출로 소진공·중진공·지역신보·희망리턴패키지 지원사업을 매칭하고 4.5% 대환 이자 절감액과 스마트상점 자부담을 계산합니다.' },
+  'labor-automation': { view: calcViews.labor, title: '최저시급 주휴수당 15시간 절벽 vs 테이블오더 무인화 원금회수 계산기', desc: '최신 최저임금 및 4대보험 확정 고시 기준 주 14.5시간 vs 15시간 인건비 절벽과 무인기기 도입 시 원금회수 개월 수를 비교합니다.' },
+  'vat-income-tax': { view: calcViews.vatIncome, title: '개인사업자 부가세(간이·일반) & 종합소득세·노란우산 실수령 계산기', desc: '간이·일반과세 부가가치세 비교(4,800만 면제·1억400만 기준·카드 1.3% 공제)부터 종합소득세 8단계 누진세율, 노란우산 절세액, 세후 월 실수령액까지 통합 계산합니다.' },
   'store-rent-breakeven': { view: calcViews.storeLease, title: '상가 월세·환산보증금 5% 상한 판독 & 매장 손익분기점·권리금 회수 계산기', desc: '상가건물 임대차보호법 지역별 환산보증금(서울 9억·과밀 6.9억 등) 5% 상한 보호 여부와 일 손익분기 매출(BEP), 권리금·인테리어 원금회수 기간을 계산합니다.' }
 };
 app.get('/calculators/:slug', (req, res, next) => {
@@ -128,6 +163,7 @@ app.get('/calculators/:slug', (req, res, next) => {
   const extra = req.params.slug === 'policy-funds' ? ['/js/calc-policy-data.js?v=' + layout.ASSET_V] : [];
   send(res, {
     title: r.title, description: r.desc, path: '/calculators/' + req.params.slug, jsonld: v.jsonld, body: v.body, bodyClass: 'page-calc',
+    current: r.current || 'calc',
     noCache: Object.keys(req.query).length > 0,
     scripts: ['/js/calc-engine.js?v=' + layout.ASSET_V].concat(extra, ['/js/calc-core.js?v=' + layout.ASSET_V, '/js/calc-' + req.params.slug + '.js?v=' + layout.ASSET_V])
   });
@@ -252,7 +288,7 @@ app.use('/api', express.json({ limit: '12kb', type: ['application/json', 'text/p
 app.get('/api/version', (req, res) => {
   res.set('Cache-Control', 'no-store').json({
     app: 'BoozaThink 2.0',
-    version: '2.1.0',
+    version: '2.2.0',
     simulators: layout.CALCULATORS.length,
     articles: content.articles.length,
     branch: process.env.RENDER_GIT_BRANCH || 'main',
@@ -262,6 +298,7 @@ app.get('/api/version', (req, res) => {
 });
 
 app.get('/api/fx', (req, res) => { res.set('Cache-Control', 'public, max-age=300').json(fx.publicRates()); });
+app.get('/api/rates', (req, res) => { res.set('Cache-Control', 'public, max-age=300').json(rates.getMarketRatesSummary()); });
 
 const hits = new Map();
 function rateLimited(key, limitPerMin) {
