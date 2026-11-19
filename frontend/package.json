@@ -1,0 +1,8 @@
+{
+  "name": "boozathink-frontend-ssr-shim",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "build": "echo BoozaThink 2.0 uses server-side rendered HTML in backend/"
+  }
+}

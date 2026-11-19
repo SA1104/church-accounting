@@ -9,6 +9,7 @@
   },
   "scripts": {
     "start": "node server.js",
+    "build": "echo BoozaThink 2.0 SSR ready",
     "dev": "node --watch server.js",
     "check:articles": "node scripts/check_articles.js",
     "migrate": "node scripts/migrate.js",
