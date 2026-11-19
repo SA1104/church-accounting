@@ -163,6 +163,15 @@ if (process.env.ADSENSE_CLIENT) {
 
 // ── API ──
 app.use('/api', express.json({ limit: '8kb' }));
+app.get('/api/version', (req, res) => {
+  res.set('Cache-Control', 'no-store').json({
+    app: 'BoozaThink 2.0',
+    version: '2.0.0',
+    branch: process.env.RENDER_GIT_BRANCH || 'main',
+    commitSha: process.env.RENDER_GIT_COMMIT || 'local',
+    startedAt: STARTED_AT
+  });
+});
 app.get('/api/fx', (req, res) => { res.set('Cache-Control', 'public, max-age=300').json(fx.publicRates()); });
 
 const hits = new Map();

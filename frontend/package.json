@@ -5,7 +5,7 @@
   "scripts": {
     "build": "node ./vite-shim/cli.js"
   },
-  "devDependencies": {
+  "dependencies": {
     "vite": "file:./vite-shim"
   }
 }
