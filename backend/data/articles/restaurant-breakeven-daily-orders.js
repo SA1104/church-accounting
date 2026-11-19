@@ -77,7 +77,7 @@ module.exports = {
     type: 'breakeven-daily',
     title: '우리 가게 하루 손익분기 주문 수 계산',
     values: { fixed: 6000000, price: 20000, margin: 28, days: 26 },
-    cta: { href: '/calculators/delivery-margin?plan=baemin-78&price=20000&cost=7000&fixed=6000000&days=26&orders=42', label: '고정비 포함 월 손익을 정밀 시뮬레이션하기' }
+    cta: { href: '/calculators/store-rent-breakeven?region=seoul&rent=300&maint=80&labor=220&ticket=20000&varpct=52&days=26', label: '상가 환산보증금 5% 상한 & 매장 손익분기·권리금 회수 정밀 계산하기' }
   },
   cases: [
     {

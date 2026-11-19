@@ -10,7 +10,7 @@ const path = require('path');
 const DIR = path.join(__dirname, '..', 'data', 'articles');
 const CATS = ['delivery-store-profit', 'ecommerce-seller-lab', 'policy-funds-grants', 'labor-tax-franchise'];
 const MINI_TYPES = ['delivery-net', 'delivery-compare', 'target-price', 'breakeven-daily', 'roas-breakeven', 'landed-cost', 'return-loss', 'refinance', 'subsidy', 'weekly-holiday', 'employer-cost', 'payback', 'vat', 'franchise-payback', 'loan-payment', 'guarantee-fee'];
-const CALC_PATHS = ['/calculators/delivery-margin', '/calculators/seller-roas', '/calculators/policy-funds', '/calculators/labor-automation'];
+const CALC_PATHS = ['/calculators/delivery-margin', '/calculators/seller-roas', '/calculators/policy-funds', '/calculators/labor-automation', '/calculators/vat-income-tax', '/calculators/store-rent-breakeven'];
 
 const strip = (html) => String(html || '').replace(/<[^>]+>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ');
 const pureLen = (s) => strip(s).replace(/\s+/g, '').length;

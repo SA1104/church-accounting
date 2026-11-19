@@ -6,9 +6,20 @@
   'use strict';
 
   var WEEKS = 4.345;
-  var MIN_WAGE_2026 = 10320;
-  var INS = { pension: 4.75, health: 3.595, ltcOfHealth: 13.14, employment: 1.15, accident: 0.9 };
-  var INS_TOTAL = INS.pension + INS.health + INS.health * INS.ltcOfHealth / 100 + INS.employment + INS.accident; // ≈10.87
+  var WAGE_YEARS = {
+    2026: { wage: 10320, pension: 4.75, health: 3.595, ltcOfHealth: 13.14, employment: 1.15, accident: 0.9 },
+    2027: { wage: 10700, pension: 5.00, health: 3.595, ltcOfHealth: 13.90, employment: 1.15, accident: 0.9 }
+  };
+  Object.keys(WAGE_YEARS).forEach(function (y) {
+    var w = WAGE_YEARS[y];
+    w.ltc = w.health * w.ltcOfHealth / 100;
+    w.insTotal = w.pension + w.health + w.ltc + w.employment + w.accident;
+  });
+
+  var MIN_WAGE_2026 = WAGE_YEARS[2026].wage;
+  var MIN_WAGE_2027 = WAGE_YEARS[2027].wage;
+  var INS = WAGE_YEARS[2026];
+  var INS_TOTAL = WAGE_YEARS[2026].insTotal;
 
   var DELIVERY_PLANS = {
     'baemin-78': { name: '배민 상생 1구간 7.8%', fee: 7.8, dfee: 3400 },
@@ -21,7 +32,6 @@
     'custom': { name: '직접 입력', fee: 7.0, dfee: 3000 }
   };
 
-  // feeRate: 실효 수수료율(VAT 포함, 판매가 대비 %)
   var MARKETS = {
     'ss-naver': { name: '스마트스토어 (네이버 유입)', feeRate: 6.63, logistics: 'pack', defLogi: 3000 },
     'ss-mkt': { name: '스마트스토어 (마케팅 유입)', feeRate: 4.63, logistics: 'pack', defLogi: 3000 },
@@ -30,7 +40,33 @@
     'cp-rg': { name: '쿠팡 로켓그로스', feeRate: 11.88, logistics: 'rg', defLogi: 3100 }
   };
 
-  function n(v, d) { var x = Number(v); return Number.isFinite(x) ? x : (d || 0); }
+  var VAT_INDS = {
+    food: { name: '음식점·카페·배달외식', vRate: 0.15, cardOk: true },
+    retail: { name: '소매업·온라인셀러', vRate: 0.15, cardOk: true },
+    mfg: { name: '제조업·제과·소공인', vRate: 0.20, cardOk: true },
+    service: { name: '개인서비스·미용·숙박외', vRate: 0.30, cardOk: true },
+    rent: { name: '부동산임대·전문서비스', vRate: 0.40, cardOk: false }
+  };
+
+  var TAX_BRACKETS = [
+    [14000000, 0.06, 0, '6% 구간 (1,400만원 이하)'],
+    [50000000, 0.15, 1260000, '15% 구간 (1,400만~5,000만원)'],
+    [88000000, 0.24, 5760000, '24% 구간 (5,000만~8,800만원)'],
+    [150000000, 0.35, 15440000, '35% 구간 (8,800만~1.5억원)'],
+    [300000000, 0.38, 19940000, '38% 구간 (1.5억~3억원)'],
+    [500000000, 0.40, 25940000, '40% 구간 (3억~5억원)'],
+    [1000000000, 0.42, 35940000, '42% 구간 (5억~10억원)'],
+    [Infinity, 0.45, 65940000, '45% 구간 (10억원 초과)']
+  ];
+
+  var LEASE_CAPS = {
+    seoul: { name: '서울특별시', cap: 90000 },
+    'metro-overcrowded': { name: '수도권 과밀억제권역·부산', cap: 69000 },
+    'metro-major': { name: '광역시·세종·용인·화성·김포 등', cap: 54000 },
+    other: { name: '그 밖의 지역', cap: 37000 }
+  };
+
+  function n(v, d) { var x = Number(v); return Number.isFinite(x) ? x : (d == null ? 0 : d); }
   function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
   function ceilTo(v, unit) { return Math.ceil(v / unit) * unit; }
 
@@ -59,11 +95,9 @@
     var monthlyRevenue = price * monthlyOrders;
     var monthlyNet = net * monthlyOrders - fixed;
 
-    // 목표 순마진율 역산: price*(vatDiv - fee - card - target) = dfee + cost + promo
     var denom = vatDiv - fee - card - target;
     var targetPrice = denom > 0 ? ceilTo((dfee + cost + promo) / denom, 100) : null;
     var saveNeeded = Math.max(0, Math.ceil(price * target - net));
-    // 월 목표 순익(원) 역산
     var targetMonthly = Math.max(0, n(p.goal, 5000000));
     var needNetPerOrder = monthlyOrders > 0 ? (targetMonthly + fixed) / monthlyOrders : null;
     var denom2 = vatDiv - fee - card;
@@ -145,8 +179,7 @@
 
   function amortInterest(principal, ratePct, years) {
     var r = ratePct / 100 / 12, m = years * 12;
-    if (principal <= 0 || m <= 0) return 0;
-    if (r === 0) return 0;
+    if (principal <= 0 || m <= 0 || r === 0) return 0;
     var pay = principal * r / (1 - Math.pow(1 + r, -m));
     return pay * m - principal;
   }
@@ -155,16 +188,16 @@
     var ind = ['food', 'retail', 'mfg', 'service'].indexOf(p.ind) >= 0 ? p.ind : 'food';
     var region = REGION_GUARANTEE[p.region] ? p.region : 'seoul';
     var age = ['pre', 'lt1', 'lt3', 'lt7', 'gte7'].indexOf(p.age) >= 0 ? p.age : 'lt3';
-    var sales = Math.max(0, n(p.sales, 15000)); // 만원
+    var sales = Math.max(0, n(p.sales, 15000));
     var emp = p.emp === 'gte5' ? 'gte5' : 'lt5';
-    var hiloan = Math.max(0, n(p.hiloan, 3000)); // 만원
+    var hiloan = Math.max(0, n(p.hiloan, 3000));
     var hirate = clamp(n(p.hirate, 9.5), 0, 30);
     var kiosk = String(p.kiosk) === '1';
-    var devcost = Math.max(0, n(p.devcost, 600)); // 만원
+    var devcost = Math.max(0, n(p.devcost, 600));
     var srate = clamp(n(p.srate, 70), 0, 100);
 
     var registered = age !== 'pre';
-    var soho = emp === 'lt5' || ind === 'mfg'; // 소상공인: 상시근로자 5인 미만(제조업 10인 미만)
+    var soho = emp === 'lt5' || ind === 'mfg';
     var list = [];
     function add(id, why, fit) { list.push({ id: id, why: why, fit: fit }); }
 
@@ -193,35 +226,38 @@
     };
   }
 
-  /* ───────── 4. 인건비 절벽 & 무인화 Payback ───────── */
+  /* ───────── 4. 인건비 절벽 & 무인화 Payback (2026 ↔ 2027 지원) ───────── */
   function weeklyPay(wage, h) {
     var holiday = h >= 15 ? Math.min(h, 40) / 40 * 8 * wage : 0;
     return { base: wage * h, holiday: holiday, total: wage * h + holiday };
   }
-  function staffMonthly(wage, h, insOn) {
+  function staffMonthly(wage, h, insOn, yearKey) {
+    var ySpec = WAGE_YEARS[yearKey] || WAGE_YEARS[2026];
     var w = weeklyPay(wage, h);
     var pay = w.total * WEEKS;
-    var insRate = insOn ? (h >= 15 ? INS_TOTAL : INS.accident) : 0;
+    var insRate = insOn ? (h >= 15 ? ySpec.insTotal : ySpec.accident) : 0;
     var ins = pay * insRate / 100;
     return { pay: pay, holiday: w.holiday * WEEKS, ins: ins, total: pay + ins, insRate: insRate };
   }
 
   function labor(p) {
-    var wage = Math.max(0, n(p.wage, MIN_WAGE_2026));
+    var year = String(p.year) === '2027' ? 2027 : 2026;
+    var ySpec = WAGE_YEARS[year];
+    var wage = Math.max(0, n(p.wage, ySpec.wage));
     var hours = clamp(n(p.hours, 20), 1, 52);
     var staff = clamp(Math.round(n(p.staff, 2)), 1, 50);
     var insOn = String(p.ins) !== '0';
     var cut = clamp(n(p.cut, 14.5), 0, 52);
-    var devices = clamp(Math.round(n(p.devices, 5)), 0, 100);
+    var devices = clamp(Math.round(n(p.devices, 4)), 0, 100);
     var mode = p.mode === 'rent' ? 'rent' : 'buy';
     var devcost = Math.max(0, n(p.devcost, 450000));
     var rent = Math.max(0, n(p.rent, 25000));
     var sub = clamp(n(p.subsidy, 0), 0, 100);
 
-    var before = staffMonthly(wage, hours, insOn);
-    var after = staffMonthly(wage, cut, insOn);
-    var c145 = staffMonthly(wage, 14.5, insOn);
-    var c15 = staffMonthly(wage, 15, insOn);
+    var before = staffMonthly(wage, hours, insOn, year);
+    var after = staffMonthly(wage, cut, insOn, year);
+    var c145 = staffMonthly(wage, 14.5, insOn, year);
+    var c15 = staffMonthly(wage, 15, insOn, year);
     var laborSave = (before.total - after.total) * staff;
     var gross = devices * devcost;
     var subsidyAmt = mode === 'buy' ? Math.min(gross * sub / 100, 5000000) : 0;
@@ -231,16 +267,199 @@
     var payback = mode === 'buy' ? (netMonthly > 0 ? initial / netMonthly : null) : (netMonthly > 0 ? 0 : null);
     var save36 = netMonthly * 36 - initial;
 
+    // 2026(10,320원·10.87%) -> 2027(10,700원·11.15%) 전환 시 추가 부담 비교
+    var base2026 = staffMonthly(Math.max(wage, WAGE_YEARS[2026].wage) === wage && year === 2027 ? WAGE_YEARS[2026].wage : WAGE_YEARS[2026].wage, hours, insOn, 2026);
+    var next2027 = staffMonthly(Math.max(wage, WAGE_YEARS[2027].wage), hours, insOn, 2027);
+    var hikeMonthlyAll = (next2027.total - base2026.total) * staff;
+
     var curve = [];
-    for (var h = 1; h <= 40; h += 0.5) curve.push({ h: h, cost: staffMonthly(wage, h, insOn).total });
+    for (var h = 1; h <= 40; h += 0.5) curve.push({ h: h, cost: staffMonthly(wage, h, insOn, year).total });
     var cum = [];
     for (var m = 0; m <= 36; m++) cum.push({ m: m, asIs: before.total * staff * m, toBe: after.total * staff * m + initial + monthlyDevice * m });
 
     return {
-      wage: wage, hours: hours, staff: staff, insOn: insOn, cut: cut, devices: devices, mode: mode, insTotal: INS_TOTAL,
+      year: year, wage: wage, hours: hours, staff: staff, insOn: insOn, cut: cut, devices: devices, mode: mode, insTotal: ySpec.insTotal,
       before: before, after: after, cliff: { at145: c145, at15: c15, jump: c15.total - c145.total, jumpPct: c145.total > 0 ? (c15.total / c145.total - 1) * 100 : 0 },
       laborSave: laborSave, gross: gross, subsidyAmt: subsidyAmt, initial: initial, monthlyDevice: monthlyDevice, netMonthly: netMonthly,
-      payback: payback, save36: save36, curve: curve, cum: cum
+      payback: payback, save36: save36, hike2027Monthly: hikeMonthlyAll, hike2027Annual: hikeMonthlyAll * 12, curve: curve, cum: cum
+    };
+  }
+
+  /* ───────── 5. 개인사업자 부가세(간이·일반) & 종합소득세·실수령 통합 계산기 ───────── */
+  function progressiveTax(taxBase) {
+    if (taxBase <= 0) return { tax: 0, rate: 6, label: '과세미달 (0원)' };
+    for (var i = 0; i < TAX_BRACKETS.length; i++) {
+      var b = TAX_BRACKETS[i];
+      if (taxBase <= b[0]) {
+        return { tax: Math.max(0, taxBase * b[1] - b[2]), rate: Math.round(b[1] * 100), label: b[3] };
+      }
+    }
+    return { tax: 0, rate: 6, label: '-' };
+  }
+
+  function yellowUmbrellaCap(bizIncome) {
+    if (bizIncome <= 40000000) return 6000000;
+    if (bizIncome <= 60000000) return 5000000;
+    if (bizIncome <= 100000000) return 4000000;
+    return 2000000;
+  }
+
+  function vatIncome(p) {
+    var indKey = VAT_INDS[p.ind] ? p.ind : 'food';
+    var ind = VAT_INDS[indKey];
+    var regimeReq = ['auto', 'general', 'simplified'].indexOf(p.regime) >= 0 ? p.regime : 'auto';
+    var salesManwon = Math.max(0, n(p.sales, 9600));
+    var taxBuyPct = clamp(n(p.buy, 40), 0, 100);
+    var laborManwon = Math.max(0, n(p.labor, 2400));
+    var cardPct = clamp(n(p.cardpct, 85), 0, 100);
+    var deps = clamp(Math.round(n(p.deps, 1)), 1, 10);
+    var umbMonthly = clamp(n(p.umb, 25), 0, 150);
+
+    var salesKRW = salesManwon * 10000;
+    var taxBuyKRW = salesKRW * (taxBuyPct / 100);
+    var laborKRW = laborManwon * 10000;
+    var cardSalesKRW = salesKRW * (cardPct / 100);
+    var cardCreditEligible = ind.cardOk && salesKRW <= 1000000000;
+    var cardCreditCap = cardCreditEligible ? Math.min(cardSalesKRW * 0.013, 10000000) : 0;
+
+    // 일반과세 부가세
+    var genOutVat = salesKRW / 11;
+    var genInVat = taxBuyKRW / 11;
+    var genRawVat = genOutVat - genInVat;
+    var genCardUsed = genRawVat > 0 ? Math.min(genRawVat, cardCreditCap) : 0;
+    var vatGeneral = genRawVat > 0 ? genRawVat - genCardUsed : genRawVat; // 음수면 환급
+
+    // 간이과세 부가세 (연 공급대가 1억 400만원 미만 & 부동산임대 등 배제업종 제외)
+    var canSimplified = salesKRW < 104000000 && indKey !== 'rent';
+    var vatExempt = canSimplified && salesKRW < 48000000;
+    var simpOutVat = salesKRW * ind.vRate * 0.10;
+    var simpInCredit = Math.min(simpOutVat, taxBuyKRW * 0.005);
+    var simpBeforeCard = Math.max(0, simpOutVat - simpInCredit);
+    var simpCardUsed = vatExempt ? 0 : Math.min(simpBeforeCard, cardCreditCap);
+    var vatSimplified = vatExempt ? 0 : Math.max(0, simpBeforeCard - simpCardUsed);
+
+    var effectiveRegime = regimeReq === 'auto' ? (canSimplified ? 'simplified' : 'general') : (regimeReq === 'simplified' && !canSimplified ? 'general' : regimeReq);
+    var forcedGeneral = regimeReq === 'simplified' && !canSimplified;
+    var actualVat = effectiveRegime === 'simplified' ? vatSimplified : vatGeneral;
+    var actualVatPayable = Math.max(0, actualVat);
+    var vatRefund = actualVat < 0 ? Math.abs(actualVat) : 0;
+    var cardCreditUsed = effectiveRegime === 'simplified' ? simpCardUsed : genCardUsed;
+
+    // 종합소득세 과세표준 계산
+    var netRevenue, recognizedExpense;
+    if (effectiveRegime === 'general') {
+      netRevenue = Math.round(salesKRW * 10 / 11);
+      recognizedExpense = Math.round(taxBuyKRW * 10 / 11) + laborKRW;
+    } else {
+      netRevenue = salesKRW - actualVatPayable;
+      recognizedExpense = taxBuyKRW + laborKRW;
+    }
+    var bizIncome = Math.max(0, netRevenue - recognizedExpense);
+    var personalDeduct = deps * 1500000;
+    var umbCap = yellowUmbrellaCap(bizIncome);
+    var umbPaidAnnual = umbMonthly * 12 * 10000;
+    var umbDeduct = Math.min(umbPaidAnnual, bizIncome, umbCap);
+
+    var taxBaseBefore = Math.max(0, bizIncome - personalDeduct);
+    var taxBase = Math.max(0, bizIncome - personalDeduct - umbDeduct);
+
+    var progBefore = progressiveTax(taxBaseBefore);
+    var progAfter = progressiveTax(taxBase);
+
+    var stdTaxCredit = bizIncome > 0 ? 70000 : 0;
+    var incomeTaxBefore = Math.max(0, progBefore.tax - stdTaxCredit);
+    var totalIncomeTaxBefore = incomeTaxBefore * 1.1;
+
+    var incomeTax = Math.max(0, progAfter.tax - stdTaxCredit);
+    var localIncomeTax = incomeTax * 0.1;
+    var totalIncomeTax = incomeTax + localIncomeTax;
+    var umbTaxSaved = Math.max(0, totalIncomeTaxBefore - totalIncomeTax);
+
+    var totalTaxPayable = actualVatPayable + totalIncomeTax;
+    var cashNetAnnual = salesKRW - taxBuyKRW - laborKRW - actualVat + vatRefund * 0 - totalIncomeTax;
+    // 정확히: salesKRW - taxBuyKRW - laborKRW - actualVat(음수면 환급으로 더함) - totalIncomeTax
+    cashNetAnnual = salesKRW - taxBuyKRW - laborKRW - actualVat - totalIncomeTax;
+    var cashNetMonthly = cashNetAnnual / 12;
+    var effTaxRate = salesKRW > 0 ? (Math.max(0, actualVat + totalIncomeTax) / salesKRW) * 100 : 0;
+
+    return {
+      indKey: indKey, indName: ind.name, vRatePct: ind.vRate * 100, regimeReq: regimeReq, effectiveRegime: effectiveRegime,
+      canSimplified: canSimplified, vatExempt: vatExempt, forcedGeneral: forcedGeneral,
+      salesKRW: salesKRW, taxBuyKRW: taxBuyKRW, laborKRW: laborKRW,
+      vatGeneral: vatGeneral, vatSimplified: canSimplified ? vatSimplified : null,
+      actualVat: actualVat, actualVatPayable: actualVatPayable, vatRefund: vatRefund, cardCreditUsed: cardCreditUsed,
+      vatDiff: canSimplified ? (Math.max(0, vatGeneral) - vatSimplified) : 0,
+      bizIncome: bizIncome, taxBase: taxBase, bracketLabel: progAfter.label, bracketRate: progAfter.rate,
+      incomeTax: incomeTax, localIncomeTax: localIncomeTax, totalIncomeTax: totalIncomeTax,
+      umbPaidAnnual: umbPaidAnnual, umbCap: umbCap, umbDeduct: umbDeduct, umbTaxSaved: umbTaxSaved,
+      totalTaxPayable: totalTaxPayable, cashNetAnnual: cashNetAnnual, cashNetMonthly: cashNetMonthly, effTaxRate: effTaxRate,
+      breakdown: [
+        { key: 'buy', label: '과세 매입원가', value: taxBuyKRW },
+        { key: 'labor', label: '인건비·기타경비', value: laborKRW },
+        { key: 'vat', label: '부가가치세(납부)', value: actualVatPayable },
+        { key: 'itax', label: '종합소득세+지방세', value: totalIncomeTax },
+        { key: 'net', label: '세후 실수령 순익', value: cashNetAnnual }
+      ]
+    };
+  }
+
+  /* ───────── 6. 상가 월세·환산보증금 5% 상한 판독 & 매장 손익분기점(BEP) 계산기 ───────── */
+  function storeLease(p) {
+    var regKey = LEASE_CAPS[p.region] ? p.region : 'seoul';
+    var reg = LEASE_CAPS[regKey];
+    var deposit = Math.max(0, n(p.deposit, 5000));      // 만원
+    var rent = Math.max(0, n(p.rent, 300));             // 만원
+    var maint = Math.max(0, n(p.maint, 80));            // 만원
+    var laborMonthly = Math.max(0, n(p.labor, 450));    // 만원
+    var ticket = Math.max(500, n(p.ticket, 18000));     // 원
+    var varCostPct = clamp(n(p.varpct, 48), 1, 95);     // %
+    var days = clamp(n(p.days, 26), 1, 31);
+    var sunkStartup = Math.max(0, n(p.sunk, 8000));     // 만원 (권리금+인테리어+설비, 보증금 제외)
+    var dailyOrders = Math.max(0, n(p.orders, 45));     // 건
+
+    var convertedDeposit = deposit + rent * 100;        // 만원 (보증금 + 월세×100)
+    var underCap = convertedDeposit <= reg.cap;
+    var overAmount = Math.max(0, convertedDeposit - reg.cap);
+    var maxRentNext5Pct = rent * 1.05;
+    var maxRentHike5Pct = rent * 0.05;
+
+    var occupancyKRW = (rent + maint) * 10000;
+    var fixedKRW = (rent + maint + laborMonthly) * 10000;
+    var cmRatio = (100 - varCostPct) / 100;
+    var cmPerOrder = ticket * cmRatio;
+
+    var bepMonthlySales = cmRatio > 0 ? fixedKRW / cmRatio : 0;
+    var bepDailySales = bepMonthlySales / days;
+    var bepMonthlyOrders = cmPerOrder > 0 ? Math.ceil(fixedKRW / cmPerOrder) : 0;
+    var bepDailyOrders = Math.ceil(bepMonthlyOrders / days);
+
+    var expMonthlyOrders = dailyOrders * days;
+    var expMonthlySales = ticket * expMonthlyOrders;
+    var expMonthlyProfit = expMonthlySales * cmRatio - fixedKRW;
+    var rentRatioPct = expMonthlySales > 0 ? (occupancyKRW / expMonthlySales) * 100 : 0;
+
+    var sunkKRW = sunkStartup * 10000;
+    var paybackMonths = expMonthlyProfit > 0 ? sunkKRW / expMonthlyProfit : null;
+    var status;
+    if (expMonthlyProfit <= 0) status = 'danger';
+    else if (paybackMonths != null && paybackMonths <= 24 && rentRatioPct <= 12) status = 'safe';
+    else if (paybackMonths != null && paybackMonths <= 36 && rentRatioPct <= 16) status = 'caution';
+    else status = 'danger';
+
+    var cum = [];
+    for (var m = 0; m <= 36; m++) {
+      cum.push({ m: m, asIs: sunkKRW, toBe: Math.max(0, expMonthlyProfit * m) });
+    }
+
+    return {
+      regionKey: regKey, regionName: reg.name, regionCap: reg.cap,
+      deposit: deposit, rent: rent, maint: maint, laborMonthly: laborMonthly,
+      convertedDeposit: convertedDeposit, underCap: underCap, overAmount: overAmount,
+      maxRentNext5Pct: maxRentNext5Pct, maxRentHike5Pct: maxRentHike5Pct,
+      occupancyKRW: occupancyKRW, fixedKRW: fixedKRW, ticket: ticket, varCostPct: varCostPct, cmRatioPct: cmRatio * 100, cmPerOrder: cmPerOrder,
+      days: days, bepMonthlySales: bepMonthlySales, bepDailySales: bepDailySales, bepMonthlyOrders: bepMonthlyOrders, bepDailyOrders: bepDailyOrders,
+      dailyOrders: dailyOrders, expMonthlySales: expMonthlySales, expMonthlyProfit: expMonthlyProfit, rentRatioPct: rentRatioPct,
+      sunkStartup: sunkStartup, paybackMonths: paybackMonths, status: status, cum: cum
     };
   }
 
@@ -251,7 +470,7 @@
   }
   var won = function (v) { return (v < 0 ? '−' : '') + fmt(Math.abs(Math.round(v))) + '원'; };
   var pct = function (v, d) { return v == null || !Number.isFinite(v) ? '-' : fmt(v, d == null ? 1 : d) + '%'; };
-  var manwon = function (v) { return fmt(Math.round(v)) + '만원'; };
+  var manwon = function (v) { return (v < 0 ? '−' : '') + fmt(Math.abs(Math.round(v))) + '만원'; };
 
   var MINI = {
     'delivery-net': {
@@ -329,11 +548,12 @@
       }
     },
     'weekly-holiday': {
-      inputs: [['wage', '시급', 10320, 20000, 10, '원'], ['hours', '주 근무시간', 1, 40, 0.5, '시간']],
+      inputs: [['wage', '시급 (26년 10,320 / 27년 10,700)', 10320, 20000, 10, '원'], ['hours', '주 근무시간', 1, 40, 0.5, '시간']],
       calc: function (v) {
+        var yr = v.wage >= 10700 ? 2027 : 2026;
         var w = weeklyPay(v.wage, v.hours);
-        var m = staffMonthly(v.wage, v.hours, true);
-        var m145 = staffMonthly(v.wage, 14.5, true), m15 = staffMonthly(v.wage, 15, true);
+        var m = staffMonthly(v.wage, v.hours, true, yr);
+        var m145 = staffMonthly(v.wage, 14.5, true, yr), m15 = staffMonthly(v.wage, 15, true, yr);
         return [['주휴수당(주)', won(w.holiday), v.hours >= 15 ? 'warn' : 'good'], ['월 인건비(4대보험 포함)', won(m.total)], ['14.5h → 15h 월 절벽', '+' + won(m15.total - m145.total), 'bad'], ['주휴 발생 여부', v.hours >= 15 ? '발생 (주 15시간 이상)' : '미발생']];
       }
     },
@@ -341,8 +561,9 @@
       inputs: [['pay', '월 급여(세전)', 500000, 5000000, 10000, '원']],
       calc: function (v) {
         var pen = v.pay * INS.pension / 100, hl = v.pay * INS.health / 100, ltc = hl * INS.ltcOfHealth / 100, em = v.pay * INS.employment / 100, ac = v.pay * INS.accident / 100;
-        var tot = pen + hl + ltc + em + ac;
-        return [['사업주 4대보험 합계', won(tot), 'warn'], ['총 인건비(급여+보험)', won(v.pay + tot), 'good'], ['국민연금 / 건강보험', won(pen) + ' / ' + won(hl)], ['장기요양 / 고용 / 산재', won(ltc) + ' / ' + won(em) + ' / ' + won(ac)]];
+        var tot26 = pen + hl + ltc + em + ac;
+        var tot27 = v.pay * WAGE_YEARS[2027].insTotal / 100;
+        return [['2026 사업주 4대보험(10.87%)', won(tot26), 'warn'], ['2027 사업주 4대보험(11.15%)', won(tot27), 'warn'], ['총 인건비(2026 급여+보험)', won(v.pay + tot26), 'good'], ['2027 인상 추가분(월)', '+' + won(tot27 - tot26)]];
       }
     },
     'payback': {
@@ -360,7 +581,7 @@
         var simple = Math.max(0, s * 0.15 * 0.1 - b * 0.005);
         var exempt = s < 48000000;
         var eligible = s < 104000000;
-        return [['일반과세 연 부가세', won(general)], ['간이과세 연 부가세(음식점 15%)', eligible ? (exempt ? '납부면제 (4,800만 미만)' : won(simple)) : '간이 불가(1억400만↑)', 'good'], ['차액', eligible ? won(general - (exempt ? 0 : simple)) : '-', 'warn']];
+        return [['일반과세 연 부가세(세액공제전)', won(general)], ['간이과세 연 부가세(음식점 15%)', eligible ? (exempt ? '납부면제 (4,800만 미만)' : won(simple)) : '간이 불가(1억400만↑)', 'good'], ['차액', eligible ? won(general - (exempt ? 0 : simple)) : '-', 'warn']];
       }
     },
     'franchise-payback': {
@@ -399,8 +620,10 @@
   }
 
   return {
-    WEEKS: WEEKS, MIN_WAGE_2026: MIN_WAGE_2026, INS: INS, INS_TOTAL: INS_TOTAL, DELIVERY_PLANS: DELIVERY_PLANS, MARKETS: MARKETS, REGION_GUARANTEE: REGION_GUARANTEE,
-    delivery: delivery, seller: seller, policy: policy, labor: labor, weeklyPay: weeklyPay, staffMonthly: staffMonthly, amortInterest: amortInterest,
+    WEEKS: WEEKS, WAGE_YEARS: WAGE_YEARS, MIN_WAGE_2026: MIN_WAGE_2026, MIN_WAGE_2027: MIN_WAGE_2027, INS: INS, INS_TOTAL: INS_TOTAL,
+    DELIVERY_PLANS: DELIVERY_PLANS, MARKETS: MARKETS, VAT_INDS: VAT_INDS, LEASE_CAPS: LEASE_CAPS, REGION_GUARANTEE: REGION_GUARANTEE,
+    delivery: delivery, seller: seller, policy: policy, labor: labor, vatIncome: vatIncome, storeLease: storeLease,
+    weeklyPay: weeklyPay, staffMonthly: staffMonthly, amortInterest: amortInterest, progressiveTax: progressiveTax,
     MINI: MINI, mini: mini, fmt: fmt, won: won, pct: pct, manwon: manwon
   };
 });

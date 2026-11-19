@@ -94,7 +94,7 @@ module.exports = {
     type: 'franchise-payback',
     title: '총 창업비와 월 순익 넣고 투자 회수 개월 수 3초 계산',
     values: { invest: 14930, profit: 300 },
-    cta: { href: '/calculators/delivery-margin?plan=baemin-78&price=22000&cost=9240&fixed=12250000&days=30', label: '가맹점 고정비로 하루 손익분기 주문 수 정밀 계산하기' }
+    cta: { href: '/calculators/store-rent-breakeven?region=seoul&deposit=3000&rent=350&sunk=11930&ticket=22000&varpct=50&orders=55', label: '상가 환산보증금 & 창업비 원금회수 개월 수 정밀 시뮬레이션하기' }
   },
   cases: [
     {

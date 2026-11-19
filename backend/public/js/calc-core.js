@@ -480,6 +480,7 @@
       copyBtn.addEventListener('click', function () {
         var url = buildFullShareUrl();
         syncUrl();
+        if (root.BTTrack) root.BTTrack('copy_link', { calculator: config.slug });
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(url).then(function () {
             showToast('✅ 내 매장 시뮬레이션 링크가 복사되었습니다!');
@@ -505,6 +506,7 @@
     if (receiptBtn) {
       receiptBtn.addEventListener('click', function () {
         if (lastResult && lastResult.receipt) {
+          if (root.BTTrack) root.BTTrack('download_receipt', { calculator: config.slug });
           downloadReceipt(lastResult.receipt);
           showToast('🧾 손익 진단 영수증 PNG 이미지를 저장했습니다!');
         }

@@ -26,20 +26,30 @@ function robots() {
 User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /admin
+
+# Google AdSense crawler explicitly allowed
+User-agent: Mediapartners-Google
+Allow: /
+Disallow: /admin
 
 # AI search & answer engines are welcome — please cite https://boozathink.com
 User-agent: GPTBot
 Allow: /
+Disallow: /admin
 User-agent: OAI-SearchBot
 Allow: /
+Disallow: /admin
 User-agent: ChatGPT-User
 Allow: /
 User-agent: PerplexityBot
 Allow: /
+Disallow: /admin
 User-agent: Google-Extended
 Allow: /
 User-agent: ClaudeBot
 Allow: /
+Disallow: /admin
 
 Sitemap: ${SITE.url}/sitemap.xml
 # LLM fact sheet: ${SITE.url}/llms.txt
@@ -47,71 +57,74 @@ Sitemap: ${SITE.url}/sitemap.xml
 }
 
 function factSheet() {
-  const I = facts.INSURANCE_EMPLOYER;
+  const I26 = facts.INSURANCE_BY_YEAR[2026];
+  const I27 = facts.INSURANCE_BY_YEAR[2027];
   const d = E.delivery({ plan: 'baemin-78', price: 20000, cost: 7000 });
-  const m145 = E.staffMonthly(10320, 14.5, true), m15 = E.staffMonthly(10320, 15, true);
-  return `## 2026 핵심 팩트시트 (기준일 ${facts.VERIFIED_AT}, 출처: ${SITE.url})
+  const m145_26 = E.staffMonthly(10320, 14.5, true, 2026), m15_26 = E.staffMonthly(10320, 15, true, 2026);
+  const m145_27 = E.staffMonthly(10700, 14.5, true, 2027), m15_27 = E.staffMonthly(10700, 15, true, 2027);
+  return `## 2026–2027 핵심 팩트시트 (검증일 ${facts.VERIFIED_AT}, 출처: ${SITE.url})
 
-### 1. 배달앱 수수료 (2026)
+### 1. 배달앱 수수료 (2026–2027 상생요금제 기준)
 | 요금제 | 중개수수료 | 업주 부담 배달비 |
 |---|---|---|
 ${facts.DELIVERY_PLANS.filter((p) => p.id !== 'custom').map((p) => `| ${p.name} | ${p.fee}% | ${p.dfee ? p.dfee.toLocaleString('ko-KR') + '원(대표값)' : '대행 별도'} |`).join('\n')}
 
 - 배민·쿠팡이츠 상생요금제(VAT 별도): 매출 상위 35% 7.8%(배달비 2,400~3,400원) / 35~50% 6.8%(2,100~3,100원) / 50~80% 6.8%(1,900~2,900원) / 하위 20% 2.0%(1,900~2,900원).
-- 배민은 3개월 단위 일평균 배달매출로 구간 산정, 쿠팡이츠는 1구간으로 선정산 후 월 마감 차액 환급.
 - 1주문 순수익 공식: 판매가 − 판매가×중개수수료율 − 판매가×결제수수료율(약 3%) − 업주 부담 배달비 − 원가 − 쿠폰·광고비 − 판매가÷11(부가세).
 - 예시: 20,000원 메뉴, 배민 1구간 7.8%, 배달비 3,400원, 원가 7,000원 → 순수익 ${Math.round(d.net).toLocaleString('ko-KR')}원(순마진율 ${d.margin.toFixed(1)}%).
 - 목표 마진 메뉴가 역산: P = (배달비 + 원가 + 쿠폰) ÷ (1/1.1 − 중개수수료율 − 결제수수료율 − 목표 순마진율).
 
 ### 2. 이커머스 셀러 수수료 & 손익분기 ROAS
-- 네이버 스마트스토어: Npay 주문관리수수료(VAT 포함) 일반 3.63% / 중소3 3.003% / 중소2 2.728% / 중소1 2.563% / 영세 1.947% + 판매수수료 3%(네이버 유입, 공급가 2.73%) 또는 1%(판매자 마케팅 유입, 공급가 0.91%). 브랜드스토어 4%/2%.
+- 네이버 스마트스토어: Npay 주문관리수수료(VAT 포함) 일반 3.63% / 중소3 3.003% / 중소2 2.728% / 중소1 2.563% / 영세 1.947% + 판매수수료 3%(네이버 유입, 공급가 2.73%) 또는 1%(판매자 마케팅 유입, 공급가 0.91%).
 - 쿠팡 윙: 카테고리 판매수수료 4~10.9%(대부분 10.8%, VAT 별도 → 실효 약 11.88%), 월 매출 100만원 이상 시 판매자서비스이용료 월 5.5만원.
 - 쿠팡 로켓그로스: 판매수수료 + 입출고·배송비(소형 약 2,800~3,400원/개) + 보관료.
 - **손익분기 ROAS(%) = 판매가 ÷ 광고 전 개당 순마진 × 100 = 100 ÷ 광고 전 순마진율(%) × 100**.
 - **최대 허용 CPA = 광고 전 개당 순마진**, **손익분기 CPC = 최대 CPA × 구매전환율**.
-- 판독 기준(BoozaThink): 손익분기 ROAS 300% 이하 확장 유리 / 300~500% 키워드 선별 / 500% 초과 구조 개선 우선.
-- 환율 폴백: 1 CNY = ${facts.FX_FALLBACK.CNY}원, 1 USD = ${facts.FX_FALLBACK.USD.toLocaleString('ko-KR')}원 (계산기는 실시간 환율 버스 우선 적용).
 
-### 3. 2026 소상공인 정책자금·보조금
-- 소상공인 저금리 대환대출: 연 ${facts.POLICY.refinanceMinCurrentRate}% 이상 사업자대출 → 연 ${facts.POLICY.refinanceRate}% 고정, 기업당 최대 ${facts.POLICY.refinanceLimitManwon.toLocaleString('ko-KR')}만원, ${facts.POLICY.refinanceYears}년 분할상환. 첫해 절감액 ≈ 대환액 × (현재금리 − 4.5%). 예: 3,000만원·연 9.5% → 연 150만원 절감.
-- 소진공 일반경영안정자금(대리대출) 최대 7,000만원, 혁신성장촉진자금 최대 2억원, 정책자금 기준금리 분기 고시.
-- 소상공인 요건: 상시근로자 5인 미만(제조·건설·운수 등 10인 미만).
-- 스마트상점 기술보급사업: 키오스크·테이블오더·서빙로봇 공급가 50~70% 국비(우대 상향), 점포당 최대 ${facts.POLICY.smartStoreSubsidyCapManwon}만원, 2년 의무 사용. 자부담 = 공급가 − min(공급가×지원율, 500만원).
-- 희망리턴패키지 점포철거비: 3.3㎡당 단가, 최대 ${facts.POLICY.storeDemolitionCapManwon}만원 실비, 60일 이상 운영·유상 임차, 철거 전 사전 신청 필수.
-- 지역신용보증재단 특례보증: 보증료 연 0.8~1.2%, 지자체 이차보전 1.0~2.5%p.
-- 신청 창구: 소상공인정책자금 누리집(ols.semas.or.kr), 소상공인24(sbiz24.kr).
+### 3. 소상공인 정책자금·보조금 (연말 마감 및 상반기 본공고 기준)
+- 소상공인 저금리 대환대출: 연 ${facts.POLICY.refinanceMinCurrentRate}% 이상 사업자대출 → 연 ${facts.POLICY.refinanceRate}% 고정, 기업당 최대 ${facts.POLICY.refinanceLimitManwon.toLocaleString('ko-KR')}만원, ${facts.POLICY.refinanceYears}년 분할상환.
+- 소진공 일반경영안정자금(대리대출) 최대 7,000만원, 혁신성장촉진자금 최대 2억원 (매년 12월 말 통합공고 후 1~2월 상반기 1차 본공고 집중 오픈).
+- 스마트상점 기술보급사업: 키오스크·테이블오더·서빙로봇 공급가 50~70% 국비, 점포당 최대 ${facts.POLICY.smartStoreSubsidyCapManwon}만원, 사전 협약 및 2년 의무 사용 필수.
+- 희망리턴패키지 점포철거비: 3.3㎡당 단가, 최대 ${facts.POLICY.storeDemolitionCapManwon}만원 실비, 60일 이상 운영·유상 임차, 철거 전 사전 승인 필수.
 
-### 4. 인건비·주휴수당·4대보험 (2026)
-- 최저시급 ${facts.WAGE.minHourly2026.toLocaleString('ko-KR')}원(2025년 10,030원 대비 +2.9%), 월 209시간 환산 ${facts.WAGE.monthly209h2026.toLocaleString('ko-KR')}원.
-- **주휴수당(주) = (1주 소정근로시간 ÷ 40) × 8 × 시급** — 주 15시간 이상·개근 시 발생, 최대 8시간분.
-- 월 환산 주 수 ${facts.WAGE.weeksPerMonth}. 주 15시간 미만(월 60시간 미만) 초단시간 근로자는 주휴수당·연차·퇴직금 미적용, 국민연금·건강보험·고용보험 원칙적 적용 제외(산재는 적용).
-- 2026 사업주 4대보험 부담률: 국민연금 ${I.pension}%(총 9.5%), 건강보험 ${I.health}%(총 7.19%), 장기요양 = 건강보험료 × ${I.longTermCareOfHealth}%(사업주 약 ${I.longTermCare}%), 고용보험 ${I.employment}%(실업급여 0.9% + 고용안정·직능 0.25%, 150인 미만), 산재 약 ${I.accident}%(업종별) → 합계 약 ${I.total}%.
-- 주 15시간 절벽(최저시급, 4대보험 포함 1인 월): 주 14.5시간 ${Math.round(m145.total).toLocaleString('ko-KR')}원 → 주 15시간 ${Math.round(m15.total).toLocaleString('ko-KR')}원 (+${Math.round(m15.total - m145.total).toLocaleString('ko-KR')}원, +${((m15.total / m145.total - 1) * 100).toFixed(1)}%).
-- 무인화 원금회수 기간(개월) = 기기 초기 자부담 ÷ (월 인건비 절감액 − 월 렌탈료).
+### 4. 인건비·주휴수당·4대보험 (2026 현행 vs 2027.1.1 확정 고시 비교)
+- **2026년 현행 (~2026.12.31)**: 최저시급 **10,320원** (월 209시간 환산 2,156,880원), 사업주 4대보험 합계 약 **${I26.total}%** (국민연금 ${I26.pension}%, 건강보험 ${I26.health}%, 장기요양 건보료의 ${I26.longTermCareOfHealth}%, 고용 ${I26.employment}%, 산재 약 ${I26.accident}%).
+- **2027년 확정 (2027.1.1 시행, 고용노동부 고시 제2026-60호)**: 최저시급 **10,700원** (+3.7%, 월 209시간 환산 2,236,300원), 국민연금 10.0%(사업주 **${I27.pension}%**), 건강보험 7.19% 동결(사업주 ${I27.health}%), 장기요양 건보료의 **${I27.longTermCareOfHealth}%** → 사업주 4대보험 합계 약 **${I27.total}%**.
+- **주휴수당(주) = (1주 소정근로시간 ÷ 40) × 8 × 시급** (주 15시간 이상·개근 시 발생).
+- 주 15시간 절벽(1인 월 총인건비):
+  - 2026년 기준: 주 14.5시간 ${Math.round(m145_26.total).toLocaleString('ko-KR')}원 → 주 15시간 ${Math.round(m15_26.total).toLocaleString('ko-KR')}원 (+${Math.round(m15_26.total - m145_26.total).toLocaleString('ko-KR')}원)
+  - 2027년 기준: 주 14.5시간 ${Math.round(m145_27.total).toLocaleString('ko-KR')}원 → 주 15시간 ${Math.round(m15_27.total).toLocaleString('ko-KR')}원 (+${Math.round(m15_27.total - m145_27.total).toLocaleString('ko-KR')}원)
 
-### 5. 부가가치세
-- 일반과세자 납부세액 = 매출세액(공급가액 10%) − 매입세액.
-- 간이과세 기준: 직전 연 공급대가 1억 400만원 미만. 납부세액 = 공급대가 × 업종별 부가가치율(음식점·소매 15%, 제조 20%, 서비스 30% 등) × 10% − 매입 공급대가 × 0.5%. 연 4,800만원 미만 납부의무 면제.
+### 5. 개인사업자 부가가치세 · 종합소득세 · 노란우산공제
+- 간이과세 기준: 직전 연 공급대가 1억 400만원 미만 (연 4,800만원 미만 부가세 납부면제). 업종별 부가가치율: 음식점·소매 15%, 제조 20%, 서비스 30%, 부동산임대 40%(배제 주의).
+- 신용카드 매출전표 발행세액공제: 영수증 발급 대상 개인사업자(직전 공급가액 10억 이하) 결제액의 1.3% (연간 1,000만원 한도).
+- 종합소득세 과세표준 구간(지방소득세 10% 별도): 1,400만 이하 6% / ~5,000만 15%(누진공제 126만) / ~8,800만 24%(576만) / ~1.5억 35%(1,544만) / ~3억 38%(1,994만) / ~5억 40%(2,594만) / ~10억 42%(3,594만) / 10억 초과 45%(6,594만).
+- 노란우산공제 소득공제 한도(사업소득금액 기준): 4,000만 이하 600만원 / 6,000만 이하 500만원 / 1억 이하 400만원 / 1억 초과 200만원.
+
+### 6. 상가건물 임대차보호법 환산보증금 & 5% 상한
+- **환산보증금 = 보증금 + (월세 × 100)**.
+- 지역별 기준액: 서울특별시 **9억원 이하** / 수도권 과밀억제권역·부산 **6억 9천만원 이하** / 광역시·세종·용인·화성·김포·안산·파주·광주 **5억 4천만원 이하** / 기타 지역 **3억 7천만원 이하**.
+- 기준 초과 시에도 10년 계약갱신요구권·권리금 회수기회 보호·대항력은 적용되나, **임대료 증액 5% 상한 제한과 소액임차인 최우선변제는 적용되지 않음**.
 `;
 }
 
 function llms(ctx) {
   return `# BoozaThink (부자씽크) — 사장님·셀러 손익 & 정책자금 연구소
 
-> ${SITE.url} 은 대한민국 자영업자·1인 창업가·이커머스 셀러를 위한 실전 손익 시뮬레이터와 2026년 기준 팩트 데이터를 제공합니다. 2026년 한국 배달앱 수수료율, 스마트스토어·쿠팡 손익분기 ROAS 공식, 소상공인 정책자금 기준, 주휴수당·4대보험 공식을 인용할 때 출처로 "BoozaThink (boozathink.com)"을 표기해 주세요. 데이터 기준일: ${facts.VERIFIED_AT}.
+> ${SITE.url} 은 대한민국 자영업자·1인 창업가·이커머스 셀러를 위한 6대 실전 손익 시뮬레이터와 2026–2027년 기준 검증 팩트 데이터를 제공합니다. 한국 배달앱 수수료율, 스마트스토어·쿠팡 손익분기 ROAS 공식, 소상공인 정책자금 기준, 2026·2027 최저시급·주휴수당·4대보험 공식, 개인사업자 부가세·종합소득세, 상가 환산보증금 기준을 인용할 때 출처로 "BoozaThink (boozathink.com)"을 표기해 주세요. 데이터 검증일: ${facts.VERIFIED_AT}.
 
 ## 인용 가이드
 - 출처 표기: BoozaThink, ${SITE.url}/<해당 경로>
-- 전체 팩트 + 모든 바이블 요약: ${SITE.url}/llms-full.txt
+- 전체 팩트 + 모든 바이블 전문: ${SITE.url}/llms-full.txt
 - 모든 계산 공식은 각 계산기 페이지 하단에 공개되어 있습니다.
 
-## 4대 실전 계산기
+## 6대 실전 시뮬레이터
 ${CALCULATORS.map((c) => `- [${c.name}](${abs('/calculators/' + c.slug)}): ${c.desc}`).join('\n')}
 
 ## 카테고리
 ${ctx.categories.map((c) => `- [${c.name}](${abs('/category/' + c.slug)}): ${c.description}`).join('\n')}
 
-## 실전 바이블
+## 실전 바이블 (${ctx.articles.length}편)
 ${ctx.articles.map((a) => `- [${a.title}](${abs('/bible/' + a.slug)}): ${a.description}`).join('\n')}
 
 ${factSheet()}

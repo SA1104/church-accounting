@@ -80,7 +80,7 @@ module.exports = {
     type: 'vat',
     title: '연매출·매입 비율 넣고 간이 vs 일반 부가세 3초 비교',
     values: { sales: 8000, buy: 40 },
-    cta: { href: '/calculators/policy-funds?ind=food&sales=8000&emp=lt5&age=lt3', label: '연매출 기준으로 받을 수 있는 정책자금까지 이어서 확인하기' }
+    cta: { href: '/calculators/vat-income-tax?ind=food&sales=8000&buy=40', label: '1월 부가세·5월 종합소득세·노란우산 세후 실수령까지 통합 계산하기' }
   },
   cases: [
     {
