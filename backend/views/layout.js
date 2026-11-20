@@ -22,7 +22,30 @@ const CALCULATORS = [
   { slug: 'policy-funds', short: '정책자금 · 저금리 대환 매칭', name: '소상공인 정책자금 · 4.5% 대환대출 · 스마트상점 보조금 매칭기', iconKey: 'bank', desc: '업종·업력·매출 조건에 맞는 정책자금을 매칭하고 고금리 대환 이자 절감액과 보조금 자부담을 계산합니다.', category: 'policy-funds-grants' }
 ];
 
-const ASSET_V = '20261120e';
+const ASSET_V = '20261120f';
+
+function yearEndFreeInfo() {
+  const kstNow = new Date(Date.now() + 9 * 3600 * 1000);
+  const year = kstNow.getUTCFullYear();
+  const endUtcMs = Date.UTC(year, 11, 31, 23, 59, 59);
+  const daysLeft = Math.max(0, Math.ceil((endUtcMs - kstNow.getTime()) / 86400000));
+  const dBadge = daysLeft > 0 ? `D-${daysLeft}` : '오늘 마감';
+  return { year, daysLeft, dBadge };
+}
+
+function freeOpenBanner(mode) {
+  const info = yearEndFreeInfo();
+  if (mode === 'hero') {
+    return `<div class="free-open-box" data-free-open="hero">
+      <span class="free-open-badge">올해 12.31까지 무료 개방 · ${info.dBadge}</span>
+      <div class="free-open-body"><strong>올해 말까지 모든 정밀 계산기와 1년 수익·대출 진단표를 무료로 열어두고 있습니다.</strong> 회원가입 없이 내 가게 조건을 마음껏 넣어보시고 결과 이미지와 링크를 미리 보관해 두세요.</div>
+    </div>`;
+  }
+  return `<div class="free-open-box" data-free-open="calc">
+    <span class="free-open-badge">올해 12.31까지 무료 개방 · ${info.dBadge}</span>
+    <div class="free-open-body"><strong>정식 유료 전환 전, 올해 말까지 모든 세부 설정과 결과 저장 기능을 무료로 풀어드리고 있습니다.</strong> 계산이 끝나면 아래 이미지 저장·링크 복사로 내 결과를 미리 챙겨 두세요.</div>
+  </div>`;
+}
 
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -101,11 +124,12 @@ function gnb(categories, current) {
 
 function seasonBar() {
   const { current } = getCurrentAndNextMonth();
-  return `<div class="season-bar" role="region" aria-label="이달의 사업자 필수 일정">
+  const info = yearEndFreeInfo();
+  return `<div class="season-bar" role="region" aria-label="올해 한시 무료 개방 안내">
   <div class="container season-inner">
-    <span class="season-pill">${current.month}월 세무·자금 체크</span>
-    <span class="season-msg">${esc(current.headline)}</span>
-    <a class="season-link" href="/calendar">12개월 전체 일정표 →</a>
+    <span class="season-pill">올해 12.31까지 무료 개방 · ${info.dBadge}</span>
+    <span class="season-msg">창업 5단계 수익 · 배달 · 세금 · 대출한도 전 기능, 올해 말까지 회원가입 없이 무료로 풀어드리고 있습니다 (${current.month}월 세무 점검 포함)</span>
+    <a class="season-link" href="/calculators/startup-master">무료로 계산하기 →</a>
   </div>
 </div>`;
 }
@@ -212,4 +236,4 @@ ${scripts}
 </html>`;
 }
 
-module.exports = { SITE, CALCULATORS, esc, jsonLd, abs, breadcrumbLd, faqLd, breadcrumbHtml, faqHtml, render, ASSET_V };
+module.exports = { SITE, CALCULATORS, esc, jsonLd, abs, breadcrumbLd, faqLd, breadcrumbHtml, faqHtml, render, ASSET_V, yearEndFreeInfo, freeOpenBanner };

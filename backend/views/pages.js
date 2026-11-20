@@ -1,6 +1,6 @@
 'use strict';
 const E = require('../public/js/calc-engine.js');
-const { esc, CALCULATORS, breadcrumbHtml, breadcrumbLd, faqHtml, faqLd, abs, SITE } = require('./layout');
+const { esc, CALCULATORS, breadcrumbHtml, breadcrumbLd, faqHtml, faqLd, abs, SITE, freeOpenBanner } = require('./layout');
 const { icon } = require('./icons');
 const facts = require('../data/facts');
 const { PERSONAS } = require('../data/start-timeline');
@@ -41,7 +41,7 @@ function home(ctx) {
     { q: 'BoozaThink는 누가, 어떤 목적으로 만든 프로그램인가요?', a: 'BoozaThink는 예비 창업가와 자영업 사장님, 이커머스 셀러가 계약서에 도장을 찍기 전과 매달 정산서를 받아 들 때 단 하나의 누락 항목 없이 실제 순수익과 자금 동선을 검증할 수 있도록 만든 실전 손익·자금 연구소입니다. 창업·운영 현장의 실무 경험 위에 정밀 수식 검증 엔진을 결합하여 진심을 담아 설계했습니다.' },
     { q: '창업 풀코스 설계와 부분별 손익 계산기는 어떻게 다른가요?', a: '창업 풀코스 A-to-Z 설계(/calculators/startup-master)는 업종을 고르면 보증금·인테리어·권리금·키오스크 보조금·계절별 12개월 매출 변동·부가세·종소세·대출 원리금까지 1년 전체 현금흐름을 처음부터 끝까지 시뮬레이션합니다. 반면 6대 부분별 계산기는 배달 메뉴가 역산, 셀러 ROAS, 주휴수당 절벽, 상가 환산보증금처럼 당장 부딪힌 세부 이슈를 10초 만에 정밀 진단합니다.' },
     { q: '최신 세법·최저임금·금융 금리 데이터는 어떻게 반영되나요?', a: '소상공인시장진흥공단, 국세청, 고용노동부, 한국은행·은행연합회 등 공식 기관의 최신 확정 고시 데이터를 기준으로 연산하며, 당해 현행 요율과 차기 확정 고시 요율은 하단 데이터 각주에 기준 연도와 검증일을 투명하게 명기합니다.' },
-    { q: '회원가입이나 비용이 필요한가요? 입력한 매출이 저장되나요?', a: '모든 계산기와 바이블, 대출 한도·최저금리 순서 진단기는 회원가입 없이 무료로 이용할 수 있습니다. 매출·원가·보증금·부채 같은 민감한 숫자는 오직 브라우저 안에서만 연산되며 서버에 저장되지 않습니다.' }
+    { q: '회원가입이나 비용이 필요한가요? 입력한 매출이 저장되나요?', a: '올해 말(12월 31일)까지는 회원가입이나 별도 결제 없이 모든 계산기와 1년 수익·대출 한도 진단 기능을 전액 무료로 열어두고 있습니다. 무료 개방 기간 안에 내 조건을 넣어 계산해 보시고 결과 이미지나 링크로 미리 보관해 두시길 권해드립니다. 입력하시는 매출·원가·보증금·대출액은 브라우저 안에서만 계산되며 서버에 저장되지 않습니다.' }
   ];
   const body = `
 <section class="hero">
@@ -50,6 +50,7 @@ function home(ctx) {
       <span class="eyebrow">${icon('compass', 15)} 현장의 실무 경험 × 정밀 수식 엔진</span>
       <h1>창업의 첫 단추부터<br>매달 <em>남는 돈</em>까지 설계합니다.</h1>
       <p class="lead">보증금·인테리어·권리금과 대출 이자를 모두 감안한 12개월 계절 손익 풀코스 설계부터, 배달앱 1주문 순수익, 셀러 손익분기 ROAS, 주휴수당 절벽, 세후 실수령, 그리고 가장 이자가 낮은 정책자금·금융권 조달 순서까지. 사장님에게 정말 도움이 되는 디테일만 담았습니다.</p>
+      ${freeOpenBanner('hero')}
       <div class="hero-cta">
         <a class="btn btn-primary btn-lg" href="/calculators/startup-master">${icon('compass', 17)} 창업 풀코스 A-to-Z 설계</a>
         <a class="btn btn-lg" href="/funding">${icon('bank', 17)} 사업자 대출 · 최저금리 진단</a>

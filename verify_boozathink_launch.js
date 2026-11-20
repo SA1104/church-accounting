@@ -190,6 +190,7 @@ async function main() {
 
     const commPage = await fetchRes(baseUrl, '/commercial-area');
     assert(commPage.status === 200 && commPage.text.includes('id="cm-map"') && commPage.text.includes('leaflet@1.9.4') && commPage.text.includes('overpass-api.de'), 'Commercial Lab: Real Interactive Leaflet Map + Radius Circle + Overpass POI Search');
+    assert(masterPage.text.includes('data-free-open="calc"') && masterPage.text.includes('올해 12.31까지 무료 개방') && delivPage.text.includes('data-free-open="calc"'), 'Year-End Free Open Access Notice & D-Day Badge Across Simulators');
 
     const sgPage = await fetchRes(baseUrl, '/start-guide');
     const pCnt = (sgPage.text.match(/data-persona-btn="/g) || []).length;

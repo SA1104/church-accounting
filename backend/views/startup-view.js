@@ -1,7 +1,7 @@
 'use strict';
 const E = require('../public/js/calc-engine.js');
 const { STARTUP_PROFILES, STARTUP_GROUPS } = require('../data/startup-profiles');
-const { esc, CALCULATORS, breadcrumbHtml, breadcrumbLd, faqHtml, faqLd, abs, SITE } = require('./layout');
+const { esc, CALCULATORS, breadcrumbHtml, breadcrumbLd, faqHtml, faqLd, abs, SITE, freeOpenBanner } = require('./layout');
 const { icon } = require('./icons');
 const facts = require('../data/facts');
 
@@ -386,6 +386,7 @@ function startupMasterView(q) {
     <span class="eyebrow">${icon('compass', 16)} 1단계부터 5단계까지 차근차근 완성하는 창업 풀코스 설계</span>
     <h1>${esc(calc.name)}</h1>
     <p class="lead">업종과 창업 희망 지역을 고른 뒤, 가게 인테리어 방식, 카테고리별 판매 메뉴, 배달 부대비용, 내 현금과 기존 대출 상태까지 5단계로 입력해 보세요. 세금과 대출 원리금까지 모두 뺀 진짜 1년 실수익과 대출 승인 가능성을 한눈에 알려드립니다.</p>
+    ${freeOpenBanner('calc')}
     <p class="footnote-meta">※ 세율·최저임금·스마트상점 보조한도·정책자금 금리는 최신 정부 고시 데이터를 기준으로 반영되었습니다 (검증 기준일 ${facts.VERIFIED_AT}).</p>
   </header>
   <section class="calc" id="calc" data-calc="startup-master" aria-label="창업 풀코스 시뮬레이터">
@@ -393,6 +394,7 @@ function startupMasterView(q) {
     <div class="calc-out">
       ${out}
       <div class="card bench" data-bench aria-live="polite"><div class="bench-head"><span class="pill">같은 업종 평균과 비교</span><span class="bench-src" data-bench-src>익명 계산 통계</span></div><p class="bench-text" data-bench-text>같은 업종을 계산해 본 예비창업자 평균 수익률과 비교해 드립니다.</p></div>
+      <p class="free-save-tip">올해 무료 개방 기간에 저장해 둔 진단표 이미지와 계산 링크는 기간이 지나도 제한 없이 다시 확인하실 수 있습니다.</p>
       <div class="calc-actions" role="group" aria-label="결과 공유">
         <button type="button" class="btn btn-primary" data-action="copy-link">${icon('link', 16)} 내 창업 설계 링크 복사</button>
         <button type="button" class="btn" data-action="receipt">${icon('receipt', 16)} 창업 손익 진단표 이미지 저장</button>

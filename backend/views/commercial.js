@@ -2,7 +2,7 @@
 const { ZONE_ARCHETYPES, DATA_PIPELINE_SPEC } = require('../data/commercial-architecture');
 const { STARTUP_PROFILES, STARTUP_GROUPS } = require('../data/startup-profiles');
 const E = require('../public/js/calc-engine.js');
-const { esc, breadcrumbHtml, breadcrumbLd, faqHtml, faqLd } = require('./layout');
+const { esc, breadcrumbHtml, breadcrumbLd, faqHtml, faqLd, freeOpenBanner } = require('./layout');
 const { icon } = require('./icons');
 
 function commercialView(q) {
@@ -30,6 +30,7 @@ function commercialView(q) {
     <span class="eyebrow">${icon('mapPin', 16)} 실제 지도 반경 탐색 · 손님 연령대 · 주변 경쟁가게 살펴보기</span>
     <h1>우리 동네 상권 · 실제 지도 입지 분석</h1>
     <p class="lead">어느 동네에 가게를 내야 할지 고민되시나요? 실제 지도에서 지하철역이나 동네 이름을 검색하거나 원하는 골목을 직접 클릭해 반경 300m~1km 안의 주변 상권 분포와 업종별 추천 자리를 바로 확인해 보세요.</p>
+    ${freeOpenBanner('calc')}
   </header>
 
   <section class="card map-card" aria-label="실시간 상권 반경 지도">

@@ -1,6 +1,6 @@
 'use strict';
 const E = require('../public/js/calc-engine.js');
-const { esc, CALCULATORS, breadcrumbHtml, breadcrumbLd, faqHtml, faqLd, abs, SITE } = require('./layout');
+const { esc, CALCULATORS, breadcrumbHtml, breadcrumbLd, faqHtml, faqLd, abs, SITE, freeOpenBanner } = require('./layout');
 const { icon } = require('./icons');
 const facts = require('../data/facts');
 
@@ -39,7 +39,8 @@ function toggle(key, label, on, hint) {
 function o(key, text, cls) { return `<span data-out="${key}"${cls ? ` class="${cls}"` : ''}>${text}</span>`; }
 
 function actions() {
-  return `<div class="calc-actions" role="group" aria-label="결과 공유">
+  return `<p class="free-save-tip">올해 무료 개방 기간에 저장해 둔 계산 영수증 이미지와 링크는 기간이 지나도 계속 확인하실 수 있습니다.</p>
+<div class="calc-actions" role="group" aria-label="결과 공유">
   <button type="button" class="btn btn-primary" data-action="copy-link">${icon('link', 16)} 내 매장 시뮬레이션 링크 복사</button>
   <button type="button" class="btn" data-action="receipt">${icon('receipt', 16)} 손익 계산 영수증 이미지 저장</button>
   <button type="button" class="btn btn-ghost" data-action="reset">초기화</button>
@@ -59,6 +60,7 @@ function pageShell(calc, q, formHtml, outHtml, guideHtml, faq, related, footnote
     <span class="eyebrow">${icon(calc.iconKey || 'sliders', 16)} BoozaThink 정밀 시뮬레이터</span>
     <h1>${esc(calc.name)}</h1>
     <p class="lead">${esc(calc.lead)}</p>
+    ${freeOpenBanner('calc')}
     <p class="footnote-meta">${esc(footnote || `※ 최신 정부 고시 및 플랫폼 공식 요율 기준 반영 (데이터 검증일 ${facts.VERIFIED_AT})`)}</p>
   </header>
   <section class="calc" id="calc" data-calc="${calc.slug}" aria-label="${esc(calc.short)}">
@@ -558,7 +560,7 @@ function index() {
   const master = CALCULATORS[0];
   const parts = CALCULATORS.slice(1);
   const body = `<div class="container">${breadcrumbHtml(crumbs)}
-<header class="page-head"><span class="eyebrow">${icon('sliders', 16)} BoozaThink 시뮬레이터 허브</span><h1>창업 풀코스부터 상황별 정밀 계산까지</h1><p class="lead">처음 창업하는 분을 위한 12개월 계절 손익 풀코스 설계부터, 운영 중 상황별로 즉시 점검하는 6대 정밀 계산기까지 한곳에 모았습니다.</p></header>
+<header class="page-head"><span class="eyebrow">${icon('sliders', 16)} BoozaThink 시뮬레이터 허브</span><h1>창업 풀코스부터 상황별 정밀 계산까지</h1><p class="lead">처음 창업하는 분을 위한 12개월 계절 손익 풀코스 설계부터, 운영 중 상황별로 즉시 점검하는 6대 정밀 계산기까지 한곳에 모았습니다.</p>${freeOpenBanner('hero')}</header>
 <a class="cat-calc card" href="/calculators/${master.slug}" style="padding:26px;margin-bottom:26px"><span class="ico-box">${icon(master.iconKey, 22)}</span><div><span class="pill">예비창업 · 신규출점 추천</span><h2 style="margin:6px 0 4px;font-size:21px">${esc(master.name)}</h2><p>${esc(master.desc)}</p></div><span class="cc-cta">풀코스 설계 시작 →</span></a>
 <h2 style="font-size:20px;margin:0 0 14px">상황별로 골라 쓰는 6대 정밀 손익·세무 계산기</h2>
 <div class="calc-grid calc-grid-6">${parts.map((c) => `<a class="calc-card card" href="/calculators/${c.slug}"><span class="ico-box">${icon(c.iconKey, 20)}</span><h3>${esc(c.name)}</h3><p>${esc(c.desc)}</p><span class="cc-cta">계산 시작 →</span></a>`).join('')}</div>

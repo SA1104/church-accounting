@@ -2,7 +2,7 @@
 const E = require('../public/js/calc-engine.js');
 const rates = require('../lib/rates');
 const facts = require('../data/facts');
-const { esc, breadcrumbHtml, breadcrumbLd, faqHtml, faqLd, abs, SITE } = require('./layout');
+const { esc, breadcrumbHtml, breadcrumbLd, faqHtml, faqLd, abs, SITE, freeOpenBanner } = require('./layout');
 const { icon } = require('./icons');
 const { miniCalc } = require('./pages');
 
@@ -53,6 +53,7 @@ function fundingView(q) {
     <span class="eyebrow">${icon('bank', 16)} 어디서 빌려야 가장 이자가 싸고 한도가 잘 나올까?</span>
     <h1>사업자 대출 · 정책자금 비교 라운지</h1>
     <p class="lead">사업을 확장할 때나 긴급 운전자금이 필요할 때 “과연 대출이 나올지, 어디서 빌려야 가장 이자가 싼지, 어떻게 해야 한도를 더 확보할 수 있는지”를 한곳에서 진단합니다. 정책자금부터 제1금융권·증권사·대환 프로그램까지 가장 유리한 조달 순서를 먼저 확인하세요.</p>
+    ${freeOpenBanner('calc')}
     <p class="footnote-meta">※ 한국은행 기준금리(${mkt.bokBaseRate}%), 은행연합회·금융투자협회 및 소진공·지역신보 최신 공시 데이터 반영 (기준일 ${mkt.verifiedAt})</p>
   </header>
 
