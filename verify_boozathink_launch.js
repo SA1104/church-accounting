@@ -165,10 +165,29 @@ async function main() {
 
     const masterPage = await fetchRes(baseUrl, '/calculators/startup-master?profile=coin-laundry');
     const profBtnCount = (masterPage.text.match(/data-pick-profile="/g) || []).length;
+    const stepBtnCount = (masterPage.text.match(/data-step-btn="/g) || []).length;
     assert(masterPage.status === 200 && profBtnCount === 30 && masterPage.text.includes('season12') && masterPage.text.includes('무인 코인세탁소'), 'Startup Master 30 Industry Profiles & 12-Month Seasonality', `profiles=${profBtnCount}`);
+    assert(
+      stepBtnCount === 5 &&
+      masterPage.text.includes('class="prof-radio"') &&
+      masterPage.text.includes('data-menu-builder') &&
+      masterPage.text.includes('data-deliv-detail-box') &&
+      masterPage.text.includes('data-loan-diag-box') &&
+      masterPage.text.includes('data-loc-rec-box') &&
+      masterPage.text.includes('class="tip-btn"') &&
+      masterPage.text.includes('업체 한 곳에 통째로 맡기기'),
+      'v2.6 Startup Master: 5-Step Wizard + Radio Cards + Multi-Category Menu + Detailed Delivery + Existing Loan Check + Region Rec + Tooltips',
+      `steps=${stepBtnCount}`
+    );
+
+    const calcCoreJs = await fetchRes(baseUrl, '/js/calc-core.js');
+    assert(calcCoreJs.status === 200 && calcCoreJs.text.includes("typeof initialDefaults[k] === 'string'"), 'v2.6 Fix: calc-core.js Hidden String Profile Binding');
 
     const fundPage = await fetchRes(baseUrl, '/funding');
-    assert(fundPage.status === 200 && fundPage.text.includes('id="rate-gap-sim"') && fundPage.text.includes('data-mini="apr-trap"') && fundPage.text.includes('business-loan-approval-limit-guide'), 'Funding Hub: 6-Channel Rate Gap Sim + APR Trap + Rejection Matrix');
+    assert(fundPage.status === 200 && fundPage.text.includes('id="rate-gap-sim"') && fundPage.text.includes('data-mini="apr-trap"') && fundPage.text.includes('business-loan-approval-limit-guide') && fundPage.text.includes('data-fd-exloan'), 'Funding Hub: 6-Channel Rate Gap Sim + APR Trap + Detailed Existing Debt Check');
+
+    const commPage = await fetchRes(baseUrl, '/commercial-area');
+    assert(commPage.status === 200 && commPage.text.includes('id="cm-map"') && commPage.text.includes('leaflet@1.9.4') && commPage.text.includes('overpass-api.de'), 'Commercial Lab: Real Interactive Leaflet Map + Radius Circle + Overpass POI Search');
 
     const sgPage = await fetchRes(baseUrl, '/start-guide');
     const pCnt = (sgPage.text.match(/data-persona-btn="/g) || []).length;

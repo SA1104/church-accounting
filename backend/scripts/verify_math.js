@@ -141,6 +141,48 @@ const aprMini = E.mini('apr-trap', { amt: 4000, fee: 0.8, days: 20, alt: 3.5 });
 equal(aprMini[0][1], '14.6%', '선정산 20일 0.8% 수수료 -> 연환산 실질금리 14.60% 정확 산출');
 equal(aprMini[3][1], '4,440,000원', '4,000만원 선정산 대신 3.5% 전환 시 연간 444만원 절감 일치');
 
+console.log('\n=== 9. v2.6 다품목 카테고리·배달상세·지역시세·기대출 정밀진단 검산 ===');
+// (a) 다품목 카테고리 등록: 음료 4,500원×100건(원가 20%) + 디저트 5,500원×100건(원가 40%) -> 일 200건, 평균객단가 5,000원, 일매출 100만원, 가중원가율 31.0%
+const smMulti = E.startupMaster({
+  profile: 'takeout-coffee',
+  region: 'seoul-core',
+  days: 25,
+  menuItems: [
+    { cat: '아메리카노·음료', price: 4500, qty: 100, cogs: 20 },
+    { cat: '소금빵·디저트', price: 5500, qty: 100, cogs: 40 }
+  ],
+  delivmode: 'detail',
+  dshare: 40,
+  pshare: 20,
+  dappfee: 7.8,
+  cardfee: 1.5,
+  drider: 3000,
+  dpack: 500,
+  dpromo: 500,
+  own: 5000,
+  hasloan: 1,
+  expolicy: 4000,
+  exbank: 2000,
+  excard: 1500,
+  credit: 'mid'
+}, STARTUP_PROFILES);
+equal(smMulti.dailyOrders, 200, '다품목 카테고리 일일 총 판매수량 200건 합산');
+equal(smMulti.ticket, 5000, '다품목 가중평균 결제단가 5,000원 산출');
+equal(smMulti.baseMonthlySales, 25000000, '다품목 평상월 매출 2,500만원(100만×25일) 일치');
+approx(smMulti.cogsPct, ((450000 * 0.20 + 550000 * 0.40) / 1000000) * 100, 0.01, '다품목 가중원가율 31.0% 정확 산출');
+equal(smMulti.deposit, Math.round(3000 * 1.55), '서울 핵심상권 선택 시 보증금 시세 계수(1.55배) 자동 반영');
+// 배달 상세: 홀+포장 60%*1.5% + 배달 40%*(7.8%+3.0%) = 0.9% + 4.32% = 5.22%
+approx(smMulti.feePct, 5.22, 0.01, '배달 40%·홀포장 60% 가중 결제·중개수수료율 5.22% 산출');
+// 월 총주문 5,000건 중 배달 40%(2,000건)*3,000원 = 600만원 라이더 배달비
+equal(smMulti.delivBreakdown.monthlyRiderKRW, 6000000, '배달 상세 월간 사장님 부담 라이더 배달비 600만원 산출');
+// 기대출(보증서 4,000 + 은행 2,000 + 카드론 1,500) 보유 시 보증한도 소진 & 부족경고 작동
+equal(smMulti.loanCheck.availPolicy, 0, '중신용 + 기존 보증서 4,000만·카드론 보유 시 잔여 보증한도 소진 판정');
+equal(smMulti.loanCheck.loanShortfall > 0 && smMulti.loanCheck.status === 'danger', true, '기대출 과다 시 창업 부족자금 한도 미달 경고 정확 작동');
+
+const ldDetail = E.loanDiagnose({ purpose: 'expand', sales: 18000, credit: 'mid', hasloan: 1, expolicy: 3000, exbank: 1000, excard: 2000, debtrate: 13.5, arrears: 0, emp: 'lt5' });
+equal(ldDetail.grade, 'caution', '카드론·2금융 2,000만원 보유 시 주의 및 선대환 판정');
+equal(ldDetail.ladder[0].name.indexOf('카드론') >= 0, true, '금리 사다리 1순위에 카드론·2금융 정리 및 4.5% 대환 자동 배치');
+
 console.log(`\n========================================`);
 console.log(` MATH AUDIT: ${passed} PASSED, ${failed} FAILED`);
 console.log(`========================================`);

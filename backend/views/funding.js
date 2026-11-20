@@ -14,6 +14,11 @@ function qv(q, k, def) {
   return Number.isFinite(x) ? x : def;
 }
 
+function tipHtml(tipText) {
+  if (!tipText) return '';
+  return ` <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="용어 쉬운 설명 보기">?</button><span class="tip-pop" role="tooltip">${esc(tipText)}</span></span>`;
+}
+
 function fundingView(q) {
   const mkt = rates.getMarketRatesSummary();
   const s = {
@@ -22,7 +27,11 @@ function fundingView(q) {
     credit: ['high', 'mid', 'low', 'sub'].includes(q.credit) ? q.credit : 'mid',
     collateral: ['none', 'realestate', 'deposit', 'securities'].includes(q.collateral) ? q.collateral : 'none',
     colval: qv(q, 'colval', 0),
-    debt: qv(q, 'debt', 3000),
+    hasloan: q.hasloan === '0' ? '0' : '1',
+    expolicy: qv(q, 'expolicy', 1500),
+    exbank: qv(q, 'exbank', 1500),
+    exmort: qv(q, 'exmort', 0),
+    excard: qv(q, 'excard', 0),
     debtrate: qv(q, 'debtrate', 8.2),
     arrears: q.arrears === '1' ? 1 : 0,
     emp: q.emp === 'gte5' ? 'gte5' : 'lt5'
@@ -103,8 +112,8 @@ function fundingView(q) {
             </div>
           </div>
         </fieldset>
-        <fieldset><legend>2. 보유 담보 & 기존 부채</legend>
-          <div class="field"><label for="f-collateral">활용 가능한 담보 자산</label>
+        <fieldset><legend>2. 보유 담보 &amp; 현재 이용 중인 기존 대출</legend>
+          <div class="field"><label for="f-collateral">활용 가능한 담보 자산${tipHtml('담보로 맡길 수 있는 자산이 있으면 무담보 신용대출보다 금리가 연 1.5~3%p 낮아지고 한도가 크게 늘어납니다.')}</label>
             <select id="f-collateral" data-bind="collateral">
               <option value="none"${s.collateral === 'none' ? ' selected' : ''}>무담보 (보증서·신용 위주)</option>
               <option value="realestate"${s.collateral === 'realestate' ? ' selected' : ''}>부동산 · 아파트 · 상가 담보</option>
@@ -112,16 +121,27 @@ function fundingView(q) {
               <option value="deposit"${s.collateral === 'deposit' ? ' selected' : ''}>우량 상가·주택 임차보증금</option>
             </select>
           </div>
-          <div class="field"><label for="f-colval">담보 자산 순평가액 (선순위 차감 후)</label>
+          <div class="field" data-fd-colval${s.collateral !== 'none' ? '' : ' hidden'}><label for="f-colval">담보 자산 시세(평가액)</label>
             <div class="field-row"><input type="range" id="r-colval" min="0" max="100000" step="500" value="${s.colval}" data-bind="colval"><div class="num"><input type="number" id="f-colval" min="0" step="500" value="${s.colval}" data-bind="colval"><span class="unit">만원</span></div></div>
           </div>
-          <div class="field"><label for="f-debt">기존 사업자 대출 잔액</label>
-            <div class="field-row"><input type="range" id="r-debt" min="0" max="50000" step="200" value="${s.debt}" data-bind="debt"><div class="num"><input type="number" id="f-debt" min="0" step="200" value="${s.debt}" data-bind="debt"><span class="unit">만원</span></div></div>
+          <div class="field"><span class="label">현재 보유 중인 기존 대출이 있나요?${tipHtml('보증서 대출 잔액은 신규 보증 한도에서 1:1 차감되며, 카드론·2금융 대출 유무는 1금융 및 정책자금 승인 여부에 직접적인 영향을 줍니다.')}</span>
+            <div class="seg">
+              <label class="seg-opt"><input type="radio" name="hasloan" value="0" data-bind="hasloan"${s.hasloan === '0' ? ' checked' : ''}><span>기존 대출 없음</span></label>
+              <label class="seg-opt"><input type="radio" name="hasloan" value="1" data-bind="hasloan"${s.hasloan === '1' ? ' checked' : ''}><span>있음 (종류별 입력)</span></label>
+            </div>
           </div>
-          <div class="field"><label for="f-debtrate">기존 대출 평균 금리</label>
-            <div class="field-row"><input type="range" id="r-debtrate" min="2" max="20" step="0.1" value="${s.debtrate}" data-bind="debtrate"><div class="num"><input type="number" id="f-debtrate" min="0" step="0.1" value="${s.debtrate}" data-bind="debtrate"><span class="unit">%</span></div></div>
+          <div data-fd-exloan${s.hasloan === '0' ? ' hidden' : ''}>
+            <div class="sub-grid-2">
+              <div class="mini-num-field"><label for="f-expolicy">기존 보증서 · 정책자금${tipHtml('지역신용보증재단·소진공·신보 기보증 잔액은 신규 보증 한도에서 그대로 먼저 차감됩니다.')}</label><div class="num"><input type="number" id="f-expolicy" min="0" step="100" value="${s.expolicy}" data-bind="expolicy"><span class="unit">만원</span></div></div>
+              <div class="mini-num-field"><label for="f-exbank">1금융 신용 · 마이너스통장</label><div class="num"><input type="number" id="f-exbank" min="0" step="100" value="${s.exbank}" data-bind="exbank"><span class="unit">만원</span></div></div>
+              <div class="mini-num-field"><label for="f-exmort">주택담보 · 전세자금대출</label><div class="num"><input type="number" id="f-exmort" min="0" step="500" value="${s.exmort}" data-bind="exmort"><span class="unit">만원</span></div></div>
+              <div class="mini-num-field"><label for="f-excard">캐피탈 · 저축은행 · 카드론${tipHtml('2금융권·카드론·현금서비스가 남아 있으면 대환 또는 선상환을 먼저 해야 저금리 보증서 한도가 열립니다.')}</label><div class="num"><input type="number" id="f-excard" min="0" step="100" value="${s.excard}" data-bind="excard"><span class="unit">만원</span></div></div>
+            </div>
+            <div class="field"><label for="f-debtrate">기존 신용 · 사업자대출 평균 금리</label>
+              <div class="field-row"><input type="range" id="r-debtrate" min="2" max="20" step="0.1" value="${s.debtrate}" data-bind="debtrate"><div class="num"><input type="number" id="f-debtrate" min="0" step="0.1" value="${s.debtrate}" data-bind="debtrate"><span class="unit">%</span></div></div>
+            </div>
           </div>
-          <div class="field field-toggle"><label class="switch"><input type="checkbox" id="f-arrears" data-bind="arrears"${s.arrears ? ' checked' : ''}><span class="track" aria-hidden="true"></span><span class="switch-label">현재 국세·지방세 체납 또는 금융 연체 있음</span></label></div>
+          <div class="field field-toggle"><label class="switch"><input type="checkbox" id="f-arrears" data-bind="arrears"${s.arrears ? ' checked' : ''}><span class="track" aria-hidden="true"></span><span class="switch-label">현재 국세·지방세 미납 또는 금융 연체 있음</span></label></div>
         </fieldset>
       </form>
 

@@ -305,7 +305,7 @@
         if (el.type === 'checkbox') state[k] = el.checked ? 1 : 0;
         else if (el.type === 'radio') {
           els.forEach(function (r) { if (r.checked) state[k] = r.value; });
-        } else if (el.tagName === 'SELECT') {
+        } else if (el.tagName === 'SELECT' || typeof initialDefaults[k] === 'string' || el.type === 'hidden') {
           state[k] = el.value;
         } else {
           var v = parseFloat(el.value);
@@ -425,7 +425,8 @@
     var helpers = {
       esc: esc, setOut: setOut, setHtml: setHtml, setChart: setChart, setBreakdown: setBreakdown,
       setHeroStatus: setHeroStatus, waterfallSvg: waterfallSvg, compareBarSvg: compareBarSvg,
-      cliffSvg: cliffSvg, crossSvg: crossSvg, rootEl: rootEl, form: form, writeStateToDom: writeStateToDom
+      cliffSvg: cliffSvg, crossSvg: crossSvg, rootEl: rootEl, form: form, writeStateToDom: writeStateToDom,
+      showToast: showToast, state: state, recompute: function (k) { recompute(k, null, false); }
     };
 
     function recompute(changedKey, sourceEl, fromInit) {
@@ -442,7 +443,7 @@
       if (!k) return;
       if (t.type === 'checkbox') state[k] = t.checked ? 1 : 0;
       else if (t.type === 'radio') { if (t.checked) state[k] = t.value; }
-      else if (t.tagName === 'SELECT') state[k] = t.value;
+      else if (t.tagName === 'SELECT' || typeof initialDefaults[k] === 'string' || t.type === 'hidden') state[k] = t.value;
       else {
         var v = parseFloat(t.value);
         if (!Number.isFinite(v)) return;
@@ -457,7 +458,7 @@
       if (!k) return;
       if (t.type === 'checkbox') state[k] = t.checked ? 1 : 0;
       else if (t.type === 'radio') { if (t.checked) state[k] = t.value; }
-      else if (t.tagName === 'SELECT') state[k] = t.value;
+      else if (t.tagName === 'SELECT' || typeof initialDefaults[k] === 'string' || t.type === 'hidden') state[k] = t.value;
       else {
         var v = parseFloat(t.value);
         state[k] = Number.isFinite(v) ? v : 0;

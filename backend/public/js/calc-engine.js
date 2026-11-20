@@ -471,6 +471,93 @@
     cafe: { benchInd: 'cafe', name: '카페·디저트·베이커리', avgPrice: 14500, avgCost: 4200, cogsRange: [25, 32], recMargin: 26, tip: '원재료율은 낮지만 평균 주문단가가 낮아 14,000원대 주문에 배달비 3,400원이 붙으면 마진이 급감합니다. 최소주문금액 설계와 구움과자 세트 구성이 필수입니다.' }
   };
 
+  /* ───────── 창업 지역별 시세 계수 & 업종군별 입지 추천 가이드 ───────── */
+  var STARTUP_REGIONS = {
+    recommend: { name: '지역 미정 (내 업종 맞춤 추천 보기 · 수도권 평균 시세)', depMult: 1.00, rentMult: 1.00, leaseKey: 'metro-overcrowded' },
+    'seoul-core': { name: '서울 핵심 상권 (강남·성수·홍대·마포·여의도 등)', depMult: 1.55, rentMult: 1.48, leaseKey: 'seoul' },
+    'seoul-res': { name: '서울 일반 역세권 · 대단지 주거 상권', depMult: 1.22, rentMult: 1.18, leaseKey: 'seoul' },
+    'gyeonggi-incheon': { name: '경기 · 인천 신도시 · 수도권 역세권', depMult: 1.00, rentMult: 1.00, leaseKey: 'metro-overcrowded' },
+    'metro-5': { name: '부산 · 대구 · 대전 · 광주 · 울산 · 세종 광역시', depMult: 0.78, rentMult: 0.80, leaseKey: 'metro-major' },
+    'local-city': { name: '지방 주요 중소도시 · 혁신도시', depMult: 0.62, rentMult: 0.64, leaseKey: 'other' }
+  };
+
+  var GROUP_LOCATION_REC = {
+    '카페·디저트': {
+      best: '오전 출근 동선 역세권 코너 1층 또는 2,500세대 이상 대단지 아파트 정문 횡단보도 앞',
+      avoid: '동선이 끊긴 건너편 이면 상가나 엘리베이터 없는 애매한 2층 (배달·목적성 베이커리 제외)',
+      tip: '테이크아웃 위주면 권리금 비싼 대형 평수보다 10~14평 코너 자리가 투자비 회수가 2배 빠릅니다.'
+    },
+    '외식·배달': {
+      best: '반경 1.5km 안에 원룸·오피스텔(1인 가구)과 아파트(가족 외식)가 함께 섞인 주거 복합 상권 1층',
+      avoid: '주말·공휴일에 유동인구가 완전히 사라지는 순수 오피스 빌딩 고월세 지하 식당가',
+      tip: '배달 비중이 50% 이상이라면 비싼 대로변 1층 대신 이면도로 1층에서 월세를 100만 원 아끼는 것이 순익에 훨씬 유리합니다.'
+    },
+    '무인·공간임대': {
+      best: '초·중·고 학원가 반경 300m 항아리 상권 (스터디카페·실내골프·파티룸은 엘리베이터 있는 3~5층 저월세 상가)',
+      avoid: '심야 유흥주점 밀집 골목(기기 파손·청소 민원 위험) 및 전기·배수 설비가 노후한 구축 건물',
+      tip: '무인 업종은 인건비가 안 나가는 대신 월세가 고정비의 전부입니다. 매출 대비 월세+관리비 비중이 15%를 넘지 않는 자리가 핵심입니다.'
+    },
+    '뷰티·운동·교육': {
+      best: '3040 맞벌이·학부모 또는 2030 여성 거주 비율이 높은 신축 오피스텔·아파트 중심상가 2~4층',
+      avoid: '보증금·권리금이 비싼 1층 메인 대로변 (100% 사전 예약 방문 업종은 1층 비싼 월세를 낼 필요가 없습니다)',
+      tip: '건물 내 주차 편리와 내부 남녀 분리 화장실 깔끔함이 신규 고객 재등록률을 크게 좌우합니다.'
+    },
+    '도소매·생활밀착': {
+      best: '퇴근길 보행 동선이 모이는 대단지 아파트 주출입구 1층 또는 잠깐 정차하기 편한 코너 상가',
+      avoid: '주정차 단속 카메라 바로 앞이거나 중앙분리대로 접근이 막힌 왕복 6차선 대로변',
+      tip: '편의점·마트는 반경 200m 내 향후 신축 상가 추가 입점 가능성(독점성 깨짐)을 계약 전 반드시 확인하세요.'
+    },
+    '이커머스·B2B': {
+      best: '택배 대리점 집하 마감 시간이 늦고 상하차 주차가 편한 수도권 지식산업센터 또는 외곽 저월세 작업실',
+      avoid: '방문 손님도 없는데 출퇴근 폼만 보고 계약하는 역세권 고월세 상업용 오피스',
+      tip: '초기에는 보증금·월세를 극소화하고 아낀 현금을 전량 우량 재고 회전과 상세페이지 전환율 개선에 투입하세요.'
+    }
+  };
+
+  function defaultCategoriesForProfile(prof) {
+    var baseT = prof.ticket || 15000;
+    var baseO = prof.dailyOrders || 50;
+    var baseC = prof.cogsPct || 35;
+    if (prof.group === '카페·디저트') {
+      var o1 = Math.max(1, Math.round(baseO * 0.70));
+      var o2 = Math.max(1, baseO - o1);
+      var p1 = Math.round((baseT * 0.82) / 100) * 100;
+      var p2 = Math.max(1000, Math.round(((baseT * baseO - p1 * o1) / o2) / 100) * 100);
+      return [
+        { cat: '커피 · 음료', price: p1, qty: o1, cogs: Math.max(12, baseC - 5) },
+        { cat: '디저트 · 베이커리 · 사이드', price: p2, qty: o2, cogs: Math.min(65, baseC + 8) }
+      ];
+    }
+    if (prof.group === '외식·배달') {
+      var m1 = Math.max(1, Math.round(baseO * 0.72));
+      var m2 = Math.max(1, baseO - m1);
+      var mp1 = Math.round((baseT * 1.08) / 100) * 100;
+      var mp2 = Math.max(2000, Math.round(((baseT * baseO - mp1 * m1) / m2) / 100) * 100);
+      return [
+        { cat: '대표 식사 · 메인 메뉴', price: mp1, qty: m1, cogs: Math.min(75, baseC + 3) },
+        { cat: '사이드 · 주류 · 음료 추가', price: mp2, qty: m2, cogs: Math.max(15, baseC - 12) }
+      ];
+    }
+    if (prof.group === '뷰티·운동·교육') {
+      var s1 = Math.max(1, Math.round(baseO * 0.65));
+      var s2 = Math.max(1, baseO - s1);
+      var sp1 = Math.round((baseT * 0.75) / 1000) * 1000;
+      var sp2 = Math.max(5000, Math.round(((baseT * baseO - sp1 * s1) / s2) / 1000) * 1000);
+      return [
+        { cat: '기본 시술 · 일반 수강권', price: sp1, qty: s1, cogs: baseC },
+        { cat: '프리미엄 패키지 · 정기권', price: sp2, qty: s2, cogs: Math.max(5, baseC - 2) }
+      ];
+    }
+    var g1 = Math.max(1, Math.round(baseO * 0.75));
+    var g2 = Math.max(1, baseO - g1);
+    var gp1 = Math.round((baseT * 0.90) / 100) * 100;
+    var gp2 = Math.max(1000, Math.round(((baseT * baseO - gp1 * g1) / g2) / 100) * 100);
+    return [
+      { cat: '주력 판매 상품 · 기본 이용권', price: gp1, qty: g1, cogs: baseC },
+      { cat: '묶음 · 고마진 추가 상품', price: gp2, qty: g2, cogs: Math.max(8, baseC - 8) }
+    ];
+  }
+
   /* ───────── 7. 창업 풀코스 A-to-Z & 12개월 계절 손익 시뮬레이터 ───────── */
   function startupMaster(p, profilesList) {
     var list = profilesList || [];
@@ -481,10 +568,21 @@
       seasonNote: '', benchMargin: '', tips: []
     };
 
+    var regionKey = STARTUP_REGIONS[p.region] ? p.region : 'recommend';
+    var regionInfo = STARTUP_REGIONS[regionKey];
+    var locRec = GROUP_LOCATION_REC[prof.group] || GROUP_LOCATION_REC['외식·배달'];
+
     var pyeong = clamp(n(p.pyeong, prof.pyeong), 3, 200);
-    var deposit = Math.max(0, n(p.deposit, prof.deposit));          // 만원 (회수 가능 보증금)
-    var rent = Math.max(0, n(p.rent, prof.rent));                   // 만원
+    var defDeposit = Math.round(prof.deposit * regionInfo.depMult);
+    var defRent = Math.round(prof.rent * regionInfo.rentMult);
+    var deposit = Math.max(0, n(p.deposit, defDeposit));            // 만원 (회수 가능 보증금)
+    var rent = Math.max(0, n(p.rent, defRent));                     // 만원
     var maint = Math.max(0, n(p.maint, prof.maint));                // 만원
+
+    var convertedDeposit = deposit + rent * 100;                    // 환산보증금(만원)
+    var leaseCapObj = LEASE_CAPS[regionInfo.leaseKey] || LEASE_CAPS.seoul;
+    var underLeaseCap = convertedDeposit <= leaseCapObj.cap;
+
     var intMode = ['self', 'turnkey', 'takeover'].indexOf(p.intmode) >= 0 ? p.intmode : 'turnkey';
     var intFactor = intMode === 'self' ? 0.78 : (intMode === 'takeover' ? 0.42 : 1.0);
     var defInterior = Math.round(pyeong * prof.interiorPerPyeong * intFactor);
@@ -510,6 +608,83 @@
     var loanRate = clamp(n(p.loanrate, defLoanRate), 0, 20);
     var loanYears = clamp(Math.round(n(p.loanyears, 5)), 1, 10);
 
+    // 기존 대출 보유 현황 & 신규 창업대출 가승인 정밀 판독
+    var hasLoan = String(p.hasloan) === '1';
+    var exPolicy = hasLoan ? Math.max(0, n(p.expolicy, 0)) : 0;     // 기존 보증서·정책자금 (만원)
+    var exBank = hasLoan ? Math.max(0, n(p.exbank, 0)) : 0;         // 기존 1금융 신용·마통 (만원)
+    var exMort = hasLoan ? Math.max(0, n(p.exmort, 0)) : 0;         // 기존 주택담보·전세대출 (만원)
+    var exCard = hasLoan ? Math.max(0, n(p.excard, 0)) : 0;         // 기존 2금융·카드론·현금서비스 (만원)
+    var exRate = hasLoan ? clamp(n(p.exrate, 6.2), 0, 25) : 0;
+    var credit = ['high', 'mid', 'low', 'sub'].indexOf(p.credit) >= 0 ? p.credit : 'high';
+    var arrears = String(p.arrears) === '1';
+    var collateral = ['none', 'realestate', 'deposit'].indexOf(p.collateral) >= 0 ? p.collateral : 'none';
+    var colVal = collateral !== 'none' ? Math.max(0, n(p.colval, 0)) : 0;
+
+    var basePolicyCap = credit === 'high' ? 7000 : (credit === 'mid' ? 5000 : (credit === 'low' ? 3500 : 2000));
+    var dsrDrag = Math.round(Math.max(0, exMort - 15000) * 0.08);
+    var availPolicy = arrears ? 0 : Math.max(0, basePolicyCap - exPolicy - Math.round(exBank * 0.35) - (exCard > 0 ? Math.round(exCard * 0.8 + 1000) : 0) - dsrDrag);
+    var ltv = collateral === 'realestate' ? 0.70 : (collateral === 'deposit' ? 0.80 : 0);
+    var availCol = arrears ? 0 : Math.max(0, Math.round(colVal * ltv) - (collateral === 'realestate' ? exMort : 0));
+    var availBankCredit = arrears ? 0 : (
+      credit === 'high' ? Math.max(0, 3000 - Math.round(exBank * 0.65) - exCard * 2 - dsrDrag)
+      : (credit === 'mid' ? Math.max(0, 1500 - Math.round(exBank * 0.75) - exCard * 2 - dsrDrag) : 0)
+    );
+    var totalAvailLoan = availPolicy + availCol + availBankCredit;
+    var loanShortfall = Math.max(0, loanNeeded - totalAvailLoan);
+
+    var remNeed = loanNeeded;
+    var usePol = Math.min(remNeed, availPolicy); remNeed -= usePol;
+    var useCol = Math.min(remNeed, availCol); remNeed -= useCol;
+    var useBnk = Math.min(remNeed, availBankCredit); remNeed -= useBnk;
+    var polRateEst = credit === 'high' ? 3.3 : (credit === 'mid' ? 3.8 : 4.5);
+    var bnkRateEst = credit === 'high' ? 5.5 : 6.8;
+    var estWeightedRate = loanNeeded > 0
+      ? Math.round(((usePol * polRateEst + useCol * 4.6 + useBnk * bnkRateEst + remNeed * 9.8) / loanNeeded) * 10) / 10
+      : polRateEst;
+
+    var exBizDebtTotal = exPolicy + exBank + exCard;
+    var exMonthlyInterestKRW = Math.round(exBizDebtTotal * 10000 * (exRate / 100) / 12);
+
+    var loanWarnings = [];
+    if (arrears) loanWarnings.push('국세·지방세 미납 또는 금융 연체가 있으면 모든 정책자금·보증서·1금융 대출이 전산에서 자동 거절됩니다. 완납 증명이 최우선입니다.');
+    if (exPolicy > 0) loanWarnings.push('기존 보증서·정책자금 잔액(' + fmt(exPolicy) + '만원)은 지역신용보증재단 통합 보증 한도에서 1:1로 먼저 차감됩니다.');
+    if (exCard > 0) loanWarnings.push('캐피탈·저축은행·카드론·현금서비스(' + fmt(exCard) + '만원) 보유 시 보증심사 한도 감점 및 1금융 거절 확률이 매우 높습니다. 자기자본 일부로 선상환 후 신청하거나 4.5% 소상공인 대환을 먼저 검토하세요.');
+    if (exMort > 20000) loanWarnings.push('주택담보·전세대출(' + fmt(exMort) + '만원) 원리금이 개인 DSR 한도를 소진하고 있어, 개인 신용대출 대신 사업자 보증서 트랙으로 신청해야 유리합니다.');
+
+    var loanStatus = 'safe';
+    var loanVerdictTitle = '';
+    var loanVerdictDetail = '';
+    if (loanNeeded === 0) {
+      loanStatus = 'safe';
+      loanVerdictTitle = '신규 대출 없이 내 자본금만으로 안전하게 창업 가능';
+      loanVerdictDetail = '부족 자금이 0원이므로 매달 나가는 신규 대출 원리금 부담이 없습니다. 단, 오픈 초기 3개월 예비 운영자금(최소 1,000~1,500만원)은 통장에 별도로 남겨두세요.';
+    } else if (arrears) {
+      loanStatus = 'danger';
+      loanVerdictTitle = '대출 승인 불가 (세금 미납·연체 해소 선행 필요)';
+      loanVerdictDetail = '필요 대출액 ' + fmt(loanNeeded) + '만원 조달이 현재 불가능합니다. 미납 세금 완납 전에는 임대차 가계약금도 절대 입금하지 마세요.';
+    } else if (loanShortfall > 0) {
+      loanStatus = 'danger';
+      loanVerdictTitle = '주의: 필요 대출(' + fmt(loanNeeded) + '만원) 대비 예상 한도가 약 ' + fmt(loanShortfall) + '만원 부족합니다';
+      loanVerdictDetail = '기존 대출 차감 후 예상 조달 가능액은 최대 약 ' + fmt(totalAvailLoan) + '만원(보증·정책 ' + fmt(availPolicy) + '만 + 담보·은행 ' + fmt(availCol + availBankCredit) + '만) 수준입니다. 권리금·인테리어 예산을 줄이거나 보증금이 낮은 매장으로 조정하세요.';
+    } else if (exCard > 0 || availPolicy < loanNeeded) {
+      loanStatus = 'caution';
+      loanVerdictTitle = '복합 조달 가능 (예상 가중금리 연 ' + estWeightedRate.toFixed(1) + '% 내외)';
+      loanVerdictDetail = '저금리 보증·정책자금 약 ' + fmt(usePol) + '만원에 담보·일반은행 한도 약 ' + fmt(useCol + useBnk) + '만원을 묶어 총 ' + fmt(loanNeeded) + '만원 조달이 가능할 것으로 추정됩니다.';
+    } else {
+      loanStatus = 'safe';
+      loanVerdictTitle = '승인 유력: 저금리 정책·보증자금(연 ' + estWeightedRate.toFixed(1) + '%대) 전액 조달권';
+      loanVerdictDetail = '필요 자금 ' + fmt(loanNeeded) + '만원이 잔여 보증·정책 한도(약 ' + fmt(availPolicy) + '만원) 안에 들어옵니다. 지자체 이차보전(이자 지원) 공고를 1순위로 신청하세요.';
+    }
+
+    var loanCheck = {
+      hasLoan: hasLoan, exPolicy: exPolicy, exBank: exBank, exMort: exMort, exCard: exCard, exRate: exRate,
+      exTotalDebt: exPolicy + exBank + exMort + exCard, exBizDebtTotal: exBizDebtTotal, exMonthlyInterestKRW: exMonthlyInterestKRW,
+      credit: credit, arrears: arrears, collateral: collateral, colVal: colVal,
+      availPolicy: availPolicy, availCol: availCol, availBankCredit: availBankCredit, totalAvailLoan: totalAvailLoan,
+      loanShortfall: loanShortfall, estWeightedRate: estWeightedRate,
+      status: loanStatus, verdictTitle: loanVerdictTitle, verdictDetail: loanVerdictDetail, warnings: loanWarnings
+    };
+
     var loanPrincipalKRW = loanNeeded * 10000;
     var rMonth = loanRate / 100 / 12;
     var nMonths = loanYears * 12;
@@ -518,16 +693,88 @@
       ? (rMonth > 0 ? loanPrincipalKRW * rMonth / (1 - Math.pow(1 + rMonth, -nMonths)) : loanPrincipalKRW / nMonths)
       : 0;
 
-    var ticket = Math.max(500, n(p.ticket, prof.ticket));
-    var dailyOrders = Math.max(0, n(p.orders, prof.dailyOrders));
+    // 카테고리별 메뉴 합산 또는 단일 입력 처리
     var days = clamp(n(p.days, 26), 1, 31);
-    var cogsPct = clamp(n(p.cogs, prof.cogsPct), 0, 92);
-    var feePct = clamp(n(p.fee, prof.feePct), 0, 30);
-    var delivPct = clamp(n(p.deliv, prof.delivPct), 0, 35);
+    var ticket, dailyOrders, cogsPct, baseMonthlySales, normalizedMenu = null;
+    if (Array.isArray(p.menuItems) && p.menuItems.length > 0) {
+      normalizedMenu = p.menuItems.map(function (it, idx) {
+        var price = Math.max(100, n(it && it.price, 5000));
+        var qty = Math.max(0, n(it && it.qty, 0));
+        var cogs = clamp(n(it && it.cogs, 30), 0, 95);
+        return {
+          cat: String((it && it.cat) || ('판매 항목 ' + (idx + 1))),
+          price: price,
+          qty: qty,
+          cogs: cogs,
+          dailySales: price * qty,
+          dailyCogs: price * qty * (cogs / 100)
+        };
+      });
+      var sumQty = normalizedMenu.reduce(function (a, x) { return a + x.qty; }, 0);
+      var sumDailySales = normalizedMenu.reduce(function (a, x) { return a + x.dailySales; }, 0);
+      var sumDailyCogs = normalizedMenu.reduce(function (a, x) { return a + x.dailyCogs; }, 0);
+      dailyOrders = sumQty;
+      ticket = sumQty > 0 ? Math.round(sumDailySales / sumQty) : prof.ticket;
+      baseMonthlySales = Math.round(sumDailySales * days);
+      cogsPct = sumDailySales > 0 ? clamp((sumDailyCogs / sumDailySales) * 100, 0, 92) : prof.cogsPct;
+    } else {
+      ticket = Math.max(500, n(p.ticket, prof.ticket));
+      dailyOrders = Math.max(0, n(p.orders, prof.dailyOrders));
+      baseMonthlySales = ticket * dailyOrders * days;
+      cogsPct = clamp(n(p.cogs, prof.cogsPct), 0, 92);
+    }
+
+    // 배달·포장 상세 모드 또는 간편 비율 모드 처리
+    var feePct, delivPct, delivBreakdown;
+    if (p.delivmode === 'detail') {
+      var dshare = clamp(n(p.dshare, 35), 0, 100);
+      var pshare = clamp(n(p.pshare, 15), 0, 100 - dshare);
+      var hallShare = Math.max(0, 100 - dshare - pshare);
+      var dappfee = clamp(n(p.dappfee, 7.8), 0, 20);
+      var cardBasePct = clamp(n(p.cardfee, 1.5), 0, 5);
+      var drider = Math.max(0, n(p.drider, 3200));
+      var dpack = Math.max(0, n(p.dpack, 800));
+      var dpromo = Math.max(0, n(p.dpromo, 400));
+
+      feePct = clamp(((hallShare + pshare) * cardBasePct + dshare * (dappfee + 3.0)) / 100, 0, 35);
+      var avgExtraPerOrderKRW = (dshare / 100) * (drider + dpromo) + ((dshare + pshare) / 100) * dpack;
+      delivPct = ticket > 0 ? clamp((avgExtraPerOrderKRW / ticket) * 100, 0, 60) : 0;
+
+      var monthlyTotalOrders = dailyOrders * days;
+      delivBreakdown = {
+        mode: 'detail',
+        hallShare: hallShare,
+        delivShare: dshare,
+        pickupShare: pshare,
+        dappfee: dappfee,
+        drider: drider,
+        dpack: dpack,
+        dpromo: dpromo,
+        monthlyOrders: Math.round(monthlyTotalOrders),
+        monthlyDelivOrders: Math.round(monthlyTotalOrders * dshare / 100),
+        monthlyPickupOrders: Math.round(monthlyTotalOrders * pshare / 100),
+        monthlyFeeKRW: Math.round(baseMonthlySales * feePct / 100),
+        monthlyRiderKRW: Math.round(monthlyTotalOrders * (dshare / 100) * drider),
+        monthlyPackKRW: Math.round(monthlyTotalOrders * ((dshare + pshare) / 100) * dpack),
+        monthlyPromoKRW: Math.round(monthlyTotalOrders * (dshare / 100) * dpromo)
+      };
+    } else {
+      feePct = clamp(n(p.fee, prof.feePct), 0, 30);
+      delivPct = clamp(n(p.deliv, prof.delivPct), 0, 35);
+      delivBreakdown = {
+        mode: 'simple',
+        feePct: feePct,
+        delivPct: delivPct,
+        monthlyFeeKRW: Math.round(baseMonthlySales * feePct / 100),
+        monthlyRiderKRW: Math.round(baseMonthlySales * delivPct / 100),
+        monthlyPackKRW: 0,
+        monthlyPromoKRW: 0
+      };
+    }
+
     var staffManwon = Math.max(0, n(p.staff, prof.staffMonthly));
     var seasonOn = String(p.season) !== '0';
 
-    var baseMonthlySales = ticket * dailyOrders * days;
     var varPctTotal = clamp(cogsPct + feePct + delivPct, 0, 98);
     var fixedMonthlyKRW = (rent + maint + staffManwon) * 10000;
 
@@ -547,7 +794,9 @@
     }
 
     // 연간 부가세 + 종합소득세 산출 (vatIncome 엔진 연계)
-    var taxInd = prof.group === '도소매' || prof.group === '이커머스' ? 'retail' : (prof.group === '개인서비스' ? 'service' : 'food');
+    var taxInd = (prof.group || '').indexOf('도소매') >= 0 || (prof.group || '').indexOf('이커머스') >= 0
+      ? 'retail'
+      : ((prof.group || '').indexOf('뷰티') >= 0 || (prof.group || '').indexOf('무인') >= 0 ? 'service' : 'food');
     var taxBuyPctApprox = clamp(cogsPct + delivPct + (rent > 0 ? (rent * 120000 / Math.max(1, annualSalesKRW)) * 100 : 0), 0, 90);
     var taxSim = vatIncome({
       ind: taxInd,
@@ -585,13 +834,16 @@
     var netMarginPct = annualSalesKRW > 0 ? (annualNetProfit / annualSalesKRW) * 100 : 0;
 
     return {
-      profile: prof, pyeong: pyeong, intMode: intMode,
+      profile: prof, regionKey: regionKey, regionInfo: regionInfo, locRec: locRec,
+      convertedDeposit: convertedDeposit, leaseCapObj: leaseCapObj, underLeaseCap: underLeaseCap,
+      pyeong: pyeong, intMode: intMode,
       deposit: deposit, interior: interior, equip: equip, premium: premium,
       kioskCnt: kioskCnt, kioskGross: kioskGross, kioskSubsidy: kioskSubsidy, kioskSelf: kioskSelf,
       totalStartup: totalStartup, sunkStartup: sunkStartup, ownCash: ownCash, loanNeeded: loanNeeded,
-      loanType: loanType, loanRate: loanRate, loanYears: loanYears,
+      loanType: loanType, loanRate: loanRate, loanYears: loanYears, loanCheck: loanCheck,
       monthlyInterestKRW: monthlyInterestKRW, monthlyDebtServiceKRW: monthlyDebtServiceKRW,
       ticket: ticket, dailyOrders: dailyOrders, days: days, baseMonthlySales: baseMonthlySales,
+      menuItems: normalizedMenu, delivBreakdown: delivBreakdown,
       cogsPct: cogsPct, feePct: feePct, delivPct: delivPct, varPctTotal: varPctTotal,
       rent: rent, maint: maint, staffManwon: staffManwon, fixedMonthlyKRW: fixedMonthlyKRW,
       annualSalesKRW: annualSalesKRW, annualOpProfit: annualOpProfit,
@@ -604,11 +856,11 @@
       months: months,
       monthlyBreakdown: [
         { key: 'cogs', label: '식자재·상품 원가', value: Math.round(annualSalesKRW * cogsPct / 100 / 12) },
-        { key: 'fee', label: '결제·플랫폼·배달비', value: Math.round(annualSalesKRW * (feePct + delivPct) / 100 / 12) },
+        { key: 'fee', label: '결제·배달앱·포장비용', value: Math.round(annualSalesKRW * (feePct + delivPct) / 100 / 12) },
         { key: 'rent', label: '임대료·관리공과금', value: (rent + maint) * 10000 },
         { key: 'staff', label: '인건비', value: staffManwon * 10000 },
         { key: 'tax', label: '부가세·종합소득세 적립', value: Math.round(annualTotalTaxKRW / 12) },
-        { key: 'debt', label: '대출 원리금 상환', value: Math.round(monthlyDebtServiceKRW) },
+        { key: 'debt', label: '신규 대출 원리금 상환', value: Math.round(monthlyDebtServiceKRW) },
         { key: 'net', label: '월평균 순현금흐름(실수령)', value: Math.round(avgMonthlyCashFlow) }
       ]
     };
@@ -621,69 +873,90 @@
     var credit = ['high', 'mid', 'low', 'sub'].indexOf(p.credit) >= 0 ? p.credit : 'mid';
     var collateral = ['none', 'realestate', 'deposit', 'securities'].indexOf(p.collateral) >= 0 ? p.collateral : 'none';
     var colVal = Math.max(0, n(p.colval, 0));           // 담보 평가액 만원
-    var debt = Math.max(0, n(p.debt, 3000));            // 기존 사업자대출 만원
+
+    var hasDetailedDebt = p.hasloan != null || p.expolicy != null || p.exbank != null || p.exmort != null || p.excard != null;
+    var hasLoanOn = !hasDetailedDebt || String(p.hasloan) !== '0';
+    var exPolicy = (hasDetailedDebt && hasLoanOn) ? Math.max(0, n(p.expolicy, 0)) : 0;
+    var exBank = (hasDetailedDebt && hasLoanOn) ? Math.max(0, n(p.exbank, 0)) : 0;
+    var exMort = (hasDetailedDebt && hasLoanOn) ? Math.max(0, n(p.exmort, 0)) : 0;
+    var exCard = (hasDetailedDebt && hasLoanOn) ? Math.max(0, n(p.excard, 0)) : 0;
+
+    var debt = hasDetailedDebt
+      ? (hasLoanOn ? (exPolicy + exBank + exCard) : 0)
+      : Math.max(0, n(p.debt, 3000));
     var debtRate = clamp(n(p.debtrate, 8.2), 0, 25);
     var arrears = String(p.arrears) === '1';
     var soho = p.emp !== 'gte5';
 
     // 신용 계수
     var creditMult = credit === 'high' ? 1.0 : (credit === 'mid' ? 0.8 : (credit === 'low' ? 0.55 : 0.25));
-    // 정책·보증 한도 추정 (만원)
-    var policyCap = arrears ? 0 : Math.round((soho ? 7000 : 10000) * creditMult);
-    if (purpose === 'startup' && sales === 0) policyCap = arrears ? 0 : Math.round(5000 * creditMult);
+    // 정책·보증 한도 추정 (만원) — 기존 보증서 잔액은 직접 차감
+    var basePolicyCap = arrears ? 0 : Math.round((soho ? 7000 : 10000) * creditMult);
+    if (purpose === 'startup' && sales === 0) basePolicyCap = arrears ? 0 : Math.round(5000 * creditMult);
+    var policyCap = arrears ? 0 : Math.max(0, basePolicyCap - exPolicy - (exCard > 0 ? Math.round(exCard * 0.5) : 0));
 
     // 매출 연동 신용 한도 추정 (통상 연매출의 15~30% - 기존 무담보 부채 일부)
-    var salesCreditCap = arrears ? 0 : Math.max(0, Math.round(sales * 0.22 * creditMult));
+    var salesCreditCap = arrears ? 0 : Math.max(0, Math.round(sales * 0.22 * creditMult) - Math.round(exCard * 0.8));
 
-    // 담보 여력 한도 추정
+    // 담보 여력 한도 추정 (부동산 담보 시 선순위 주담대 차감)
     var ltv = collateral === 'realestate' ? 0.70 : (collateral === 'securities' ? 0.60 : (collateral === 'deposit' ? 0.80 : 0));
-    var collateralCap = Math.round(colVal * ltv);
+    var collateralCap = Math.max(0, Math.round(colVal * ltv) - (collateral === 'realestate' ? exMort : 0));
 
     var grossLimit = policyCap + salesCreditCap + collateralCap;
-    var netAdditionalLimit = arrears ? 0 : Math.max(0, grossLimit - Math.round(debt * (collateral === 'none' ? 0.7 : 0.4)));
+    var unsecuredDebtForDeduct = hasDetailedDebt ? (exBank + exCard) : debt;
+    var dsrMortDrag = Math.round(Math.max(0, exMort - 15000) * 0.08);
+    var netAdditionalLimit = arrears ? 0 : Math.max(0, grossLimit - Math.round(unsecuredDebtForDeduct * (collateral === 'none' ? 0.7 : 0.4)) - dsrMortDrag);
 
     var grade, gradeLabel;
     if (arrears) {
       grade = 'danger';
-      gradeLabel = '보류 (국세·지방세 체납 또는 연체 해소 선행 필수)';
+      gradeLabel = '보류 (국세·지방세 미납 또는 연체 해소 선행 필수)';
     } else if (credit === 'sub' && collateral === 'none') {
       grade = 'caution';
-      gradeLabel = '제한적 승인 (햇살론·소진공 취약차주 특례보증 우선 검토)';
+      gradeLabel = '제한적 승인 (햇살론·소진공 저신용 특례보증 우선 검토)';
+    } else if (exCard >= 1500 && collateral === 'none') {
+      grade = 'caution';
+      gradeLabel = '주의 (카드론·2금융 고금리 대출 대환·정리 후 보증서 진입 권장)';
     } else if (netAdditionalLimit >= 5000 || credit === 'high' || collateralCap >= 5000) {
       grade = 'safe';
       gradeLabel = '우수 (저금리 정책자금·1금융권 우선 실행 가능 구간)';
     } else {
       grade = 'caution';
-      gradeLabel = '보통 (지역신보 보증서 선확보 후 은행 연계 권장)';
+      gradeLabel = '보통 (지역신용보증재단 보증서 선확보 후 은행 연계 권장)';
     }
 
     var ladder = [];
     if (arrears) {
-      ladder.push({ step: 1, name: '국세·지방세 체납 완납 또는 징수유예 승인', rate: '-', limit: '선행 필수', why: '체납 상태에서는 모든 정책자금·보증서·제1금융권 전산 심사가 자동 거절됩니다.' });
+      ladder.push({ step: 1, name: '국세·지방세 미납 완납 또는 징수유예 승인', rate: '-', limit: '선행 필수', why: '세금 미납이나 연체 상태에서는 모든 정책자금·보증서·제1금융권 전산 심사가 자동 거절됩니다.' });
     } else {
-      if (debt > 0 && debtRate >= 7.0 && soho) {
+      if (exCard > 0) {
+        var cardRefi = Math.min(exCard + exBank, 5000);
+        ladder.push({ step: ladder.length + 1, name: '카드론·현금서비스·2금융권 우선 정리 및 4.5% 대환', rate: '연 4.5% 전환', limit: '최대 ' + fmt(cardRefi) + '만원', why: '보유 중인 제2금융·카드론(' + fmt(exCard) + '만원)은 보증재단·1금융 심사에서 가장 큰 한도 삭감 요인입니다. 대환대출이나 여유자금으로 먼저 줄여야 저금리 한도가 열립니다.' });
+      } else if (debt > 0 && debtRate >= 7.0 && soho) {
         var refiAmt = Math.min(debt, 5000);
         ladder.push({ step: ladder.length + 1, name: '소상공인 저금리 대환대출 (연 4.5% 고정 전환)', rate: '연 4.5%', limit: '최대 ' + fmt(refiAmt) + '만원', why: '보유 중인 연 ' + debtRate + '% 대출을 갈아타 연 약 ' + won(refiAmt * 10000 * (debtRate - 4.5) / 100) + ' 이자를 먼저 줄이세요.' });
       }
-      ladder.push({ step: ladder.length + 1, name: '지자체 이차보전 + 지역신용보증재단 특례보증', rate: '실질 연 2.1~3.4%', limit: '약 ' + fmt(Math.min(policyCap, 7000)) + '만원 이내', why: '이자를 지자체가 1.0~2.5%p 보전해 주므로 대한민국에서 가장 금리가 낮은 1순위 자금입니다.' });
+      ladder.push({ step: ladder.length + 1, name: '지자체 이자지원(이차보전) + 지역신용보증재단 보증서', rate: '실질 연 2.1~3.4%', limit: '잔여 보증한도 약 ' + fmt(Math.min(policyCap, 7000)) + '만원 이내', why: (exPolicy > 0 ? '기존 보증서 잔액(' + fmt(exPolicy) + '만원)을 제외한 잔여 한도 내에서 ' : '') + '이자를 지자체가 1.0~2.5%p 대신 내주므로 가장 금리가 낮은 1순위 자금입니다.' });
       if (soho) {
-        ladder.push({ step: ladder.length + 1, name: '소진공 일반경영안정 · 혁신성장촉진자금', rate: '연 3.2~3.9%', limit: '운전 7,000만 / 시설·혁신 최대 2억', why: '보증재단 한도와 별개로 직접대출 트랙을 활용하면 총 한도를 한 단계 더 넓힐 수 있습니다.' });
+        ladder.push({ step: ladder.length + 1, name: '소진공 일반경영안정 · 혁신성장촉진 직접대출', rate: '연 3.2~3.9%', limit: '운전 7,000만 / 시설·혁신 최대 2억', why: '지역신보 보증서 한도와 별개로 공단 직접대출 트랙을 활용하면 총 한도를 한 단계 더 넓힐 수 있습니다.' });
       } else {
-        ladder.push({ step: ladder.length + 1, name: '중진공 중소기업 정책자금 · 신보/기보 보증', rate: '연 2.9~4.1%', limit: '매출·설비 규모별 산정', why: '상시근로자 5인 이상 사업장은 소진공 대신 중진공·신용보증기금 기업 보증이 주력 창구입니다.' });
+        ladder.push({ step: ladder.length + 1, name: '중진공 중소기업 정책자금 · 신보/기보 기업보증', rate: '연 2.9~4.1%', limit: '매출·설비 규모별 산정', why: '상시근로자 5인 이상 사업장은 소진공 대신 중진공·신용보증기금 기업 보증이 주력 창구입니다.' });
       }
       if (collateral === 'realestate' && collateralCap > 0) {
-        ladder.push({ step: ladder.length + 1, name: '제1금융권 사업자 부동산 담보대출', rate: '연 4.1~5.3%', limit: '추정 여력 약 ' + fmt(collateralCap) + '만원', why: '보유 부동산 담보 여력을 사업자 시설·운전자금으로 설정하면 신용대출보다 금리가 1.5~3%p 낮고 한도가 큽니다.' });
+        ladder.push({ step: ladder.length + 1, name: '제1금융권 사업자 부동산 후순위/담보대출', rate: '연 4.1~5.3%', limit: '추정 여력 약 ' + fmt(collateralCap) + '만원', why: (exMort > 0 ? '선순위 주택담보(' + fmt(exMort) + '만원) 차감 후 남은 담보 여력을 ' : '보유 부동산 담보 여력을 ') + '사업자 자금으로 설정하면 신용대출보다 금리가 낮고 한도가 큽니다.' });
       } else if (collateral === 'securities' && collateralCap > 0) {
-        ladder.push({ step: ladder.length + 1, name: '증권사 예탁증권 담보대출 (단기 브릿지)', rate: '연 5.4~8.2%', limit: '추정 여력 약 ' + fmt(collateralCap) + '만원', why: '급하게 물품대금·보증금을 치러야 할 때 당일 실행되며 중도상환수수료 없이 단기 상환이 가능합니다(담보비율 주의).' });
+        ladder.push({ step: ladder.length + 1, name: '증권사 예탁증권 담보대출 (단기 급전용)', rate: '연 5.4~8.2%', limit: '추정 여력 약 ' + fmt(collateralCap) + '만원', why: '급하게 물품대금·보증금을 치러야 할 때 당일 실행되며 중도상환수수료 없이 단기 상환이 가능합니다(주가 하락 반대매매 주의).' });
       }
-      ladder.push({ step: ladder.length + 1, name: '주거래 시중·인터넷은행 카드가맹점 우대 한도대출', rate: '연 5.2~8.4%', limit: '추정 약 ' + fmt(salesCreditCap) + '만원', why: '카드 매출 입금계좌를 한 은행으로 집중하면 마이너스통장(한도대출) 금리 감면과 한도 우대를 받을 수 있습니다.' });
+      ladder.push({ step: ladder.length + 1, name: '주거래 시중·인터넷은행 카드가맹점 우대 한도대출', rate: '연 5.2~8.4%', limit: '추정 약 ' + fmt(salesCreditCap) + '만원', why: '카드 매출 입금계좌를 한 은행으로 모으면 마이너스통장(한도대출) 금리 감면과 한도 우대를 받을 수 있습니다.' });
     }
 
-    var refiAnnualSave = (!arrears && debt > 0 && debtRate >= 7.0 && soho) ? Math.min(debt, 5000) * 10000 * (debtRate - 4.5) / 100 : 0;
+    var refiTargetDebt = exCard > 0 ? Math.min(exCard + exBank, 5000) : Math.min(debt, 5000);
+    var refiAnnualSave = (!arrears && refiTargetDebt > 0 && debtRate >= 7.0 && soho) ? refiTargetDebt * 10000 * (debtRate - 4.5) / 100 : 0;
 
     return {
       purpose: purpose, sales: sales, credit: credit, collateral: collateral, colVal: colVal,
-      debt: debt, debtRate: debtRate, arrears: arrears, soho: soho,
+      debt: debt, exPolicy: exPolicy, exBank: exBank, exMort: exMort, exCard: exCard, totalAllDebt: debt + exMort,
+      debtRate: debtRate, arrears: arrears, soho: soho,
       grade: grade, gradeLabel: gradeLabel,
       policyCap: policyCap, salesCreditCap: salesCreditCap, collateralCap: collateralCap,
       netAdditionalLimit: netAdditionalLimit, refiAnnualSave: refiAnnualSave, ladder: ladder
@@ -859,6 +1132,7 @@
   return {
     WEEKS: WEEKS, WAGE_YEARS: WAGE_YEARS, MIN_WAGE_2026: MIN_WAGE_2026, MIN_WAGE_2027: MIN_WAGE_2027, INS: INS, INS_TOTAL: INS_TOTAL,
     DELIVERY_PLANS: DELIVERY_PLANS, DELIVERY_BIZ_SPECS: DELIVERY_BIZ_SPECS, MARKETS: MARKETS, VAT_INDS: VAT_INDS, LEASE_CAPS: LEASE_CAPS, REGION_GUARANTEE: REGION_GUARANTEE,
+    STARTUP_REGIONS: STARTUP_REGIONS, GROUP_LOCATION_REC: GROUP_LOCATION_REC, defaultCategoriesForProfile: defaultCategoriesForProfile,
     delivery: delivery, seller: seller, policy: policy, labor: labor, vatIncome: vatIncome, storeLease: storeLease,
     startupMaster: startupMaster, loanDiagnose: loanDiagnose,
     weeklyPay: weeklyPay, staffMonthly: staffMonthly, amortInterest: amortInterest, progressiveTax: progressiveTax,

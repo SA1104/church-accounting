@@ -1,4 +1,4 @@
-/* 사업자 대출 가능성 · 추정 한도 · 최저금리 순서 진단기 컨트롤러 */
+/* 사업자 대출 가능성 · 추정 한도 · 최저금리 순서 진단기 컨트롤러 (v2.6 기대출 종류별 반영) */
 (function () {
   'use strict';
   var E = window.BTEngine, C = window.BTCalc;
@@ -6,8 +6,17 @@
 
   C.mount({
     slug: 'loan-diagnose',
-    defaults: { purpose: 'expand', sales: 18000, credit: 'mid', collateral: 'none', colval: 0, debt: 3000, debtrate: 8.2, arrears: 0, emp: 'lt5' },
+    defaults: {
+      purpose: 'expand', sales: 18000, credit: 'mid', collateral: 'none', colval: 0,
+      hasloan: '1', expolicy: 1500, exbank: 1500, exmort: 0, excard: 0,
+      debtrate: 8.2, arrears: 0, emp: 'lt5'
+    },
     render: function (s, h) {
+      var exBox = h.rootEl.querySelector('[data-fd-exloan]');
+      if (exBox) exBox.hidden = String(s.hasloan) === '0';
+      var colBox = h.rootEl.querySelector('[data-fd-colval]');
+      if (colBox) colBox.hidden = s.collateral === 'none';
+
       var r = E.loanDiagnose(s);
       h.setHeroStatus(r.grade);
       h.setOut('netLimit', E.manwon(r.netAdditionalLimit));
@@ -33,10 +42,10 @@
           heroSub: r.gradeLabel,
           rows: [
             ['직전 연매출', E.manwon(r.sales)],
-            ['정책·보증서 추정 여력', E.manwon(r.policyCap), true],
+            ['정책·보증서 잔여 여력', E.manwon(r.policyCap), true],
             ['매출연동 신용 추정 여력', E.manwon(r.salesCreditCap)],
             ['담보 자산 대출 여력', E.manwon(r.collateralCap)],
-            ['기존 사업자대출 잔액', E.manwon(r.debt) + ' (' + r.debtRate + '%)'],
+            ['보유 신용·보증·카드론 합계', E.manwon(r.debt) + (r.debt > 0 ? ' (평균 ' + r.debtRate + '%)' : '')],
             ['4.5% 대환 시 연 이자절감', E.won(r.refiAnnualSave), true]
           ],
           noteLines: r.ladder.slice(0, 3).map(function (st) { return st.step + '순위: ' + st.name; })
