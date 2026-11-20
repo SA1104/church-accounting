@@ -183,6 +183,13 @@ const ldDetail = E.loanDiagnose({ purpose: 'expand', sales: 18000, credit: 'mid'
 equal(ldDetail.grade, 'caution', '카드론·2금융 2,000만원 보유 시 주의 및 선대환 판정');
 equal(ldDetail.ladder[0].name.indexOf('카드론') >= 0, true, '금리 사다리 1순위에 카드론·2금융 정리 및 4.5% 대환 자동 배치');
 
+// (b) 위기 방어력(생존 최소 주문수·비상예비금) 및 본인 인건비 착시 판독 검산
+equal(sm.resilience.bepDailyOrders > 0 && sm.resilience.bepDailyOrders < sm.dailyOrders, true, `흑자 매장 생존 최소 일주문수(${sm.resilience.bepDailyOrders}건) < 평상 일주문수(${sm.dailyOrders}건) 검증`);
+equal(sm.resilience.shockSalesDown20KRW < sm.avgMonthlyCashFlow, true, '매출 -20% 충격 시 월 실수령 현금흐름 하락 검증');
+equal(sm.resilience.minEmergencyReserveManwon >= 1000, true, `오프라인 매장 최소 비상 예비자금(${sm.resilience.minEmergencyReserveManwon}만원) 산출 검증`);
+const smIllusion = E.startupMaster({ profile: 'takeout-coffee', orders: 95, own: 6000 }, STARTUP_PROFILES);
+equal(['illusion', 'deficit'].includes(smIllusion.resilience.sweatTier), true, '저수익 구간 사장님 본인 인건비 착시(내 몸값 미달) 정확 감지');
+
 console.log(`\n========================================`);
 console.log(` MATH AUDIT: ${passed} PASSED, ${failed} FAILED`);
 console.log(`========================================`);

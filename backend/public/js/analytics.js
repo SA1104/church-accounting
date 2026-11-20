@@ -44,16 +44,24 @@
     } catch (e) {}
   }
 
-  // 1. Page enter
+  // 1. Page enter (captures UTM source & campaign for accurate channel attribution even in mobile in-app webviews)
   function trackEnter() {
     if (sentEnter) return;
     sentEnter = true;
     maxScroll = Math.max(maxScroll, calcScrollPct());
+    var utmSource = '', utmCampaign = '';
+    try {
+      var sp = new URLSearchParams(window.location.search || '');
+      utmSource = sp.get('utm_source') || '';
+      utmCampaign = sp.get('utm_campaign') || '';
+    } catch (e) {}
     send({
       mode: 'enter',
       vid: vid,
       path: p,
       ref: document.referrer || '',
+      utm_source: utmSource,
+      utm_campaign: utmCampaign,
       scroll: maxScroll,
       dwell: 0
     }, false);

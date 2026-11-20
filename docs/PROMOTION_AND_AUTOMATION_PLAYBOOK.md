@@ -29,3 +29,8 @@
 - `build_boozathink_sketch_shorts.py`: 만년필 드로잉 궤적 애니메이션(`compute_kinetic_trace_path`) + 사각사각 펜 폴리 사운드 + 손그림 호흡 모션(`Line-Boil`)으로 이야기가 완성되는 `1080×1920` 쇼츠 MP4 생성 및 `BoozaThink_유튜브_릴스_직접업로드_대기함` 연동
 - `boozathink_meta_guard.py`: 퍼스트파티 URL 검증 및 Meta 호출 간격 방어막
 - `boozathink_4slot_scheduler.py` + `register_boozathink_tasks.ps1`: `08:20 / 12:15 / 15:15 / 22:30` 4슬롯 무창 자동 실행 및 KST 일자별 중복 발송 차단
+
+---
+
+## 5. 전환율을 높이는 연말 한시 무료 개방(Year-End Open Access) CTA 원칙
+- 모든 채널(스레드·X·쇼츠 고정댓글·네이버) 마지막 안내 문구에는 과장 광고 대신 **“올해 12월 31일까지만 모든 세부 계산과 결과 이미지 저장을 무료로 열어두었으니 내 가게 숫자를 미리 넣어보고 보관해 두세요”**라는 한시 개방 가치를 결합하여 즉시 실행률과 이미지 저장·공유율을 높입니다.

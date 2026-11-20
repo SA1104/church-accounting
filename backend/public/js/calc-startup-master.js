@@ -496,11 +496,44 @@
       h.setBreakdown(avgMonthlySales, r.monthlyBreakdown);
       h.setChart('waterfall', h.waterfallSvg(avgMonthlySales, r.monthlyBreakdown));
 
+      // 위기 방어력 & 내 몸값 착시 판독 업데이트
+      h.setOut('bepOrdersOut', E.fmt(r.resilience.bepDailyOrders) + '건/일 (' + (r.resilience.orderBufferPct >= 0 ? '여유 +' + r.resilience.orderBufferPct + '%' : '목표 부족') + ')');
+      h.setOut('shock20Out', E.won(r.resilience.shockSalesDown20KRW));
+      h.setOut('shockCostOut', E.won(r.resilience.shockCostUp3pKRW));
+      h.setOut('minReserveOut', E.manwon(r.resilience.minEmergencyReserveManwon));
+      var baseMan = E.fmt(Math.round(r.resilience.ownerBaseWageKRW / 10000));
+      var sweatMsg = r.resilience.sweatTier === 'deficit'
+        ? '위험: 일한 대가는커녕 매달 내 통장에서 돈이 빠져나가는 적자 구조입니다. 월세가 더 낮은 자리를 찾거나 초기 대출 규모를 줄여야 합니다.'
+        : (r.resilience.sweatTier === 'illusion'
+          ? '주의: 통장에 돈이 남는 것처럼 보이지만, 사장님이 직접 매장에 매달려 일하는 기본 인건비(월 ' + baseMan + '만원 기준)보다 적게 남는 ‘내 몸값 깎아 먹기’ 구간입니다. 객단가를 높이거나 고정비를 낮춰 보세요.'
+          : '안정: 사장님 본인 기본 급여(월 ' + baseMan + '만원 기준)를 제하고도 매달 ' + E.won(r.resilience.ownerSurplusKRW) + '의 순수 사업수익이 추가로 쌓이는 구조입니다.');
+      h.setOut('sweatNote', sweatMsg);
+
       h.setOut('benchMargin', r.profile.benchMargin);
       h.setHtml('tips', (r.profile.tips || []).map(function (t) { return '<li>' + h.esc(t) + '</li>'; }).join(''));
 
+      var capBand = r.ownCash < 3000 ? 'lt3000' : (r.ownCash < 7000 ? '3000_7000' : (r.ownCash < 15000 ? '7000_15000' : 'gte15000'));
+      var loanBand = r.loanNeeded <= 0 ? 'zero' : (r.loanNeeded < 3000 ? 'lt3000' : (r.loanNeeded < 7000 ? '3000_7000' : 'gte7000'));
+      var chMix = (r.profile.group || '').indexOf('이커머스') >= 0 ? 'online' : (r.delivBreakdown.delivShare >= 50 ? 'delivery_heavy' : (r.delivBreakdown.delivShare > 0 ? 'hybrid' : 'hall_only'));
+      var indGroupKey = r.profile.group === '카페·디저트' ? 'cafe' : ((r.profile.group || '').indexOf('이커머스') >= 0 ? 'online' : ((r.profile.group || '').indexOf('도소매') >= 0 ? 'retail' : ((r.profile.group || '').indexOf('뷰티') >= 0 ? 'service' : 'food')));
+
       return {
-        benchPayload: { calculator: 'startup-master', industry: r.profile.group === '카페·디저트' ? 'cafe' : 'food', net_margin_pct: r.netMarginPct },
+        benchPayload: {
+          calculator: 'startup-master',
+          industry: indGroupKey,
+          net_margin_pct: r.netMarginPct,
+          meta: {
+            profile: r.profile.id,
+            region: r.regionKey,
+            capital_band: capBand,
+            loan_band: loanBand,
+            has_loan: r.loanCheck.hasLoan ? 1 : 0,
+            has_card_loan: r.loanCheck.exCard > 0 ? 1 : 0,
+            credit: r.loanCheck.credit,
+            channel_mix: chMix,
+            sweat_tier: r.resilience.sweatTier
+          }
+        },
         receipt: {
           filename: 'boozathink-startup-master-receipt.png',
           subtitle: '창업 풀코스 손익 진단 · ' + r.profile.name,

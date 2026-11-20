@@ -833,6 +833,38 @@
     var paybackMonths = avgMonthlyNetProfit > 0 ? (sunkStartup * 10000) / avgMonthlyNetProfit : null;
     var netMarginPct = annualSalesKRW > 0 ? (annualNetProfit / annualSalesKRW) * 100 : 0;
 
+    // 위기 방어력(생존 최소 주문수 · 매출 -20% 충격 · 필수 비상금) & 사장님 본인 인건비 착시 판독
+    var effTaxPct = annualSalesKRW > 0 ? (annualTotalTaxKRW / annualSalesKRW) * 100 : 3.5;
+    var contribRatio = Math.max(0.03, 1 - (varPctTotal + effTaxPct * 0.8) / 100);
+    var monthlyFixedPlusDebtKRW = fixedMonthlyKRW + monthlyDebtServiceKRW;
+    var bepMonthlySalesKRW = Math.round(monthlyFixedPlusDebtKRW / contribRatio);
+    var bepDailyOrders = (ticket > 0 && days > 0) ? Math.ceil(bepMonthlySalesKRW / ticket / days) : 0;
+    var orderBufferPct = dailyOrders > 0 ? Math.round(((dailyOrders - bepDailyOrders) / dailyOrders) * 100) : -100;
+
+    var avgMSales = annualSalesKRW / 12;
+    var shockSalesDown20KRW = Math.round(avgMSales * 0.80 * (1 - varPctTotal / 100) - (annualTotalTaxKRW / 12) * 0.72 - monthlyFixedPlusDebtKRW);
+    var shockCostUp3pKRW = Math.round(avgMonthlyCashFlow - avgMSales * 0.03);
+    var minReserveBase = (rent + maint + Math.round(monthlyDebtServiceKRW / 10000) + Math.round(staffManwon * 0.5)) * 3;
+    var minEmergencyReserveManwon = Math.max((prof.group || '').indexOf('이커머스') >= 0 ? 500 : 1000, Math.ceil(minReserveBase / 50) * 50);
+
+    var isPartTimeBiz = (prof.group || '').indexOf('무인') >= 0;
+    var ownerBaseWageKRW = isPartTimeBiz ? 700000 : 2500000;
+    var ownerSurplusKRW = Math.round(avgMonthlyCashFlow - ownerBaseWageKRW);
+    var sweatTier = avgMonthlyCashFlow <= 0 ? 'deficit' : (ownerSurplusKRW < 0 ? 'illusion' : (ownerSurplusKRW < 1000000 ? 'modest' : 'strong'));
+
+    var resilience = {
+      bepMonthlySalesKRW: bepMonthlySalesKRW,
+      bepDailyOrders: bepDailyOrders,
+      orderBufferPct: orderBufferPct,
+      shockSalesDown20KRW: shockSalesDown20KRW,
+      shockCostUp3pKRW: shockCostUp3pKRW,
+      minEmergencyReserveManwon: minEmergencyReserveManwon,
+      isPartTimeBiz: isPartTimeBiz,
+      ownerBaseWageKRW: ownerBaseWageKRW,
+      ownerSurplusKRW: ownerSurplusKRW,
+      sweatTier: sweatTier
+    };
+
     return {
       profile: prof, regionKey: regionKey, regionInfo: regionInfo, locRec: locRec,
       convertedDeposit: convertedDeposit, leaseCapObj: leaseCapObj, underLeaseCap: underLeaseCap,
@@ -843,7 +875,7 @@
       loanType: loanType, loanRate: loanRate, loanYears: loanYears, loanCheck: loanCheck,
       monthlyInterestKRW: monthlyInterestKRW, monthlyDebtServiceKRW: monthlyDebtServiceKRW,
       ticket: ticket, dailyOrders: dailyOrders, days: days, baseMonthlySales: baseMonthlySales,
-      menuItems: normalizedMenu, delivBreakdown: delivBreakdown,
+      menuItems: normalizedMenu, delivBreakdown: delivBreakdown, resilience: resilience,
       cogsPct: cogsPct, feePct: feePct, delivPct: delivPct, varPctTotal: varPctTotal,
       rent: rent, maint: maint, staffManwon: staffManwon, fixedMonthlyKRW: fixedMonthlyKRW,
       annualSalesKRW: annualSalesKRW, annualOpProfit: annualOpProfit,

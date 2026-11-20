@@ -19,6 +19,7 @@ const fundingViews = require('./views/funding');
 const commercialViews = require('./views/commercial');
 const calendarViews = require('./views/calendar');
 const startGuideViews = require('./views/start-guide');
+const requestsViews = require('./views/requests');
 const datasetsViews = require('./views/datasets');
 const pages = require('./views/pages');
 const seo = require('./views/seo');
@@ -119,6 +120,21 @@ app.get('/start-guide', (req, res) => {
     body: v.body,
     current: 'start-guide',
     noCache: Object.keys(req.query).length > 0
+  });
+});
+
+// 필요한 계산기 신청 · 우선 제작 투표
+app.get('/requests', async (req, res) => {
+  const items = await db.getPublicToolRequests();
+  const v = requestsViews.requestsView(items);
+  send(res, {
+    title: '필요한 계산기 신청 · 우선 제작 투표 — 사장님의 고민을 계산기로 만들어 드립니다',
+    description: '프랜차이즈 vs 개인창업 비교, 퇴직금 적립, 공동창업 지분 설계, 법인 전환 등 다음으로 가장 필요한 계산기에 투표하거나 원하는 새 계산기와 세부 업종을 직접 신청하세요.',
+    path: '/requests',
+    jsonld: v.jsonld,
+    body: v.body,
+    current: 'requests',
+    noCache: true
   });
 });
 
@@ -332,7 +348,7 @@ app.use('/api', express.json({ limit: '12kb', type: ['application/json', 'text/p
 app.get('/api/version', (req, res) => {
   res.set('Cache-Control', 'no-store').json({
     app: 'BoozaThink 2.0',
-    version: '2.6.2',
+    version: '2.7.0',
     simulators: layout.CALCULATORS.length,
     articles: content.articles.length,
     branch: process.env.RENDER_GIT_BRANCH || 'main',
@@ -395,6 +411,30 @@ app.post('/api/biz/contact', async (req, res) => {
   if (body.website) return res.json({ ok: true }); // 스팸 봇 허니팟
   try {
     const out = await db.createInquiry(body);
+    res.status(out.ok ? 200 : 400).json(out);
+  } catch (e) {
+    res.status(500).json({ ok: false, error: '접수 처리 중 일시적인 오류가 발생했습니다.' });
+  }
+});
+
+app.post('/api/biz/tool-vote', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  if (rateLimited('v:' + req.ip, 25)) return res.status(429).json({ ok: false, error: '잠시 후 다시 시도해 주세요.' });
+  try {
+    const out = await db.voteToolRequest((req.body && req.body.slug) || '', { ip: req.ip, ua: req.headers['user-agent'] || '' });
+    res.status(out.ok ? 200 : 400).json(out);
+  } catch (e) {
+    res.status(500).json({ ok: false, error: '공감 반영 중 일시적인 오류가 발생했습니다.' });
+  }
+});
+
+app.post('/api/biz/tool-request', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  if (rateLimited('tr:' + req.ip, 5)) return res.status(429).json({ ok: false, error: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.' });
+  const body = req.body || {};
+  if (body.website) return res.json({ ok: true }); // 스팸 봇 허니팟
+  try {
+    const out = await db.submitToolRequest(body);
     res.status(out.ok ? 200 : 400).json(out);
   } catch (e) {
     res.status(500).json({ ok: false, error: '접수 처리 중 일시적인 오류가 발생했습니다.' });

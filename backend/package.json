@@ -1,6 +1,6 @@
 {
   "name": "boozathink",
-  "version": "2.6.0",
+  "version": "2.7.0",
   "private": true,
   "description": "BoozaThink 2.0 — 사장님·셀러 손익 & 정책자금 인텔리전스 플랫폼 (SSR Express)",
   "main": "server.js",

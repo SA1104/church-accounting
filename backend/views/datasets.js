@@ -121,15 +121,18 @@ function buildTimelineDataset() {
 
 async function buildLiveBenchmarkDataset(db) {
   const summary = await db.getAnalyticsSummary(30);
+  const ci = summary.customerInsights || {};
   return {
     dataset: 'boozathink-anonymized-simulation-telemetry-index',
-    version: '2.5.0',
+    version: '2.7.0',
     generatedAt: new Date().toISOString(),
     privacyGuarantee: '개별 사업장의 원본 매출·원가 입력값은 저장하지 않으며 익명 집계 지표만 공개합니다.',
     license: 'CC BY 4.0 (Attribution required: BoozaThink https://boozathink.com)',
     windowDays: 30,
     totalSimulatorExecutions: summary.kpis.calc_runs,
     calculatorPopularity: summary.calculators,
+    topExploredStartupProfiles: ci.topProfiles || [],
+    topVotedUpcomingCalculators: (ci.topToolVotes || []).map((t) => ({ slug: t.slug, title: t.title, votes: t.votes, status: t.status })),
     industryReferenceBaselines: [
       { calculator: 'startup-master', metric: '세후 월평균 순수익률', referenceMeanPct: 17.5, unit: '%' },
       { calculator: 'delivery-margin', metric: '배달 1주문 순마진율', referenceMeanPct: 16.8, unit: '%' },

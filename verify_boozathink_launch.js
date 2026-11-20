@@ -129,6 +129,7 @@ async function main() {
       '/funding',
       '/commercial-area',
       '/calendar',
+      '/requests',
       '/datasets',
       '/calculators',
       ...EXPECTED_CALCS.map((s) => `/calculators/${s}`),
@@ -191,6 +192,11 @@ async function main() {
     const commPage = await fetchRes(baseUrl, '/commercial-area');
     assert(commPage.status === 200 && commPage.text.includes('id="cm-map"') && commPage.text.includes('leaflet@1.9.4') && commPage.text.includes('overpass-api.de'), 'Commercial Lab: Real Interactive Leaflet Map + Radius Circle + Overpass POI Search');
     assert(masterPage.text.includes('data-free-open="calc"') && masterPage.text.includes('올해 12.31까지 무료 개방') && delivPage.text.includes('data-free-open="calc"'), 'Year-End Free Open Access Notice & D-Day Badge Across Simulators');
+    assert(masterPage.text.includes('data-resilience-card') && masterPage.text.includes('bepOrdersOut') && masterPage.text.includes('sweatNote'), 'v2.7 Startup Resilience Shock Test & Owner Sweat-Equity Check');
+
+    const reqPage = await fetchRes(baseUrl, '/requests');
+    const voteBtnCnt = (reqPage.text.match(/data-vote-btn="/g) || []).length;
+    assert(reqPage.status === 200 && voteBtnCnt >= 8 && reqPage.text.includes('id="tool-req-form"'), 'v2.7 Customer Simulator Wishlist & Upvote Hub (/requests)', `ideas=${voteBtnCnt}`);
 
     const sgPage = await fetchRes(baseUrl, '/start-guide');
     const pCnt = (sgPage.text.match(/data-persona-btn="/g) || []).length;
@@ -279,32 +285,47 @@ async function main() {
     const bmStartup = await fetchRes(baseUrl, '/api/biz/benchmark', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ calculator: 'startup-master', industry: 'food', net_margin_pct: 19.5 })
+      body: JSON.stringify({
+        calculator: 'startup-master',
+        industry: 'food',
+        net_margin_pct: 19.5,
+        meta: { profile: 'takeout-coffee', region: 'seoul-res', capital_band: '3000_7000', loan_band: '3000_7000', has_loan: 1, has_card_loan: 0, credit: 'high' }
+      })
     });
     const bmStartupJson = JSON.parse(bmStartup.text);
-    assert(bmStartup.status === 200 && bmStartupJson.ok === true && typeof bmStartupJson.topPercent === 'number', 'POST /api/biz/benchmark (startup-master)', `storage=${bmStartupJson.storage}, top=${bmStartupJson.topPercent}%`);
+    assert(bmStartup.status === 200 && bmStartupJson.ok === true && typeof bmStartupJson.topPercent === 'number', 'POST /api/biz/benchmark (startup-master + customer profile meta)', `storage=${bmStartupJson.storage}, top=${bmStartupJson.topPercent}%`);
+
+    const voteRes = await fetchRes(baseUrl, '/api/biz/tool-vote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'User-Agent': 'BoozaThinkGatekeeper/2.7' },
+      body: JSON.stringify({ slug: 'franchise-vs-independent' })
+    });
+    const voteJson = JSON.parse(voteRes.text);
+    assert(voteRes.status === 200 && voteJson.ok === true && voteJson.votes >= 142, 'POST /api/biz/tool-vote (Customer Upvote API)', `votes=${voteJson.votes}`);
 
     const colRes = await fetchRes(baseUrl, '/api/biz/collect', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/131.0' },
-      body: JSON.stringify({ mode: 'enter', vid: 'verifyv220test', path: '/funding', ref: 'https://www.google.com/', scroll: 52, dwell: 0 })
+      body: JSON.stringify({ mode: 'enter', vid: 'verifyv220test', path: '/funding', ref: 'https://www.google.com/', utm_source: 'threads', utm_campaign: 'sketch_ep01', scroll: 52, dwell: 0 })
     });
-    assert(colRes.status === 204, 'POST /api/biz/collect (Analytics Beacon)', `HTTP ${colRes.status}`);
+    assert(colRes.status === 204, 'POST /api/biz/collect (Analytics Beacon + UTM)', `HTTP ${colRes.status}`);
 
     // 6. Supabase RLS Verification across ALL public tables
     console.log('\n6) Supabase (booza-think) Row Level Security Audit');
     const ddlHasRls = db.MIGRATION_SQL.includes('ALTER TABLE public.biz_simulator_runs ENABLE ROW LEVEL SECURITY') &&
       db.MIGRATION_SQL.includes('ALTER TABLE public.biz_page_events ENABLE ROW LEVEL SECURITY') &&
-      db.MIGRATION_SQL.includes('ALTER TABLE public.biz_inquiries ENABLE ROW LEVEL SECURITY');
-    assert(ddlHasRls, 'Migration DDL Enforces RLS on biz_simulator_runs, biz_page_events & biz_inquiries');
+      db.MIGRATION_SQL.includes('ALTER TABLE public.biz_inquiries ENABLE ROW LEVEL SECURITY') &&
+      db.MIGRATION_SQL.includes('ALTER TABLE public.biz_tool_requests ENABLE ROW LEVEL SECURITY') &&
+      db.MIGRATION_SQL.includes('ALTER TABLE public.biz_tool_votes ENABLE ROW LEVEL SECURITY');
+    assert(ddlHasRls, 'Migration DDL Enforces RLS on all 5 BoozaThink tables (runs, events, inquiries, tool_requests, tool_votes)');
 
     const dbRes = await fetchRes(baseUrl, '/api/biz/db-status');
     const dbJson = JSON.parse(dbRes.text);
     if (isLiveMode || dbJson.connected) {
       assert(
-        dbJson.connected === true && dbJson.bizSimulatorRunsRls === true && dbJson.bizPageEventsRls === true && dbJson.bizInquiriesRls === true && dbJson.rlsDisabledCount === 0,
+        dbJson.connected === true && dbJson.bizSimulatorRunsRls === true && dbJson.bizPageEventsRls === true && dbJson.bizInquiriesRls === true && dbJson.bizToolRequestsRls === true && dbJson.bizToolVotesRls === true && dbJson.rlsDisabledCount === 0,
         'Live Supabase public tables relrowsecurity = true (RLS ON)',
-        `project=${dbJson.projectRef}, publicTables=${dbJson.publicTables}, rlsDisabled=${dbJson.rlsDisabledCount}, sim_rls=${dbJson.bizSimulatorRunsRls}, events_rls=${dbJson.bizPageEventsRls}, inq_rls=${dbJson.bizInquiriesRls}`
+        `project=${dbJson.projectRef}, publicTables=${dbJson.publicTables}, rlsDisabled=${dbJson.rlsDisabledCount}, tools_rls=${dbJson.bizToolRequestsRls}`
       );
     } else {
       assert(dbJson.rlsEnforcedInDdl === true, 'Local DB Fallback & RLS DDL Verified');

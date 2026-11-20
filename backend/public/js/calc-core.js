@@ -524,6 +524,95 @@
       });
     }
 
+    // 5. 브라우저 임시 조건 비교 보관함 (최대 5개 저장 · 1클릭 불러오기) + 원하는 계산기 신청 안내
+    var actBox = rootEl.querySelector('.calc-actions');
+    var TRAY_KEY = 'bt-tray-' + config.slug;
+    function loadTray() {
+      try {
+        var arr = JSON.parse(localStorage.getItem(TRAY_KEY) || '[]');
+        return Array.isArray(arr) ? arr : [];
+      } catch (e) { return []; }
+    }
+    function saveTray(arr) {
+      try { localStorage.setItem(TRAY_KEY, JSON.stringify(arr.slice(0, 5))); } catch (e) {}
+    }
+
+    if (actBox && !actBox._trayWired) {
+      actBox._trayWired = true;
+      var saveBtn = document.createElement('button');
+      saveBtn.type = 'button';
+      saveBtn.className = 'btn';
+      saveBtn.setAttribute('data-action', 'save-tray');
+      saveBtn.textContent = '현재 조건 비교함에 담기';
+      if (resetBtn) actBox.insertBefore(saveBtn, resetBtn);
+      else actBox.appendChild(saveBtn);
+
+      var trayWrap = document.createElement('div');
+      trayWrap.className = 'saved-tray';
+      trayWrap.setAttribute('data-saved-tray', '');
+      actBox.insertAdjacentElement('afterend', trayWrap);
+
+      var reqNudge = document.createElement('p');
+      reqNudge.className = 'req-nudge';
+      reqNudge.innerHTML = '찾으시는 업종이나 계산 방식이 없나요? <a href="/requests">필요한 계산기 신청 · 투표하기 →</a>';
+      trayWrap.insertAdjacentElement('afterend', reqNudge);
+
+      function renderTray() {
+        var list = loadTray();
+        if (!list.length) {
+          trayWrap.innerHTML = '';
+          trayWrap.hidden = true;
+          return;
+        }
+        trayWrap.hidden = false;
+        trayWrap.innerHTML = '<div class="saved-tray-head"><strong>내가 담아둔 비교 조건 (' + list.length + '/5)</strong><span>클릭하면 해당 조건으로 즉시 바뀝니다</span></div>' +
+          '<div class="saved-tray-list">' + list.map(function (it, idx) {
+            return '<div class="saved-chip">' +
+              '<button type="button" class="saved-load" data-load-idx="' + idx + '"><strong>' + (idx + 1) + '. ' + esc(it.title) + '</strong> <span class="tnum">' + esc(it.val) + '</span></button>' +
+              '<button type="button" class="saved-del" title="삭제" aria-label="보관 조건 삭제" data-del-idx="' + idx + '">×</button>' +
+            '</div>';
+          }).join('') + '</div>';
+      }
+
+      saveBtn.addEventListener('click', function () {
+        var rec = (lastResult && lastResult.receipt) || {};
+        var title = (rec.subtitle || config.slug).replace(/^창업 풀코스 손익 진단 · /, '').slice(0, 26);
+        var val = rec.heroValue || '';
+        var qStr = buildQueryString();
+        var list = loadTray();
+        list.unshift({ title: title, val: val, q: qStr, t: Date.now() });
+        saveTray(list.slice(0, 5));
+        renderTray();
+        if (root.BTTrack) root.BTTrack('save_scenario', { calculator: config.slug });
+        showToast('현재 조건을 비교함에 담아두었습니다 (최대 5개)');
+      });
+
+      trayWrap.addEventListener('click', function (e) {
+        var ld = e.target.closest('[data-load-idx]');
+        if (ld) {
+          var list = loadTray();
+          var item = list[parseInt(ld.getAttribute('data-load-idx'), 10)];
+          if (!item) return;
+          var nextUrl = window.location.pathname + (item.q ? '?' + item.q : '');
+          window.history.replaceState(null, '', nextUrl);
+          Object.assign(state, initialDefaults);
+          applyQueryToState();
+          recompute(null, null, false);
+          showToast('‘' + item.title + '’ 조건을 불러왔습니다.');
+          return;
+        }
+        var dl = e.target.closest('[data-del-idx]');
+        if (dl) {
+          var list2 = loadTray();
+          list2.splice(parseInt(dl.getAttribute('data-del-idx'), 10), 1);
+          saveTray(list2);
+          renderTray();
+        }
+      });
+
+      renderTray();
+    }
+
     readDomIntoState();
     applyQueryToState();
     recompute(null, null, true);

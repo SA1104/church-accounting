@@ -12,6 +12,7 @@ function allPaths(ctx) {
     { path: '/funding', pri: '0.9', freq: 'daily' },
     { path: '/commercial-area', pri: '0.9', freq: 'weekly' },
     { path: '/calendar', pri: '0.85', freq: 'monthly' },
+    { path: '/requests', pri: '0.8', freq: 'weekly' },
     { path: '/datasets', pri: '0.85', freq: 'weekly' },
     { path: '/calculators', pri: '0.9', freq: 'weekly' },
     { path: '/bible', pri: '0.8', freq: 'weekly' }

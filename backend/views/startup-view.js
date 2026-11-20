@@ -342,6 +342,23 @@ function startupMasterView(q) {
   <p class="note" data-out="deficitNote">${r.deficitMonths > 0 ? `주의: 연중 비수기 ${r.deficitMonths}개월 동안 현금흐름 적자가 예상됩니다. 최소 3~6개월치 월세·원리금 비상 운영자금을 별도로 남겨 두세요.` : '안정: 비수기 달에도 세금과 대출 원리금을 감당하고 흑자가 유지되는 구조입니다.'}</p>
 </div>
 
+<div class="card" data-resilience-card>
+  <h2 class="card-h">장사가 예상보다 덜 될 때 버티는 힘 &amp; 내 몸값 대비 실수익 점검</h2>
+  <div class="kpi-grid tnum">
+    <div class="hl"><span>적자 안 나는 하루 최소 주문수</span><strong>${o('bepOrdersOut', fmt(r.resilience.bepDailyOrders) + '건/일 (' + (r.resilience.orderBufferPct >= 0 ? '여유 +' + r.resilience.orderBufferPct + '%' : '목표 부족') + ')')}</strong></div>
+    <div><span>손님이 예상보다 20% 적을 때 월 실수령</span><strong>${o('shock20Out', won(r.resilience.shockSalesDown20KRW))}</strong></div>
+    <div><span>원재료·포장값이 3%p 오를 때 월 실수령</span><strong>${o('shockCostOut', won(r.resilience.shockCostUp3pKRW))}</strong></div>
+    <div><span>오픈 통장에 꼭 남겨둘 최소 비상금</span><strong>${o('minReserveOut', manwon(r.resilience.minEmergencyReserveManwon))}</strong></div>
+  </div>
+  <div class="rec-box" style="margin-top:10px" data-out="sweatNote">${
+    r.resilience.sweatTier === 'deficit'
+      ? '위험: 일한 대가는커녕 매달 내 통장에서 돈이 빠져나가는 적자 구조입니다. 월세가 더 낮은 자리를 찾거나 초기 대출 규모를 줄여야 합니다.'
+      : r.resilience.sweatTier === 'illusion'
+        ? `주의: 통장에 돈이 남는 것처럼 보이지만, 사장님이 직접 매장에 매달려 일하는 기본 인건비(월 ${fmt(Math.round(r.resilience.ownerBaseWageKRW / 10000))}만원 기준)보다 적게 남는 ‘내 몸값 깎아 먹기’ 구간입니다. 객단가를 높이거나 고정비를 낮춰 보세요.`
+        : `안정: 사장님 본인 기본 급여(월 ${fmt(Math.round(r.resilience.ownerBaseWageKRW / 10000))}만원 기준)를 제하고도 매달 ${won(r.resilience.ownerSurplusKRW)}의 순수 사업수익이 추가로 쌓이는 구조입니다.`
+  }</div>
+</div>
+
 <div class="card">
   <h2 class="card-h">한 달 매출에서 원가·배달비·월세·세금·대출금이 빠지고 남는 순서</h2>
   <div class="chart" data-chart="waterfall" role="img" aria-label="창업 월평균 매출 공제 차트"></div>

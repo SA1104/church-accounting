@@ -32,8 +32,20 @@
           '<p style="margin:5px 0 0;font-size:13.5px;color:var(--text-2)">' + h.esc(st.why) + '</p></div></li>';
       }).join(''));
 
+      var lBand = r.netAdditionalLimit <= 0 ? 'zero' : (r.netAdditionalLimit < 3000 ? 'lt3000' : (r.netAdditionalLimit < 7000 ? '3000_7000' : 'gte7000'));
       return {
-        benchPayload: null,
+        benchPayload: {
+          calculator: 'loan-diagnose',
+          industry: 'etc',
+          monthly_saving_krw: r.netAdditionalLimit,
+          meta: {
+            purpose: r.purpose,
+            credit: r.credit,
+            loan_band: lBand,
+            has_loan: r.debt > 0 ? 1 : 0,
+            has_card_loan: r.exCard > 0 ? 1 : 0
+          }
+        },
         receipt: {
           filename: 'boozathink-loan-strategy-receipt.png',
           subtitle: '사업자 자금조달 & 저금리 순서 진단서',

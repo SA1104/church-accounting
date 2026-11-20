@@ -22,7 +22,7 @@ const CALCULATORS = [
   { slug: 'policy-funds', short: '정책자금 · 저금리 대환 매칭', name: '소상공인 정책자금 · 4.5% 대환대출 · 스마트상점 보조금 매칭기', iconKey: 'bank', desc: '업종·업력·매출 조건에 맞는 정책자금을 매칭하고 고금리 대환 이자 절감액과 보조금 자부담을 계산합니다.', category: 'policy-funds-grants' }
 ];
 
-const ASSET_V = '20261120f';
+const ASSET_V = '20261121a';
 
 function yearEndFreeInfo() {
   const kstNow = new Date(Date.now() + 9 * 3600 * 1000);
@@ -99,7 +99,11 @@ function gnb(categories, current) {
         <li><a href="/calculators/startup-master"${current === 'startup-master' ? ' aria-current="page"' : ''}>창업 전체 수익 계산</a></li>
         <li class="has-dd">
           <button class="dd-btn" aria-expanded="false" aria-haspopup="true" aria-controls="dd-calc">상황별 손익 계산기 <span aria-hidden="true">▾</span></button>
-          <ul class="dd" id="dd-calc" role="menu">${calcItems}<li class="dd-all"><a href="/calculators">전체 계산기 한눈에 보기 →</a></li></ul>
+          <ul class="dd" id="dd-calc" role="menu">
+            ${calcItems}
+            <li><a href="/requests" role="menuitem"><span class="ico-box-sm">${icon('sliders', 16)}</span><span><strong>필요한 계산기 신청 · 투표</strong><small>원하는 새 계산기·업종을 투표하거나 직접 제안</small></span></a></li>
+            <li class="dd-all"><a href="/calculators">전체 계산기 한눈에 보기 →</a></li>
+          </ul>
         </li>
         <li><a href="/funding"${current === 'funding' ? ' aria-current="page"' : ''}>사업자 대출·정책자금</a></li>
         <li><a href="/commercial-area"${current === 'commercial' ? ' aria-current="page"' : ''}>상권·입지 분석</a></li>
@@ -143,7 +147,7 @@ function footer(categories) {
       <a class="logo" href="/"><span class="logo-mark" aria-hidden="true">B</span><span class="logo-text"><strong>BoozaThink</strong></span></a>
       <p>창업 초기부터 매장 운영, 세무, 확장 자금 조달까지 — 현장 사업·금융 실무자의 경험과 정밀 데이터 계산 엔진을 결합해 진심을 담아 만든 의사결정 연구소입니다. 입력하신 개별 수치는 서버에 저장되지 않습니다.</p>
     </div>
-    <div class="f-col"><h3>핵심 시뮬레이터</h3><ul>${CALCULATORS.slice(0, 5).map((c) => `<li><a href="/calculators/${c.slug}">${esc(c.short)}</a></li>`).join('')}<li><a href="/calculators">전체 계산기 보기</a></li></ul></div>
+    <div class="f-col"><h3>핵심 시뮬레이터</h3><ul>${CALCULATORS.slice(0, 5).map((c) => `<li><a href="/calculators/${c.slug}">${esc(c.short)}</a></li>`).join('')}<li><a href="/calculators">전체 계산기 보기</a></li><li><a href="/requests">필요한 계산기 신청 · 투표</a></li></ul></div>
     <div class="f-col"><h3>창업 · 자금 · 상권</h3><ul><li><a href="/start-guide">첫 창업 1년 할 일 순서표</a></li><li><a href="/funding">사업자 대출 · 정책자금 라운지</a></li><li><a href="/commercial-area">우리 동네 상권 · 지도 분석</a></li><li><a href="/calendar">12개월 세무 · 자금 달력</a></li>${categories.slice(0, 2).map((c) => `<li><a href="/category/${c.slug}">${esc(c.name)}</a></li>`).join('')}</ul></div>
     <div class="f-col"><h3>기준 자료 · 이용 안내</h3><ul><li><a href="/datasets">업종별 평균 비용 · 세율 기준표</a></li><li><a href="/about">서비스 소개 & 데이터 원칙</a></li><li><a href="/privacy-policy">개인정보처리방침</a></li><li><a href="/terms-of-service">이용약관 · 면책고지</a></li><li><a href="/contact">제휴 · 오류 제보</a></li></ul></div>
   </div>
