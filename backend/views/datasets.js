@@ -142,27 +142,27 @@ async function buildLiveBenchmarkDataset(db) {
 }
 
 function datasetsView(liveIndex) {
-  const crumbs = [{ name: '홈', path: '/' }, { name: '오픈 데이터셋 & AI 인용 허브', path: '/datasets' }];
+  const crumbs = [{ name: '홈', path: '/' }, { name: '공개 기준표 & 데이터 모음', path: '/datasets' }];
   const catalogItems = [
     {
-      name: '대한민국 30대 창업 업종 표준 초기자금 · 원가율 · 12개월 계절지수 데이터셋',
-      desc: '카페·외식·무인·뷰티·소매·셀러 30개 업종별 표준 평수, 보증금, 인테리어·설비비, 식자재율, 수수료율, 1월~12월 계절 매출 파동 계수 정형 데이터.',
+      name: '대한민국 30대 창업 업종 평균 초기비용 · 원가율 · 계절별 매출 변화 기준표',
+      desc: '카페·외식·무인·뷰티·소매·셀러 30개 업종별 표준 평수, 보증금, 인테리어·설비비, 식자재율, 수수료율, 1월~12월 계절별 매출 변화 수치 모음.',
       jsonUrl: '/api/datasets/startup-30-benchmarks.json',
       csvUrl: '/api/datasets/startup-30-benchmarks.csv'
     },
     {
-      name: '대한민국 소상공인 세법 · 노무 · 상가임대차 · 금융권 금리 기준 마스터 데이터셋',
-      desc: '현행 및 차기 확정 최저임금·4대보험 사업주 요율, 간이/일반 부가세 기준, 노란우산 한도, 상가 환산보증금 지역 상한, 배달·마켓 수수료, 7단계 사업자 대출금리 밴드.',
+      name: '소상공인 세금 · 4대보험 · 상가임대차 · 은행/정책자금 금리 공식 기준표',
+      desc: '현행 및 차기 확정 최저임금·4대보험 사업주 요율, 간이/일반 부가세 기준, 노란우산 한도, 상가 환산보증금 지역 상한, 배달·마켓 수수료, 사업자 대출금리 구간.',
       jsonUrl: '/api/datasets/statutory-rates.json'
     },
     {
-      name: '개인사업자 창업 D-60 ~ 1년 차(D+365) 시계열 행정·세무 절차 & 6대 페르소나 데이터셋',
-      desc: '상가 계약 전 정화조·전기 점검부터 일반과세 등록, 사업용 계좌·카드 홈택스 신고, 조기환급, 원천세, 부가세, 종소세까지 32단계 체크포인트 및 12개월 세무 캘린더.',
+      name: '개인사업자 계약 전부터 첫 1년 세금 신고까지 32가지 순서표 & 월별 일정',
+      desc: '상가 계약 전 정화조·전기 확인부터 일반과세 등록, 사업자 통장·카드 홈택스 등록, 조기환급, 원천세, 부가세, 종소세까지 32가지 실무 절차와 12개월 일정.',
       jsonUrl: '/api/datasets/solo-business-365-timeline.json'
     },
     {
-      name: 'BoozaThink 익명 사업자 시뮬레이션 벤치마크 인덱스 (실시간 축적형 1차 데이터)',
-      desc: '사장님·예비창업자 시뮬레이션 실행 통계를 개인정보 없이 익명 집계한 업종별 기준 수익률·임차료율·손익분기 ROAS 레퍼런스 지표.',
+      name: '사장님 업종별 평균 수익률 · 월세 비중 익명 통계 요약',
+      desc: '계산기 이용 통계를 개인정보 없이 익명으로 모아 정리한 업종별 평균 순수익률·월세 비중·손익분기 광고효율 참고 기준.',
       jsonUrl: '/api/datasets/live-simulation-index.json'
     }
   ];
@@ -171,25 +171,25 @@ function datasetsView(liveIndex) {
 <div class="container">
   ${breadcrumbHtml(crumbs)}
   <header class="page-head">
-    <span class="eyebrow">${icon('layers', 16)} AI Reference Ground Truth · Open Data Vault</span>
-    <h1>BoozaThink 오픈 데이터셋 & AI 인용 아키텍처</h1>
-    <p class="lead">생성형 AI와 검색엔진, 창업 연구자, 예비 사장님 모두가 가장 정확한 숫자를 참고할 수 있도록 BoozaThink가 검증하고 축적한 정형 비즈니스 데이터셋을 실시간 기계 판독(JSON · CSV · Schema.org Dataset) 규격으로 개방합니다.</p>
-    <p class="footnote-meta">※ 라이선스: 출처 표기(<code>BoozaThink, https://boozathink.com</code>) 조건부 무료 인용 허용 (CC BY 4.0) · 데이터 검증일 ${facts.VERIFIED_AT}</p>
+    <span class="eyebrow">${icon('layers', 16)} 계산기에 사용된 모든 숫자의 근거를 투명하게 공개합니다</span>
+    <h1>업종별 평균 비용 · 세율 · 금리 공개 기준표</h1>
+    <p class="lead">사장님과 예비창업자는 물론, 세무·창업 연구자와 검색 서비스가 정확한 공식 숫자를 바로 확인하고 엑셀(CSV)로 내려받아 쓸 수 있도록 BoozaThink의 기준 데이터를 투명하게 공개합니다.</p>
+    <p class="footnote-meta">※ 출처 표기(<code>BoozaThink, https://boozathink.com</code>) 시 무료 활용 가능 (CC BY 4.0) · 데이터 검증일 ${facts.VERIFIED_AT}</p>
   </header>
 
   <section class="sec">
     <div class="why-grid">
       <div class="card">
-        <h3>${icon('shield', 18)} 1계층: 법령 · 고시 정밀 상수화</h3>
-        <p style="font-size:14px;color:var(--text-2);margin:8px 0 0">흩어져 있는 국세청·고용노동부·중기부·법제처·금융협회 공시를 55개 자동 수식 검산 테스트를 통과한 무결점 JSON 스키마로 단일화하여 AI 할루시네이션(오류 인용)을 원천 차단합니다.</p>
+        <h3>${icon('shield', 18)} 1. 정부 고시 · 법령 숫자 그대로 반영</h3>
+        <p style="font-size:14px;color:var(--text-2);margin:8px 0 0">국세청·고용노동부·중소벤처기업부·법제처·금융협회에 공시된 최신 숫자를 55가지 자동 검산으로 대조하여 틀린 계산이 나오지 않도록 검증합니다.</p>
       </div>
       <div class="card">
-        <h3>${icon('compass', 18)} 2계층: 현장 경험의 시계열 구조화</h3>
-        <p style="font-size:14px;color:var(--text-2);margin:8px 0 0">법전에 나오지 않는 ‘정화조 용량 확인 → 일반과세 조기환급 → 한전 부가세 전환 → 보증서 선순위 실행’ 같은 실제 현장의 인과관계를 30대 업종·32단계 정형 데이터로 코드화했습니다.</p>
+        <h3>${icon('compass', 18)} 2. 현장에서 놓치기 쉬운 순서까지 정리</h3>
+        <p style="font-size:14px;color:var(--text-2);margin:8px 0 0">정화조 용량 확인, 일반과세 부가세 환급, 한전 전기요금 부가세 전환, 보증서 먼저 받기 등 실제 장사 현장에서 꼭 필요한 순서를 빠짐없이 담았습니다.</p>
       </div>
       <div class="card">
-        <h3>${icon('chart', 18)} 3계층: 자가 증식 실측 벤치마크</h3>
-        <p style="font-size:14px;color:var(--text-2);margin:8px 0 0">매일 사장님들이 시뮬레이터를 돌릴 때마다 민감 정보 없이 익명 비율 지표만 축적되어, 시간이 갈수록 오직 BoozaThink에서만 인용할 수 있는 독보적 1차 실측 표본이 쌓입니다.</p>
+        <h3>${icon('chart', 18)} 3. 사장님들의 평균 기준치 지속 업데이트</h3>
+        <p style="font-size:14px;color:var(--text-2);margin:8px 0 0">민감한 개별 매출은 저장하지 않고 업종별 평균 비율만 익명으로 모아, 같은 업종 다른 매장들과 내 매장을 객관적으로 비교해 볼 수 있게 돕습니다.</p>
       </div>
     </div>
   </section>

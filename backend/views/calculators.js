@@ -47,7 +47,7 @@ function actions() {
 </div>`;
 }
 function benchBox() {
-  return `<div class="card bench" data-bench aria-live="polite"><div class="bench-head"><span class="pill">동종업계 익명 벤치마크</span><span class="bench-src" data-bench-src>실시간 시뮬레이션 비교</span></div><p class="bench-text" data-bench-text>계산이 끝나면 같은 업종 사장님들의 익명 시뮬레이션 평균과 비교해 드립니다.</p></div>`;
+  return `<div class="card bench" data-bench aria-live="polite"><div class="bench-head"><span class="pill">같은 업종 사장님 평균과 비교</span><span class="bench-src" data-bench-src>실시간 익명 비교</span></div><p class="bench-text" data-bench-text>계산이 끝나면 같은 업종 사장님들의 평균 수치와 비교해 드립니다.</p></div>`;
 }
 
 function pageShell(calc, q, formHtml, outHtml, guideHtml, faq, related, footnote) {
@@ -108,7 +108,7 @@ function delivery(q, ctx) {
   const curCogsPct = s.price > 0 ? (s.cost / s.price) * 100 : 0;
   const form = `
 <fieldset><legend>1. 세부 업종 & 플랫폼 선택</legend>
-${seg('biz', '내 매장 업종 (원가율 진단 & 평균 프리셋 연동)', [['food', '한식·분식'], ['chicken', '치킨·피자'], ['meat', '고기·족발'], ['cafe', '카페·디저트']], s.biz)}
+${seg('biz', '내 매장 업종 (원가율 진단 & 업종 평균값 불러오기)', [['food', '한식·분식'], ['chicken', '치킨·피자'], ['meat', '고기·족발'], ['cafe', '카페·디저트']], s.biz)}
 <div class="biz-feedback" data-biz-feedback>
   <div class="biz-feedback-top">
     <strong data-biz-title>${esc(bSpec.name)} 통상 원가율 ${bSpec.cogsRange[0]}~${bSpec.cogsRange[1]}% (현재 ${curCogsPct.toFixed(1)}%)</strong>
@@ -116,7 +116,7 @@ ${seg('biz', '내 매장 업종 (원가율 진단 & 평균 프리셋 연동)', [
   </div>
   <span data-biz-tip>${esc(bSpec.tip)}</span>
 </div>
-${select('plan', '배달앱 요금제 프리셋', facts.DELIVERY_PLANS.map((p) => [p.id, `${p.name} · ${p.fee}%`]), plan, '최신 상생요금제 반영')}
+${select('plan', '배달앱 요금제 선택', facts.DELIVERY_PLANS.map((p) => [p.id, `${p.name} · ${p.fee}%`]), plan, '최신 상생요금제 반영')}
 <p class="plan-note" data-plan-note>${esc(facts.DELIVERY_PLANS.find((p) => p.id === plan).note)}</p>
 ${range('price', '메뉴 판매가', 5000, 60000, 100, s.price, '원', '고객 결제가·VAT 포함')}
 ${range('fee', '중개수수료율', 0, 15, 0.1, s.fee, '%')}
@@ -141,7 +141,7 @@ ${range('goal', '월 목표 순익', 0, 30000000, 100000, s.goal, '원')}
   <p class="rh-value tnum">${o('net', won(r.net))}</p>
   <p class="rh-sub">순마진율 <strong class="tnum">${o('margin', pct(r.margin))}</strong> · ${o('planName', esc(r.planName))} · ${o('bizJudge', curCogsPct > bSpec.cogsRange[1] ? '업종 평균 대비 원가율 높음' : '업종 적정 원가율 범위')}</p>
 </div>
-<div class="card"><h2 class="card-h">항목별 공제 워터폴</h2><div class="chart" data-chart="waterfall" role="img" aria-label="판매가에서 각 비용을 공제해 순수익에 이르는 워터폴 차트"></div>
+<div class="card"><h2 class="card-h">판매가에서 비용이 빠져나가는 순서</h2><div class="chart" data-chart="waterfall" role="img" aria-label="판매가에서 각 비용을 공제해 순수익에 이르는 차트"></div>
 <table class="mini-table tnum" data-table="breakdown"><tbody>${r.breakdown.map((b) => `<tr><th>${esc(b.label)}</th><td>${won(b.value)}</td><td>${pct(r.price ? b.value / r.price * 100 : 0)}</td></tr>`).join('')}</tbody></table></div>
 <div class="card"><h2 class="card-h">월 예상 매출 vs 사장님이 가져가는 순수익</h2>
 <div class="kpi-grid tnum"><div><span>월 주문</span><strong>${o('monthlyOrders', fmt(r.monthlyOrders) + '건')}</strong></div><div><span>월 예상 매출</span><strong>${o('monthlyRevenue', won(r.monthlyRevenue))}</strong></div><div><span>고정비 차감</span><strong>${o('fixed', won(r.fixed))}</strong></div><div class="hl"><span>월 실제 순수익</span><strong>${o('monthlyNet', won(r.monthlyNet))}</strong></div></div>
@@ -159,7 +159,7 @@ ${range('goal', '월 목표 순익', 0, 30000000, 100000, s.goal, '원')}
 <h2>배달앱 순수익은 이렇게 계산됩니다</h2>
 <p>배달 매출 2만 원짜리 주문 한 건이 들어오면 플랫폼은 판매가 기준으로 중개이용료를 떼고, 결제대행(PG)사는 결제수수료를 떼며, 플랫폼 배달은 업주 부담 배달비를 별도로 정산합니다. 일반과세자라면 고객 결제가의 1/11은 국가에 납부할 부가세 매출세액이므로 사장님 몫이 아닙니다. 여기에 식자재와 보온팩·용기·일회용 수저 원가까지 빼야 비로소 실제 남는 순수익이 드러납니다.</p>
 <div class="formula">1주문 순수익 = 판매가 − (판매가 × 중개수수료율) − (판매가 × 결제수수료율) − 사장님 부담 배달비 − 식자재·포장 원가 − 쿠폰·광고비 − 판매가 ÷ 11(부가세)</div>
-<h2>배달앱 요금제 프리셋 비교표</h2>
+<h2>배달앱 요금제별 수수료 · 배달비 비교표</h2>
 <table><thead><tr><th>요금제</th><th>중개수수료</th><th>업주 부담 배달비(대표값)</th><th>비고</th></tr></thead><tbody>
 ${facts.DELIVERY_PLANS.filter((p) => p.id !== 'custom').map((p) => `<tr><td>${esc(p.name)}</td><td>${p.fee}%</td><td>${p.dfee ? fmt(p.dfee) + '원' : '대행 별도'}</td><td>${esc(p.note)}</td></tr>`).join('')}
 </tbody></table>
@@ -197,7 +197,7 @@ ${range('unit', '개당 사입 원가', unitRange[0], unitRange[1], unitRange[2]
 ${range('ship', '개당 관부가세 + 해운·물류비', 0, 20000, 50, s.ship, '원')}
 </fieldset>
 <fieldset><legend>2. 판매 마켓 & 가격</legend>
-${select('market', '판매 마켓 프리셋', Object.entries(E.MARKETS).map(([k, m]) => [k, `${m.name} · ${m.feeRate}%`]), market)}
+${select('market', '판매 마켓 선택', Object.entries(E.MARKETS).map(([k, m]) => [k, `${m.name} · ${m.feeRate}%`]), market)}
 <p class="plan-note" data-plan-note>${esc(facts.MARKETS.find((m) => m.id === market).note)}</p>
 ${range('fee', '실효 판매수수료 (VAT 포함)', 0, 30, 0.01, s.fee, '%')}
 ${range('price', '판매가', 1000, 300000, 100, s.price, '원')}
@@ -225,7 +225,7 @@ ${range('cvr', '구매 전환율 (CVR)', 0.1, 20, 0.1, s.cvr, '%')}
 <div><span>예상 ROAS</span><strong>${o('expRoas', r.expRoas ? pct(r.expRoas, 0) : '-')}</strong></div>
 <div class="wide"><span>광고 후 개당 순이익</span><strong>${o('postAd', won(r.postAd))}</strong></div>
 </div></div>
-<div class="card"><h2 class="card-h">판매가 분해 워터폴</h2><div class="chart" data-chart="waterfall" role="img" aria-label="판매가 구성 워터폴 차트"></div>
+<div class="card"><h2 class="card-h">판매가에서 비용이 빠져나가는 순서</h2><div class="chart" data-chart="waterfall" role="img" aria-label="판매가 구성 워터폴 차트"></div>
 <table class="mini-table tnum" data-table="breakdown"><tbody>${r.breakdown.map((b) => `<tr><th>${esc(b.label)}</th><td>${won(b.value)}</td><td>${pct(r.price ? b.value / r.price * 100 : 0)}</td></tr>`).join('')}</tbody></table></div>
 <div class="card killer"><h2 class="card-h">셀러 객단가 디테일 — 단품 1개 vs 2개 묶음(5% 할인) 옵션 마진 점프</h2>
 <p class="killer-text sub" style="margin:0" data-out-html="bundleCompare">${(() => {
@@ -237,7 +237,7 @@ ${range('cvr', '구매 전환율 (CVR)', 0.1, 20, 0.1, s.cvr, '%')}
 <h2>손익분기 ROAS란 무엇이고 왜 셀러의 생명선인가</h2>
 <p>광고 관리자 화면에 ROAS 300%가 찍히더라도 상품의 광고 전 순마진율이 25%라면 손익분기 ROAS는 400%이므로 실제로는 광고할수록 적자입니다. 캠페인을 켜기 전에 내 상품의 손익분기 ROAS와 손익분기 CPC를 먼저 확정해야 현금이 새지 않습니다.</p>
 <div class="formula">손익분기 ROAS(%) = 판매가 ÷ 광고 전 개당 순마진 × 100 = 1 ÷ 광고 전 순마진율 × 100 · 최대 허용 CPA = 광고 전 개당 순마진</div>
-<h2>마켓별 수수료 프리셋 비교표</h2>
+<h2>마켓별 수수료 비교표</h2>
 <table><thead><tr><th>마켓</th><th>실효 수수료(VAT 포함)</th><th>물류</th><th>설명</th></tr></thead><tbody>
 ${facts.MARKETS.map((m) => `<tr><td>${esc(m.name)}</td><td>${E.MARKETS[m.id] ? E.MARKETS[m.id].feeRate + '%' : '-'}</td><td>${m.logistics ? '쿠팡 풀필먼트' : '판매자 직접'}</td><td>${esc(m.note)}</td></tr>`).join('')}
 </tbody></table>
@@ -348,7 +348,7 @@ ${range('staff', '알바 인원수', 1, 20, 1, s.staff, '명')}
 ${toggle('ins', '4대보험 사업주 부담분 반영', s.ins === 1, '주 15시간↑ 약 10.87~11.15%')}
 </fieldset>
 <fieldset><legend>2. 무인화 도입 시나리오</legend>
-${seg('biz', '매장 유형 (권장 기기 대수 프리셋 연동)', [['food', '일반 외식(테이블오더)'], ['cafe', '카페(키오스크 1대)'], ['retail', '소매(셀프계산대)'], ['service', '예약·서비스']], s.biz)}
+${seg('biz', '매장 유형 (권장 기기 대수 자동 입력)', [['food', '일반 외식(테이블오더)'], ['cafe', '카페(키오스크 1대)'], ['retail', '소매(셀프계산대)'], ['service', '예약·서비스']], s.biz)}
 ${range('cut', '도입 후 1인 주당 근무시간', 0, 40, 0.5, s.cut, '시간', '14.5시간 = 주휴 미발생')}
 ${range('devices', '테이블오더·키오스크 대수', 0, 30, 1, s.devices, '대')}
 ${seg('mode', '도입 방식', [['buy', '구매 (초기비용)'], ['rent', '월 렌탈']], s.mode)}
@@ -439,7 +439,7 @@ ${range('umb', '노란우산공제 월 납입액', 0, 150, 5, s.umb, '만원', '
 <div class="card killer"><h2 class="card-h">노란우산공제 절세 효과 판독</h2>
 <p class="killer-text" data-out-html="umbKiller">사장님의 추정 사업소득금액(<strong class="tnum">${won(r.bizIncome)}</strong>) 기준 노란우산 소득공제 한도는 <strong class="tnum">${won(r.umbCap)}</strong>입니다. 월 <strong>${fmt(s.umb)}만원</strong>(연 ${fmt(s.umb * 12)}만원) 납입 시 <strong class="tnum">${won(r.umbDeduct)}</strong>이 공제되어 종합소득세+지방소득세가 <strong class="tnum">${won(r.umbTaxSaved)}</strong> 줄어듭니다.</p>
 <p class="killer-text sub">당해 귀속 종합소득세 공제는 과세연도 12월 31일 이전 납입분까지 반영됩니다.</p></div>
-<div class="card"><h2 class="card-h">매출 → 경비·세금 → 세후 실수령 워터폴</h2><div class="chart" data-chart="waterfall" role="img" aria-label="연간 매출에서 매입경비, 인건비, 부가세, 종소세를 공제해 세후 실수령에 이르는 차트"></div>
+<div class="card"><h2 class="card-h">연간 매출에서 경비·세금이 빠지고 남는 돈</h2><div class="chart" data-chart="waterfall" role="img" aria-label="연간 매출에서 매입경비, 인건비, 부가세, 종소세를 공제해 세후 실수령에 이르는 차트"></div>
 <table class="mini-table tnum" data-table="breakdown"><tbody>${r.breakdown.map((b) => `<tr><th>${esc(b.label)}</th><td>${won(b.value)}</td><td>${pct(r.salesKRW ? b.value / r.salesKRW * 100 : 0)}</td></tr>`).join('')}</tbody></table></div>`;
   const guide = `
 <h2>부가가치세와 종합소득세 핵심 공식</h2>
@@ -498,7 +498,7 @@ ${range('maint', '월 관리비·공과금·기타 고정비', 0, 500, 10, s.mai
 ${range('labor', '월 총인건비 (직원·알바 합계)', 0, 3000, 20, s.labor, '만원')}
 </fieldset>
 <fieldset><legend>2. 업종별 변동비율 & 창업 투자비</legend>
-${seg('biz', '업종 선택 (표준 객단가·변동비율 프리셋 연동)', [['food', '일반 외식(48%)'], ['cafe', '카페·디저트(34%)'], ['retail', '소매·마트(70%)'], ['service', '뷰티·서비스(18%)']], s.biz)}
+${seg('biz', '업종 선택 (업종별 평균 단가·비용 자동 입력)', [['food', '일반 외식(48%)'], ['cafe', '카페·디저트(34%)'], ['retail', '소매·마트(70%)'], ['service', '뷰티·서비스(18%)']], s.biz)}
 ${range('ticket', '평균 결제 객단가', 3000, 100000, 500, s.ticket, '원')}
 ${range('varpct', '변동비율 (원가+수수료+부가세 비중)', 10, 85, 1, s.varpct, '%', '매출 대비')}
 ${range('days', '월 영업일', 15, 31, 1, s.days, '일')}

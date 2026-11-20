@@ -162,8 +162,8 @@ function startupMasterView(q, ctx) {
 </div>
 
 <div class="card">
-  <h2 class="card-h">빠짐없는 월평균 손익 워터폴 (매출 → 6대 비용·세금·원리금 → 실수령)</h2>
-  <div class="chart" data-chart="waterfall" role="img" aria-label="창업 월평균 매출 공제 워터폴 차트"></div>
+  <h2 class="card-h">한 달 매출에서 비용·세금·대출금이 빠지고 남는 순서</h2>
+  <div class="chart" data-chart="waterfall" role="img" aria-label="창업 월평균 매출 공제 차트"></div>
   <table class="mini-table tnum" data-table="breakdown"><tbody>${r.monthlyBreakdown.map((b) => `<tr><th>${esc(b.label)}</th><td>${won(b.value)}</td><td>${pct(r.annualSalesKRW > 0 ? b.value / (r.annualSalesKRW / 12) * 100 : 0)}</td></tr>`).join('')}</tbody></table>
 </div>
 
@@ -211,7 +211,7 @@ function startupMasterView(q, ctx) {
     <form class="calc-form card" id="calc-form" onsubmit="return false" novalidate>${form}</form>
     <div class="calc-out">
       ${out}
-      <div class="card bench" data-bench aria-live="polite"><div class="bench-head"><span class="pill">실시간 벤치마크</span><span class="bench-src" data-bench-src>익명 시뮬레이션 통계</span></div><p class="bench-text" data-bench-text>업종별 예비창업자 시뮬레이션 평균 수익률과 비교해 드립니다.</p></div>
+      <div class="card bench" data-bench aria-live="polite"><div class="bench-head"><span class="pill">같은 업종 평균과 비교</span><span class="bench-src" data-bench-src>익명 계산 통계</span></div><p class="bench-text" data-bench-text>같은 업종을 계산해 본 예비창업자 평균 수익률과 비교해 드립니다.</p></div>
       <div class="calc-actions" role="group" aria-label="결과 공유">
         <button type="button" class="btn btn-primary" data-action="copy-link">${icon('link', 16)} 내 창업 설계 링크 복사</button>
         <button type="button" class="btn" data-action="receipt">${icon('receipt', 16)} 창업 손익 종합 진단서 PNG 저장</button>

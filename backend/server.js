@@ -108,12 +108,12 @@ app.get('/', (req, res) => {
   });
 });
 
-// 개인사업자 창업 준비 ~ 1년 차 시계열 로드맵 & 페르소나·4컷 만화 가이드
+// 개인사업자 계약 전 ~ 첫 1년 할 일 순서표 & 실제 사례 4컷 만화
 app.get('/start-guide', (req, res) => {
   const v = startGuideViews.startGuideView(req.query);
   send(res, {
-    title: '개인사업자 창업 준비 ~ 1년 차 시계열 완벽 로드맵 — 사업자등록·통장·카드·부가세·종소세 32단계',
-    description: '상가 계약 전 정화조·전기 확인과 방어특약부터 일반과세 사업자등록, 사업용 계좌·카드 홈택스 등록, 한전 부가세 전환, 조기환급, 원천세, 부가세, 노란우산, 5월 종소세까지 1년의 전 과정을 시계열과 4컷 만화로 안내합니다.',
+    title: '계약 전부터 첫 세금 신고까지 — 개인사업자 1년 할 일 순서표 (사업자등록·통장·카드·부가세·종소세)',
+    description: '상가 계약 전 정화조·전기 확인과 방어 문구부터 일반과세 사업자등록, 사업자 통장·카드 홈택스 등록, 한전 부가세 전환, 조기환급, 원천세, 부가세, 노란우산, 5월 종소세까지 1년의 전 과정을 쉬운 순서표와 4컷 만화로 안내합니다.',
     path: '/start-guide',
     jsonld: v.jsonld,
     body: v.body,
@@ -122,13 +122,13 @@ app.get('/start-guide', (req, res) => {
   });
 });
 
-// 오픈 데이터셋 & AI 인용 아키텍처 허브
+// 업종별 평균 비용 · 세율 · 금리 공개 기준표
 app.get('/datasets', async (req, res) => {
   const liveIdx = await datasetsViews.buildLiveBenchmarkDataset(db);
   const v = datasetsViews.datasetsView(liveIdx);
   send(res, {
-    title: '오픈 데이터셋 & AI 인용 아키텍처 — 30대 창업 업종·세법·금리 정형 데이터 카탈로그',
-    description: '대한민국 30대 창업 업종 표준 초기자금·원가율·계절지수, 소상공인 세법·노무·대출금리 상수, 개인사업자 365일 시계열 절차, 익명 시뮬레이션 지표를 JSON·CSV로 개방합니다.',
+    title: '업종별 평균 비용 · 세율 · 금리 공개 기준표 — 30대 창업 업종 데이터 모음',
+    description: '대한민국 30대 창업 업종 평균 초기비용·원가율·계절 변화, 소상공인 세법·4대보험·대출금리 기준, 개인사업자 1년 할 일 순서표를 엑셀(CSV)·JSON으로 투명하게 공개합니다.',
     path: '/datasets',
     jsonld: v.jsonld,
     body: v.body,
@@ -165,12 +165,12 @@ app.get('/calendar', (req, res) => {
   });
 });
 
-// 상권 · 입지 컨설팅 Lab
+// 상권 · 입지 · 경쟁가게 분석
 app.get('/commercial-area', (req, res) => {
   const v = commercialViews.commercialView(req.query);
   send(res, {
-    title: '상권 · 입지 · 경쟁점 컨설팅 Lab — 배후 연령대 분포 & 반경 경쟁밀도 진단',
-    description: '입점 상권 유형과 업종·반경을 선택하면 주요 소비 연령대 분포, 피크타임, 반경 내 동종 경쟁업체 밀도와 차별화 포지셔닝 전략을 진단합니다.',
+    title: '우리 동네 상권 · 입지 · 경쟁가게 분석 — 손님 연령대 & 주변 경쟁점 확인',
+    description: '들어가려는 상권 유형과 업종·반경을 선택하면 주요 소비 연령대 분포, 손님 몰리는 시간대, 주변 동종 경쟁가게 수와 살아남는 운영 방법을 알려드립니다.',
     path: '/commercial-area',
     jsonld: v.jsonld,
     body: v.body,
@@ -332,7 +332,7 @@ app.use('/api', express.json({ limit: '12kb', type: ['application/json', 'text/p
 app.get('/api/version', (req, res) => {
   res.set('Cache-Control', 'no-store').json({
     app: 'BoozaThink 2.0',
-    version: '2.5.0',
+    version: '2.5.1',
     simulators: layout.CALCULATORS.length,
     articles: content.articles.length,
     branch: process.env.RENDER_GIT_BRANCH || 'main',

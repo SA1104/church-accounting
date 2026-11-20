@@ -1,16 +1,18 @@
 'use strict';
 /**
- * 1) 6대 사업자 페르소나 수요·고민 모니터링 매트릭스 (PERSONAS)
- * 2) 개인사업자 창업 D-60 ~ 오픈 후 1년(D+365) 시계열 완벽 로드맵 (TIMELINE_STAGES)
- * 3) "이런 것까지 챙겨야 하는구나!" 실전 4컷 만화 광고·가이드 에피소드 (COMIC_EPISODES)
+ * [내부 데이터 모듈]
+ * - 고객 노출용 문구(tabLabel, badge, title)는 전문용어(페르소나·시계열·모니터링 등)를 배제하고 누구나 단번에 이해하는 일상어를 사용한다.
+ * - 내부 분석·관리자 상황판(/admin)용 명칭은 adminLabel 필드로 별도 분리한다.
  */
 
 const PERSONAS = [
   {
     id: 'first-founder',
-    badge: '페르소나 01 · 생애 첫 오프라인 창업자',
-    title: '종잣돈 5천만~1억 들고 처음 점포를 여는 예비사장님',
-    profile: '직장 퇴직금이나 모은 자금으로 카페·식당·소매점을 처음 준비 중이며, 상가 계약부터 세무서·구청 행정 절차까지 순서가 뒤엉켜 막막한 단계',
+    adminLabel: '페르소나 01 · 생애 첫 오프라인 창업자',
+    tabLabel: '처음 가게 오픈 준비',
+    badge: '처음 가게를 여는 예비사장님',
+    title: '모아둔 자금 5천만~1억으로 첫 매장을 준비 중이신가요?',
+    profile: '퇴직금이나 종잣돈으로 카페·식당·소매점을 처음 열려고 하지만, 상가 계약부터 구청·세무서 서류까지 무엇부터 해야 할지 막막한 상황',
     monitoredQuestions: [
       '마음에 드는 상가가 나왔는데 사업자등록증부터 내나요, 임대차계약서부터 쓰나요?',
       '연매출이 작을 것 같아 간이과세자로 내라던데, 인테리어비 5,000만원 부가세 환급은 못 받나요?',
@@ -19,16 +21,18 @@ const PERSONAS = [
     ],
     blindSpot: '계약금 넣기 전 건축물대장 정화조 용량 미확인 & 간이과세 잘못 선택해 시설 부가세 수백만 원 환급 포기',
     mustDoNow: [
-      { label: '창업 D-60 ~ 1년차 시계열 체크리스트 시작', href: '/start-guide#timeline' },
-      { label: '30대 업종 12개월 계절 손익 풀코스 설계', href: '/calculators/startup-master' },
-      { label: '상가 환산보증금 5% 상한 보호 여부 판독', href: '/calculators/store-rent-breakeven' }
+      { label: '계약 전 ~ 첫 세금 신고 1년 순서표 보기', href: '/start-guide#timeline' },
+      { label: '30대 업종 12개월 계절 손익 한 번에 계산', href: '/calculators/startup-master' },
+      { label: '내 상가 월세 5% 상한 보호 대상인지 확인', href: '/calculators/store-rent-breakeven' }
     ]
   },
   {
     id: 'delivery-owner',
-    badge: '페르소나 02 · 배달·외식 운영 사장님',
-    title: '매출은 월 3,000만원인데 통장에 남는 돈이 없는 매장 사장님',
-    profile: '배민·쿠팡이츠 주문은 끊이지 않지만 중개수수료, 업주부담 배달비, 보온용기 원가, 알바 주휴수당을 떼고 나면 시급보다 못 버는 구조',
+    adminLabel: '페르소나 02 · 배달·외식 운영 사장님',
+    tabLabel: '배달·외식 매장 운영 중',
+    badge: '장사는 바쁜데 남는 돈이 적은 사장님',
+    title: '월매출은 3,000만원 찍히는데 통장에 남는 돈이 없으신가요?',
+    profile: '배민·쿠팡이츠 주문은 계속 들어오지만 중개수수료, 업주부담 배달비, 보온용기 값, 알바 주휴수당을 빼고 나면 내 인건비도 안 남는 상황',
     monitoredQuestions: [
       '20,000원짜리 메뉴 팔 때 배달비·부가세 다 빼면 진짜 원 단위로 얼마 남나요?',
       '순마진 25%를 남기려면 배달앱 메뉴 가격을 얼마로 세팅해야 하나요?',
@@ -37,88 +41,96 @@ const PERSONAS = [
     ],
     blindSpot: '일회용 용기·보온팩·수저 원가(건당 1,100원) 누락 계산 & 무분별한 배달 할인쿠폰 중복 적용으로 역마진 발생',
     mustDoNow: [
-      { label: '배달 1주문 순수익 & 픽업 역전 비교기', href: '/calculators/delivery-margin' },
-      { label: '주 15시간 주휴수당 절벽 vs 무인화 회수 계산', href: '/calculators/labor-automation' },
-      { label: '배달 메뉴가 역산 공식 실전 바이블', href: '/bible/delivery-menu-price-formula' }
+      { label: '배달 1주문 진짜 순수익 & 포장 할인 비교기', href: '/calculators/delivery-margin' },
+      { label: '알바 주 15시간 주휴수당 vs 테이블오더 비교', href: '/calculators/labor-automation' },
+      { label: '손해 안 보는 배달 메뉴 가격 정하는 법', href: '/bible/delivery-menu-price-formula' }
     ]
   },
   {
     id: 'ecommerce-seller',
-    badge: '페르소나 03 · 스마트스토어·쿠팡 셀러',
-    title: '부업·전업으로 사입·위탁 판매를 키우는 온라인 셀러',
-    profile: '1688·국내 도매 사입으로 매출 볼륨을 키우고 있으나 광고 ROAS 착시, 반품 물류비, 긴 정산 주기와 선정산 수수료에 현금이 묶이는 단계',
+    adminLabel: '페르소나 03 · 스마트스토어·쿠팡 셀러',
+    tabLabel: '스마트스토어·쿠팡 판매 중',
+    badge: '온라인 사입 · 위탁 판매 셀러',
+    title: '광고 돌리고 택배 싸느라 바쁜데 정산받으면 적자이신가요?',
+    profile: '중국·국내 도매 사입으로 매출을 키우고 있지만 광고 효율 착시, 반품 배송비, 긴 정산 주기와 선정산 수수료 때문에 현금이 늘 부족한 상황',
     monitoredQuestions: [
       '광고 관리자에 ROAS 320%가 찍히는데 왜 정산받고 나면 적자인가요?',
       '통신판매업 신고할 때 필요한 구매안전서비스 이용확인증은 어디서 발급받나요?',
       '중국 사입 시 개인통관이 아니라 사업자 일반수입통관을 해야 부가세 공제가 되나요?',
       '쿠팡 정산 기다리기 힘들어 쓰는 하루 0.04% 선정산, 연 이자로 따지면 몇 %인가요?'
     ],
-    blindSpot: '광고 전 순마진 미산출 상태로 CPC 광고 집행 & 연환산 14~19% 유료 선정산 반복 사용으로 순이익 증발',
+    blindSpot: '광고 전 순마진 미산출 상태로 클릭당 광고 집행 & 연환산 14~19% 유료 선정산 반복 사용으로 순이익 증발',
     mustDoNow: [
-      { label: '환율 연동 손익분기 ROAS & 2개 묶음 마진 판독', href: '/calculators/seller-roas' },
-      { label: '선정산 연환산 금리 함정 탈출 공식 바이블', href: '/bible/early-settlement-factoring-apr-trap' },
-      { label: '쿠팡 로켓그로스 vs 윙 수수료·물류 비교', href: '/bible/coupang-rocket-growth-vs-wing' }
+      { label: '손해 안 나는 광고 효율(ROAS) & 묶음판매 계산', href: '/calculators/seller-roas' },
+      { label: '선정산 수수료 숨은 연이자 계산 & 탈출법', href: '/bible/early-settlement-factoring-apr-trap' },
+      { label: '쿠팡 로켓그로스 vs 일반 판매 수수료 비교', href: '/bible/coupang-rocket-growth-vs-wing' }
     ]
   },
   {
     id: 'growth-borrower',
-    badge: '페르소나 04 · 자금확보·대환 필요 대표님',
-    title: '매장 확장 자금이나 급한 운전자금·금리 인하가 절실한 사업자',
-    profile: '성수기 물량 확보, 2호점 출점, 또는 기존 연 8~14% 고금리 대출 이자 절감을 위해 가장 싸고 한도가 많이 나오는 조달 순서가 궁금한 단계',
+    adminLabel: '페르소나 04 · 자금확보·대환 필요 대표님',
+    tabLabel: '사업자금 대출 · 이자 줄이기',
+    badge: '사업자금 마련 · 이자 절감이 필요한 사장님',
+    title: '급한 자금이 필요하거나 지금 내는 대출 이자가 너무 비싸신가요?',
+    profile: '물품 대금·매장 확장 자금이 필요하거나, 기존에 쓰고 있는 연 8~14% 고금리 대출을 가장 이자가 싼 곳으로 갈아타고 한도를 늘리고 싶은 상황',
     monitoredQuestions: [
       '내 연매출과 신용점수로 지금 당장 대출이 나올지, 한도는 얼마까지 열릴까요?',
       '보증재단·소진공·시중은행·인터넷은행·증권사 담보 중 어디부터 가야 한도가 안 깎이나요?',
-      '보증금 잔금이 딱 3주 급한데 카드론 대신 신용점수 안 깎이는 브릿지 자금은 없나요?',
-      '세무서에 전화해서 부가세 나눠 내고 있는데 왜 정책자금 전산에서 체납으로 거절되나요?'
+      '보증금 잔금이 딱 3주 급한데 카드론 대신 신용점수 안 깎이는 단기 자금은 없나요?',
+      '세무서에 전화해서 부가세 나눠 내고 있는데 왜 정책자금 신청에서 체납으로 거절되나요?'
     ],
-    blindSpot: '편하다고 모바일 고금리 대출·현금서비스부터 먼저 조회·실행해 연 2~3%대 지역신보 보증 한도를 스스로 막아버림',
+    blindSpot: '편하다고 휴대폰 앱 고금리 대출·현금서비스부터 먼저 받아 연 2~3%대 지역신보 보증 한도를 스스로 막아버림',
     mustDoNow: [
-      { label: '금융권 평균 금리 비교 & 내 한도·사다리 진단', href: '/funding' },
-      { label: '개인사업자 대출 한도 2배 결합 공식 바이블', href: '/bible/business-loan-approval-limit-guide' },
-      { label: '연 7% 이상 대출 → 4.5% 대환 절감액 계산', href: '/calculators/policy-funds' }
+      { label: '은행·보증서 평균 금리 비교 & 내 대출한도 확인', href: '/funding' },
+      { label: '개인사업자 대출 한도 2배 늘리는 순서 보기', href: '/bible/business-loan-approval-limit-guide' },
+      { label: '연 7% 이상 대출 → 4.5% 대환 시 줄어드는 이자', href: '/calculators/policy-funds' }
     ]
   },
   {
     id: 'unmanned-njob',
-    badge: '페르소나 05 · 무인매장·공간임대 창업가',
-    title: '본업을 유지하며 안정적인 두 번째 현금흐름을 찾는 창업가',
-    profile: '무인 카페, 아이스크림, 코인세탁소, 스터디카페, 파티룸, 실내골프 등 인건비 리스크가 적은 모델의 실제 원금회수 기간을 냉정하게 검증하려는 단계',
+    adminLabel: '페르소나 05 · 무인매장·공간임대 창업가',
+    tabLabel: '무인매장 · 부업 창업 준비',
+    badge: '무인매장 · 공간임대를 알아보는 분',
+    title: '직장에 다니며 무인매장이나 공간임대를 열어볼까 고민 중이신가요?',
+    profile: '무인 아이스크림, 코인세탁소, 스터디카페, 파티룸, 실내골프 등 인건비 부담이 적은 업종이 실제로 몇 달 만에 본전을 뽑는지 따져보는 상황',
     monitoredQuestions: [
       '무인 매장이라 인건비는 안 들지만 여름 냉방·냉동 전기요금과 기계 감가를 빼면 진짜 얼마 남나요?',
       '초기 시설비가 1억 원 넘는 스터디카페·코인세탁소, 몇 개월 안에 원금을 회수해야 안전한가요?',
       '키오스크·스마트기술 도입 시 국비 70%(최대 500만원) 보조금은 언제 신청해야 하나요?',
       '배후 아파트 세대수와 상권 연령대가 어떤 곳이어야 무인 매장이 망하지 않나요?'
     ],
-    blindSpot: '성수기 1개월 매출만 보고 계약했다가 동절기·시험 직후 비수기 고정비와 3년 뒤 기기 교체비를 간과함',
+    blindSpot: '성수기 한 달 매출만 보고 계약했다가 겨울·시험 직후 비수기 월세와 3년 뒤 기계 수리·교체비를 놓침',
     mustDoNow: [
-      { label: '무인 6대 업종 초기설비 & 12개월 현금흐름 검증', href: '/calculators/startup-master?profile=coin-laundry' },
-      { label: '상권 유형별 배후연령 & 반경 경쟁점 진단 Lab', href: '/commercial-area' },
-      { label: '스마트상점 국비 보조금 사전협약 가이드', href: '/bible/smart-store-tech-subsidy' }
+      { label: '무인 6대 업종 초기비용 & 1년 계절 수익 계산', href: '/calculators/startup-master?profile=coin-laundry' },
+      { label: '들어가려는 동네 연령대 & 주변 경쟁가게 확인', href: '/commercial-area' },
+      { label: '키오스크 국비 70% 보조금 신청 순서 보기', href: '/bible/smart-store-tech-subsidy' }
     ]
   },
   {
     id: 'tax-reboot-owner',
-    badge: '페르소나 06 · 세무결산·재계약·재기 사장님',
-    title: '세금 폭탄 방어, 임대차 재계약, 또는 안전한 출구전략이 필요한 사장님',
-    profile: '연매출 1억 400만원 돌파로 일반과세 전환 통지를 받았거나, 건물주의 월세 인상 요구 대응, 혹은 점포 정리 지원금 확인이 필요한 단계',
+    adminLabel: '페르소나 06 · 세무결산·재계약·재기 사장님',
+    tabLabel: '세금 신고 · 재계약 · 가게 정리',
+    badge: '세금 절약 · 상가 재계약 · 가게 정리가 고민인 사장님',
+    title: '갑자기 불어난 세금·월세 인상 요구, 또는 안전한 가게 정리가 고민이신가요?',
+    profile: '매출이 넘어 일반과세자로 바뀌었거나, 재계약 때 건물주가 월세를 크게 올려달라거나, 폐업 시 철거 지원금 600만원 절차를 알아보는 상황',
     monitoredQuestions: [
       '간이에서 일반과세자로 전환되면 부가세랑 5월 종합소득세 내고 한 달에 실제 얼마 남나요?',
       '노란우산공제는 12월 말까지 얼마를 넣어야 올해 소득세에서 최대 600만원 공제를 받나요?',
       '재계약 때 건물주가 월세를 15% 올려달라는데 내 보증금·월세는 법정 5% 상한 보호 대상인가요?',
       '폐업 철거비 국비 지원(최대 600만원)을 받으려면 철거 업체를 부르기 전에 뭘 먼저 해야 하나요?'
     ],
-    blindSpot: '한전·통신사 사업자 명의 미전환으로 매달 공과금 부가세 공제 누락 & 희망리턴패키지 승인 전 선철거로 보조금 박탈',
+    blindSpot: '한전·통신사에 사업자번호 등록을 안 해 매달 공과금 부가세 10%를 날리거나, 철거 지원금 승인 전 먼저 철거해 지원금을 못 받음',
     mustDoNow: [
-      { label: '부가세 · 종소세 · 노란우산 세후 실수령 계산기', href: '/calculators/vat-income-tax' },
-      { label: '사업자 12개월 세무·노무·자금 생존 캘린더', href: '/calendar' },
-      { label: '희망리턴패키지 점포철거비 600만원 수령 절차', href: '/bible/hope-return-package-closure' }
+      { label: '부가세 · 종소세 다 떼고 남는 내 진짜 월수입 계산', href: '/calculators/vat-income-tax' },
+      { label: '1월~12월 놓치면 가산세 나오는 세무 달력 보기', href: '/calendar' },
+      { label: '폐업 점포철거비 최대 600만원 지원받는 순서', href: '/bible/hope-return-package-closure' }
     ]
   }
 ];
 
 const TIMELINE_STAGES = [
   {
-    step: 'STAGE 01',
+    step: '1단계',
     period: '창업 D-60 ~ D-30',
     title: '상가 계약 도장 찍기 전 — 건축물·설비·특약 5대 지뢰 제거',
     subtitle: '돈이 있다고 부동산 말만 믿고 가계약금부터 넣으면 수천만 원이 묶입니다.',
@@ -148,7 +160,7 @@ const TIMELINE_STAGES = [
     toolLabel: '내 후보 상가 환산보증금 & 손익분기 일매출 먼저 계산하기'
   },
   {
-    step: 'STAGE 02',
+    step: '2단계',
     period: '창업 D-29 ~ D-15',
     title: '영업 인허가 취득 & 사업자등록 신청 (간이 vs 일반 결정적 분기점)',
     subtitle: '인테리어 첫 결제 세금계산서를 끊기 전에 사업자등록 전략이 확정되어야 합니다.',
@@ -178,7 +190,7 @@ const TIMELINE_STAGES = [
     toolLabel: '일반/간이 자동판정 포함 창업 초기자금 풀코스 계산하기'
   },
   {
-    step: 'STAGE 03',
+    step: '3단계',
     period: '창업 D-14 ~ D-7',
     title: '사업용 통장 개설 · 카드 홈택스 등록 · 온/오프라인 결제망 구축',
     subtitle: '개인 통장·개인 카드로 장사를 시작하면 첫 세금 신고 때 경비 증빙이 아수라장이 됩니다.',
@@ -213,7 +225,7 @@ const TIMELINE_STAGES = [
     toolLabel: '온라인 셀러 마켓별 수수료 & 손익분기 ROAS 계산하기'
   },
   {
-    step: 'STAGE 04',
+    step: '4단계',
     period: '창업 D-6 ~ 오픈 당일',
     title: '알바·직원 채용 노무 방어막 & 스마트상점 보조금 세팅',
     subtitle: '근로계약서 한 장 안 써서 벌금 500만 원, 선결제해서 보조금 500만 원을 날리는 구간입니다.',
@@ -243,7 +255,7 @@ const TIMELINE_STAGES = [
     toolLabel: '알바 주 15시간 절벽 & 무인기기 원금회수 개월 수 계산하기'
   },
   {
-    step: 'STAGE 05',
+    step: '5단계',
     period: '오픈 후 1개월 ~ 3개월 차',
     title: '매월 10일 원천세 루틴 정착 & 시설투자 부가세 조기환급 수령',
     subtitle: '초기 바닥난 현금을 인테리어 부가세 조기환급으로 빠르게 수혈하는 시기입니다.',
@@ -273,7 +285,7 @@ const TIMELINE_STAGES = [
     toolLabel: '실제 원가·포장비 반영 1주문 순수익 정밀 진단하기'
   },
   {
-    step: 'STAGE 06',
+    step: '6단계',
     period: '오픈 후 4개월 ~ 6개월 차 (1월 / 7월)',
     title: '생애 첫 부가가치세 확정신고 & 저금리 정책자금 한도 오픈',
     subtitle: '공식 매출 증명서가 처음 발급되어 연 2~3%대 보증서 한도가 열리는 골든타임입니다.',
@@ -298,7 +310,7 @@ const TIMELINE_STAGES = [
     toolLabel: '부가세 신고 매출 기반 최저금리 보증·대출 한도 진단하기'
   },
   {
-    step: 'STAGE 07',
+    step: '7단계',
     period: '오픈 후 7개월 ~ 10개월 차 (4월 / 10월 / 11월)',
     title: '예정고지·중간예납 현금 방어 & 비수기 버퍼 점검',
     subtitle: '고지서대로 무조건 내지 말고 매출 변동에 맞춘 절세 선택권을 행사하세요.',
@@ -323,7 +335,7 @@ const TIMELINE_STAGES = [
     toolLabel: '12개월 월별 세무·자금 생존 캘린더 전체 보기'
   },
   {
-    step: 'STAGE 08',
+    step: '8단계',
     period: '오픈 후 11개월 ~ 1년 결산 (12월 말 & 다음 해 5월)',
     title: '연말 노란우산 절세 마감 & 생애 첫 5월 종합소득세 확정신고',
     subtitle: '1년 농사의 진짜 세후 순수익을 확정 짓고 건강보험료 연쇄 인상까지 방어하는 최종 관문입니다.',
@@ -362,10 +374,10 @@ const TIMELINE_STAGES = [
 const COMIC_EPISODES = [
   {
     id: 'ep1-vat-trap',
-    tag: '만화 광고 EP.01 · 창업 순서 참사편',
+    tag: '실제 사례 만화 1편 · 덜컥 계약 실수',
     title: '“돈 8천만 원 있으니 바로 공사 시작!” 했다가 500만 원 날린 김 대리',
-    hook: '창업 전 가장 많이 하는 실수 1위 — 사업자등록 & 정화조 확인 전 덜컥 계약하기',
-    ctaLabel: '실수 없는 창업 D-60 순서 보기',
+    hook: '창업 전 가장 많이 하는 실수 — 사업자등록 & 정화조 확인 전 먼저 계약하기',
+    ctaLabel: '실수 없는 계약 전 순서 보기',
     ctaHref: '/start-guide#timeline',
     panels: [
       {
@@ -404,10 +416,10 @@ const COMIC_EPISODES = [
   },
   {
     id: 'ep2-card-tax',
-    tag: '만화 광고 EP.02 · 통장·부가세 폭탄편',
+    tag: '실제 사례 만화 2편 · 통장·부가세 실수',
     title: '월매출 3,000만 원 대박 났는데 7월 25일에 통장이 텅 빈 박 사장님',
     hook: '개인 카드로 대충 긁고 한전·통신 사업자 전환을 안 했을 때 벌어지는 실제 상황',
-    ctaLabel: '내 매장 세후 진짜 실수령액 계산',
+    ctaLabel: '내 매장 세금 떼고 남는 돈 계산',
     ctaHref: '/calculators/vat-income-tax',
     panels: [
       {
@@ -446,10 +458,10 @@ const COMIC_EPISODES = [
   },
   {
     id: 'ep3-loan-order',
-    tag: '만화 광고 EP.03 · 대출 순서 역전편',
+    tag: '실제 사례 만화 3편 · 대출 순서 실수',
     title: '“서류 귀찮으니 앱에서 5분 대출!” 눌렀다가 연 2%대 보증서 날린 최 대표',
     hook: '사업자 대출은 신용점수보다 ‘어디서 먼저 빌리느냐’ 순서가 한도와 금리를 결정합니다',
-    ctaLabel: '내 조건 최저금리 조달 사다리 진단',
+    ctaLabel: '가장 이자 싼 대출 순서 확인',
     ctaHref: '/funding',
     panels: [
       {

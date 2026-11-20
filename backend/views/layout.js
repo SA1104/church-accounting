@@ -22,7 +22,7 @@ const CALCULATORS = [
   { slug: 'policy-funds', short: '정책자금 · 저금리 대환 매칭', name: '소상공인 정책자금 · 4.5% 대환대출 · 스마트상점 보조금 매칭기', iconKey: 'bank', desc: '업종·업력·매출 조건에 맞는 정책자금을 매칭하고 고금리 대환 이자 절감액과 보조금 자부담을 계산합니다.', category: 'policy-funds-grants' }
 ];
 
-const ASSET_V = '20261120b';
+const ASSET_V = '20261120c';
 
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -72,21 +72,21 @@ function gnb(categories, current) {
     </a>
     <nav class="gnb-nav" id="gnb-nav" aria-label="주요 메뉴">
       <ul class="gnb-list">
-        <li><a href="/start-guide"${current === 'start-guide' ? ' aria-current="page"' : ''}>창업 1년 시계열</a></li>
-        <li><a href="/calculators/startup-master"${current === 'startup-master' ? ' aria-current="page"' : ''}>창업 풀코스 설계</a></li>
+        <li><a href="/start-guide"${current === 'start-guide' ? ' aria-current="page"' : ''}>첫 창업 1년 순서표</a></li>
+        <li><a href="/calculators/startup-master"${current === 'startup-master' ? ' aria-current="page"' : ''}>창업 전체 수익 계산</a></li>
         <li class="has-dd">
-          <button class="dd-btn" aria-expanded="false" aria-haspopup="true" aria-controls="dd-calc">부분별 손익 계산기 <span aria-hidden="true">▾</span></button>
-          <ul class="dd" id="dd-calc" role="menu">${calcItems}<li class="dd-all"><a href="/calculators">전체 시뮬레이터 한눈에 보기 →</a></li></ul>
+          <button class="dd-btn" aria-expanded="false" aria-haspopup="true" aria-controls="dd-calc">상황별 손익 계산기 <span aria-hidden="true">▾</span></button>
+          <ul class="dd" id="dd-calc" role="menu">${calcItems}<li class="dd-all"><a href="/calculators">전체 계산기 한눈에 보기 →</a></li></ul>
         </li>
         <li><a href="/funding"${current === 'funding' ? ' aria-current="page"' : ''}>사업자 대출·정책자금</a></li>
-        <li><a href="/commercial-area"${current === 'commercial' ? ' aria-current="page"' : ''}>상권·입지 Lab</a></li>
+        <li><a href="/commercial-area"${current === 'commercial' ? ' aria-current="page"' : ''}>상권·입지 분석</a></li>
         <li class="has-dd">
-          <button class="dd-btn" aria-expanded="false" aria-haspopup="true" aria-controls="dd-bible" style="color:var(--text-2)">실전 바이블 <span aria-hidden="true">▾</span></button>
+          <button class="dd-btn" aria-expanded="false" aria-haspopup="true" aria-controls="dd-bible" style="color:var(--text-2)">실전 가이드 <span aria-hidden="true">▾</span></button>
           <ul class="dd" id="dd-bible" role="menu">
-            <li><a href="/calendar" role="menuitem"><span class="ico-box-sm">${icon('clock', 16)}</span><span><strong>사업자 12개월 생존 캘린더</strong><small>월별 부가세·종소세·정책자금 오픈 데드라인</small></span></a></li>
-            <li><a href="/datasets" role="menuitem"><span class="ico-box-sm">${icon('layers', 16)}</span><span><strong>오픈 데이터셋 & AI 인용 허브</strong><small>30대 업종·세법·금리 정형 JSON/CSV 카탈로그</small></span></a></li>
+            <li><a href="/calendar" role="menuitem"><span class="ico-box-sm">${icon('clock', 16)}</span><span><strong>12개월 세무·자금 달력</strong><small>매달 챙길 부가세·종소세·정책자금 일정</small></span></a></li>
+            <li><a href="/datasets" role="menuitem"><span class="ico-box-sm">${icon('layers', 16)}</span><span><strong>업종별 비용 · 세율 · 금리 공개 기준표</strong><small>30대 업종 평균 비용 및 법정 세율 표 다운로드</small></span></a></li>
             ${catItems}
-            <li class="dd-all"><a href="/bible">실전 바이블 ${categories.length ? '전체' : ''} 보기 →</a></li>
+            <li class="dd-all"><a href="/bible">실전 가이드 전체 보기 →</a></li>
           </ul>
         </li>
       </ul>

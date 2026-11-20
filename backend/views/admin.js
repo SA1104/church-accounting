@@ -165,17 +165,17 @@ function dashboardView(data, ctx, envStatus) {
   </div>
 
   <section class="card admin-sec">
-    <h2 class="card-h">6대 사업자 페르소나별 니즈 · 트래픽 매핑 모니터링</h2>
-    <p class="note" style="margin:0 0 12px">방문자의 페이지 열람 및 시뮬레이터 실행 패턴을 6대 핵심 페르소나에 자동 매핑하여 현재 어떤 사업자군의 어떤 고민이 가장 많이 유입되고 있는지 모니터링합니다.</p>
+    <h2 class="card-h">[내부 분석 전용] 6대 고객군(페르소나)별 니즈 · 트래픽 모니터링</h2>
+    <p class="note" style="margin:0 0 12px">고객 화면에는 쉬운 일상어로 노출하고, 관리자 상황판에서만 6대 페르소나 기준으로 유입 고민과 트래픽 비중을 모니터링합니다.</p>
     <div class="table-scroll">
       <table class="mini-table admin-table">
-        <thead><tr><th>페르소나 분류</th><th style="text-align:left">핵심 모니터링 질문</th><th>연계 트래픽 지수</th><th style="text-align:left">핵심 연결 도구</th></tr></thead>
+        <thead><tr><th>내부 페르소나 분류</th><th style="text-align:left">핵심 모니터링 질문</th><th>연계 트래픽 지수</th><th style="text-align:left">핵심 연결 도구</th></tr></thead>
         <tbody>
           ${PERSONAS.map((ps) => {
             const matchPaths = ps.mustDoNow.map((m) => m.href.split('#')[0].split('?')[0]);
             const score = topPages.filter((tp) => matchPaths.includes(tp.path)).reduce((a, b) => a + b.pv, 0);
             return `<tr>
-              <th><strong>${esc(ps.badge)}</strong><span class="path-sub">${esc(ps.title)}</span></th>
+              <th><strong>${esc(ps.adminLabel || ps.badge)}</strong><span class="path-sub">고객 노출명: ${esc(ps.tabLabel)}</span></th>
               <td style="text-align:left;font-weight:500;font-size:13px">${esc(ps.monitoredQuestions[0])}</td>
               <td class="tnum">${score.toLocaleString('ko-KR')} PV</td>
               <td style="text-align:left;font-size:12.5px"><a href="${esc(ps.mustDoNow[0].href)}" target="_blank">${esc(ps.mustDoNow[0].label)}</a></td>

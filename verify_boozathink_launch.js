@@ -146,12 +146,13 @@ async function main() {
       const hasCanon = /<link rel="canonical" href="https:\/\/boozathink\.com/.test(r.text);
       const visibleText = stripTags(r.text);
       const noUndefined = !/\bundefined\b/.test(visibleText);
+      const noJargon = !visibleText.includes('페르소나') && !visibleText.includes('만화 광고');
       const ldMatches = [...r.text.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
       let ldValid = ldMatches.length > 0;
       for (const lm of ldMatches) {
         try { JSON.parse(lm[1]); } catch (e) { ldValid = false; }
       }
-      assert(r.status === 200 && hasTitle && hasDesc && hasCanon && ldValid && noUndefined, `SSR Page ${p}`, `HTTP ${r.status}, JSON-LD=${ldMatches.length}, noUndefined=${noUndefined}`);
+      assert(r.status === 200 && hasTitle && hasDesc && hasCanon && ldValid && noUndefined && noJargon, `SSR Page ${p}`, `HTTP ${r.status}, JSON-LD=${ldMatches.length}, cleanCopy=${noJargon}`);
       extractInternalUrls(r.text).forEach((u) => discoveredInternalLinks.add(u));
     }
 

@@ -59,7 +59,7 @@ function renderComicEpisode(ep) {
         <p style="margin:0;font-size:14px;color:var(--text-2)">${esc(ep.hook)}</p>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button type="button" class="btn" data-download-comic="${esc(ep.id)}">${icon('receipt', 16)} 만화 광고 카드(PNG) 저장</button>
+        <button type="button" class="btn" data-download-comic="${esc(ep.id)}">${icon('receipt', 16)} 4컷 만화 이미지로 저장·공유하기</button>
         <a class="btn btn-primary" href="${esc(ep.ctaHref)}">${esc(ep.ctaLabel)} →</a>
       </div>
     </div>
@@ -84,7 +84,7 @@ function renderComicEpisode(ep) {
 function startGuideView(q) {
   const totalItems = TIMELINE_STAGES.reduce((acc, st) => acc + st.items.length, 0);
   const selPersonaId = PERSONAS.some((p) => p.id === q.persona) ? q.persona : PERSONAS[0].id;
-  const crumbs = [{ name: '홈', path: '/' }, { name: '개인사업자 창업 ~ 1년 시계열 바이블 & 페르소나', path: '/start-guide' }];
+  const crumbs = [{ name: '홈', path: '/' }, { name: '첫 창업 1년 할 일 순서표', path: '/start-guide' }];
 
   const faq = [
     { q: '상가 임대차계약이 먼저인가요, 사업자등록 신청이 먼저인가요?', a: '반드시 상가 임대차계약(정화조·용도·전기 확인 및 인허가 불가 시 계약금 반환 특약 포함)이 먼저입니다. 사업자등록 신청서에는 확정된 사업장 소재지 임대차계약서 사본(허가·신고 업종은 구청 영업신고증 포함)이 첨부되어야 세무서에서 사업자등록증이 발급되기 때문입니다. 단, 인테리어 본공사 대금 결제 전에는 일반과세 사업자등록증을 먼저 내고 사업자번호로 세금계산서를 받아야 부가세 10% 환급이 매끄럽습니다.' },
@@ -97,20 +97,19 @@ function startGuideView(q) {
 <div class="container">
   ${breadcrumbHtml(crumbs)}
   <header class="page-head">
-    <span class="eyebrow">${icon('compass', 16)} 막무가내 창업 방지 · D-60부터 첫 종소세까지</span>
-    <h1>개인사업자 창업 준비 ~ 1년 차 시계열 완벽 로드맵</h1>
-    <p class="lead">돈이 준비되었다고 덜컥 상가 계약서부터 찍으면 정화조 부담금, 인테리어 부가세 환급 누락, 가산세, 고금리 대출 역순 실행으로 시작부터 수천만 원이 샙니다. 내 현재 상황(페르소나)에 맞는 핵심 점검 포인트와 개업 전 D-60부터 첫 1년 결산까지 반드시 거쳐야 할 ${totalItems}개 실전 관문을 순서대로 따라가세요.</p>
+    <span class="eyebrow">${icon('compass', 16)} 덜컥 계약하기 전에 꼭 확인하세요 · 계약 전부터 첫 세금 신고까지</span>
+    <h1>계약 전부터 첫 세금 신고까지 — 개인사업자 1년 할 일 순서표</h1>
+    <p class="lead">자금이 준비되었다고 서둘러 상가 계약서부터 찍으면 정화조 공사비, 인테리어 부가세 환급 누락, 가산세, 비싼 대출 이자로 시작부터 수천만 원이 샙니다. 지금 내 상황에 맞는 필수 확인 사항과 개업 두 달 전부터 첫 1년 세금 결산까지 꼭 챙겨야 할 ${totalItems}가지 순서를 하나씩 따라가 보세요.</p>
     <p class="footnote-meta">※ 국세청 홈택스 · 시군구청 인허가 · 4대사회보험 · 근로기준법 현행 실무 절차 기준 (검증일 ${facts.VERIFIED_AT})</p>
   </header>
 
-  <!-- 1. 6대 사업자 페르소나 맞춤 모니터링 섹션 -->
   <section class="sec" id="personas">
     <div class="sec-head">
-      <h2>Step 1. 나는 지금 어떤 사업자(페르소나)인가요? — 상황별 필수 모니터링</h2>
+      <h2>지금 어떤 상황이신가요? 내 상황에 꼭 맞는 준비 순서부터 골라보세요</h2>
     </div>
-    <p class="sec-desc">현재 대표님의 상황을 선택하시면 해당 단계의 사업자들이 가장 많이 놓치는 치명적 사각지대와 당장 실행해야 할 3단계 도구 세트를 정리해 드립니다.</p>
-    <div class="persona-tabs" role="tablist" aria-label="사업자 페르소나 선택">
-      ${PERSONAS.map((p) => `<button type="button" class="prof-chip${p.id === selPersonaId ? ' active' : ''}" data-persona-btn="${esc(p.id)}">${esc(p.badge.replace(/^페르소나 \d+ · /, ''))}</button>`).join('')}
+    <p class="sec-desc">현재 내 상황과 가장 가까운 버튼을 누르면, 같은 고민을 하시는 분들이 가장 많이 실수하는 부분과 바로 써볼 수 있는 계산기를 모아서 보여드립니다.</p>
+    <div class="persona-tabs" role="tablist" aria-label="내 현재 상황 선택">
+      ${PERSONAS.map((p) => `<button type="button" class="prof-chip${p.id === selPersonaId ? ' active' : ''}" data-persona-btn="${esc(p.id)}">${esc(p.tabLabel)}</button>`).join('')}
     </div>
     ${PERSONAS.map((p) => `
     <div class="card persona-panel" data-persona-panel="${esc(p.id)}"${p.id === selPersonaId ? '' : ' hidden'}>
@@ -118,17 +117,17 @@ function startGuideView(q) {
       <h3 style="margin:8px 0 6px;font-size:21px">${esc(p.title)}</h3>
       <p style="margin:0 0 14px;color:var(--text-2);font-size:14.5px">${esc(p.profile)}</p>
       <div class="callout warn" style="margin:0 0 16px">
-        <strong>이 단계 90%가 놓치는 치명적 사각지대:</strong> ${esc(p.blindSpot)}
+        <strong>가장 많이 아차 하는 실수:</strong> ${esc(p.blindSpot)}
       </div>
       <div class="kpi-grid" style="align-items:start">
         <div>
-          <strong style="font-size:14.5px;display:block;margin-bottom:8px">가장 많이 궁금해하시는 핵심 질문 TOP 4</strong>
+          <strong style="font-size:14.5px;display:block;margin-bottom:8px">같은 상황의 사장님들이 가장 궁금해하는 질문</strong>
           <ul style="margin:0;padding-left:18px;font-size:13.5px;color:var(--text-2);display:grid;gap:6px;line-height:1.5">
             ${p.monitoredQuestions.map((mq) => `<li>${esc(mq)}</li>`).join('')}
           </ul>
         </div>
         <div class="hl">
-          <strong style="font-size:14.5px;display:block;margin-bottom:8px">지금 바로 실행할 맞춤 3단계 솔루션</strong>
+          <strong style="font-size:14.5px;display:block;margin-bottom:8px">지금 바로 해볼 수 있는 3단계</strong>
           <div style="display:grid;gap:8px">
             ${p.mustDoNow.map((act, i) => `<a class="btn" style="justify-content:flex-start;background:var(--bg-elev)" href="${esc(act.href)}"><strong>${i + 1}.</strong> ${esc(act.label)} →</a>`).join('')}
           </div>
@@ -137,25 +136,23 @@ function startGuideView(q) {
     </div>`).join('')}
   </section>
 
-  <!-- 2. "이런 것까지 챙겨야 하는구나!" 실전 4컷 만화 가이드 & 광고 키트 -->
   <section class="sec" id="comics">
     <div class="sec-head">
-      <h2>공감 100% 실전 4컷 만화 — “와, 이런 것까지 챙겨야 하는구나!”</h2>
+      <h2>실제 사례 4컷 만화 — “와, 이런 것까지 챙겨야 하는구나!”</h2>
     </div>
-    <p class="sec-desc">현장에서 실제로 수백만 원씩 수업료를 내는 대표 사례 3가지를 4컷 만화로 정리했습니다. <strong>‘만화 광고 카드(PNG) 저장’</strong> 버튼을 누르면 인스타그램·스레드·블로그·단톡방 홍보용 정사각형 카드뉴스 이미지로 바로 내려받아 활용하실 수 있습니다.</p>
+    <p class="sec-desc">현장에서 몰라서 수백만 원씩 손해 보는 대표적인 세 가지 순간을 쉬운 4컷 만화로 그렸습니다. 주변에 창업을 준비하는 가족·지인이 있다면 이미지로 저장해 공유해 보세요.</p>
     <div class="prof-chips" style="margin-bottom:12px" data-comic-tabs>
       ${COMIC_EPISODES.map((ep, idx) => `<button type="button" class="prof-chip${idx === 0 ? ' active' : ''}" data-comic-tab="${esc(ep.id)}">${esc(ep.tag)}</button>`).join('')}
     </div>
     ${COMIC_EPISODES.map((ep, idx) => `<div data-comic-wrap="${esc(ep.id)}"${idx === 0 ? '' : ' hidden'}>${renderComicEpisode(ep)}</div>`).join('')}
   </section>
 
-  <!-- 3. D-60 ~ D+365 시계열 8단계 마스터 체크리스트 -->
   <section class="sec" id="timeline">
     <div class="card killer" style="position:sticky;top:calc(var(--gnb-h) + 8px);z-index:15;padding:16px 20px;margin-bottom:20px">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
         <div>
-          <strong style="font-size:16px">내 개인사업자 1년 준비 달성률 (브라우저 자동 저장)</strong>
-          <span style="display:block;font-size:12.5px;color:var(--text-2)">하나씩 체크하면 다음 방문 때도 내 진행 상태가 그대로 유지됩니다.</span>
+          <strong style="font-size:16px">내 창업 · 세무 준비 진행표 (자동 저장)</strong>
+          <span style="display:block;font-size:12.5px;color:var(--text-2)">끝낸 항목을 체크해 두면 다음에 다시 들어와도 그대로 남아 있습니다.</span>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
           <span class="pill tnum" id="tl-prog-txt" style="font-size:13.5px">0 / ${totalItems} 완료 (0%)</span>

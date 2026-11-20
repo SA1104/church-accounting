@@ -23,9 +23,9 @@ function commercialView(q) {
 <div class="container">
   ${breadcrumbHtml(crumbs)}
   <header class="page-head">
-    <span class="eyebrow">${icon('mapPin', 16)} 상권 · 배후연령 · 경쟁밀도 컨설팅 Lab</span>
-    <h1>상권 · 입지 · 경쟁점 인텔리전스 Lab</h1>
-    <p class="lead">내가 들어가려는 상권에 어떤 연령대가 머무르고, 반경 내 동종 경쟁업체가 몇 개나 포진해 있으며, 어떤 메뉴·시간대 전략을 써야 살아남는지를 진단합니다. 아래 인터랙티브 상권 시뮬레이터로 상권별 궁합을 먼저 확인해 보세요.</p>
+    <span class="eyebrow">${icon('mapPin', 16)} 우리 가게 자리 · 손님 연령대 · 주변 경쟁점 살펴보기</span>
+    <h1>우리 동네 상권 · 입지 · 경쟁가게 분석</h1>
+    <p class="lead">내가 들어가려는 자리에 어떤 연령대 손님이 주로 오고, 걸어서 몇 분 거리에 같은 업종 경쟁 가게가 몇 개나 있는지, 어떻게 운영해야 살아남는지를 미리 확인해 보세요.</p>
   </header>
 
   <section class="calc" id="commercial-sim">
@@ -107,11 +107,11 @@ function commercialView(q) {
   </section>
 
   <section class="sec">
-    <div class="sec-head"><h2>상권 인텔리전스 6대 공공·민간 데이터 설계 아키텍처</h2></div>
-    <p class="sec-desc">BoozaThink 상권 컨설팅 엔진은 감이나 중개업소의 구두 설명이 아니라 아래 6개 공식 데이터 레이어를 교차 검증하도록 설계되어 있습니다.</p>
+    <div class="sec-head"><h2>상권 분석에 활용하는 6가지 공식 통계 자료</h2></div>
+    <p class="sec-desc">감이나 막연한 중개 설명이 아니라 아래 6가지 정부·지자체·지도 공식 자료를 교차 확인하도록 구성되어 있습니다.</p>
     <div class="table-scroll">
       <table class="rate-board">
-        <thead><tr><th>데이터 레이어</th><th>연동 공공·민간 원천 데이터</th><th>추출 핵심 지표</th><th>창업 컨설팅 활용 로직</th></tr></thead>
+        <thead><tr><th>확인 분야</th><th>참고하는 공식 통계 자료</th><th>살펴보는 핵심 숫자</th><th>우리 가게 적용 방법</th></tr></thead>
         <tbody>
           ${DATA_PIPELINE_SPEC.map((d) => `<tr>
             <td><strong>${esc(d.layer)}</strong></td>

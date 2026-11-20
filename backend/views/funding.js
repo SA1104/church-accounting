@@ -41,8 +41,8 @@ function fundingView(q) {
 <div class="container">
   ${breadcrumbHtml(crumbs)}
   <header class="page-head">
-    <span class="eyebrow">${icon('bank', 16)} 사업자 자금조달 · 금리 인텔리전스</span>
-    <h1>사업자 대출 · 정책자금 전략 라운지</h1>
+    <span class="eyebrow">${icon('bank', 16)} 어디서 빌려야 가장 이자가 싸고 한도가 잘 나올까?</span>
+    <h1>사업자 대출 · 정책자금 비교 라운지</h1>
     <p class="lead">사업을 확장할 때나 긴급 운전자금이 필요할 때 “과연 대출이 나올지, 어디서 빌려야 가장 이자가 싼지, 어떻게 해야 한도를 더 확보할 수 있는지”를 한곳에서 진단합니다. 정책자금부터 제1금융권·증권사·대환 프로그램까지 가장 유리한 조달 순서를 먼저 확인하세요.</p>
     <p class="footnote-meta">※ 한국은행 기준금리(${mkt.bokBaseRate}%), 은행연합회·금융투자협회 및 소진공·지역신보 최신 공시 데이터 반영 (기준일 ${mkt.verifiedAt})</p>
   </header>
@@ -216,7 +216,7 @@ function fundingView(q) {
     <div class="sec-head"><h2>매출은 잘 나오는데 왜 부결될까? — 심사 거절 7대 사유 & 사전 통과 해법</h2></div>
     <div class="table-scroll">
       <table class="rate-board">
-        <thead><tr><th>단골 부결 사유</th><th>전산 스크리닝 감점 원리</th><th>접수 전 합법적 통과 해법</th></tr></thead>
+        <thead><tr><th>단골 거절 사유</th><th>은행·보증기관에서 거절되는 이유</th><th>접수 전 해결 방법</th></tr></thead>
         <tbody>
           <tr><td><strong>1. 세무서 구두 분납 중인 미납 세금</strong></td><td>공식 징수유예 승인서 없이는 전산상 ‘체납자’로 즉시 자동 탈락</td><td>소액 체납은 단기 여유자금으로 먼저 완납해 ‘완납증명서’ 확보 후 접수</td></tr>
           <tr><td><strong>2. 최근 3개월 현금서비스 · 카드 리볼빙</strong></td><td>금액이 적어도 초단기 유동성 위기 차주로 분류되어 한도 대폭 삭감</td><td>전액 상환 및 리볼빙 해지 후 신용정보원 반영(약 5영업일) 뒤 신청</td></tr>

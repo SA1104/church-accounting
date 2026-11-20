@@ -73,43 +73,43 @@ function home(ctx) {
 
 <div class="container">
   <section class="sec">
-    <div class="sec-head"><h2>내 상황(페르소나) 맞춤 시작점 — 지금 어떤 고민을 하고 계신가요?</h2><a href="/start-guide">4컷 만화 & 1년 시계열 로드맵 →</a></div>
+    <div class="sec-head"><h2>지금 내 상황에 딱 맞는 곳부터 시작해 보세요</h2><a href="/start-guide">실제 사례 4컷 만화 & 1년 순서표 →</a></div>
     <div class="calc-grid calc-grid-6">
       ${PERSONAS.map((ps) => `<a class="calc-card card" href="/start-guide?persona=${encodeURIComponent(ps.id)}">
-        <span class="pill" style="align-self:flex-start">${esc(ps.badge.replace(/^페르소나 \d+ · /, ''))}</span>
+        <span class="pill" style="align-self:flex-start">${esc(ps.tabLabel)}</span>
         <h3 style="margin-top:6px">${esc(ps.title)}</h3>
         <p style="font-size:13.5px">${esc(ps.monitoredQuestions[0])}</p>
-        <span class="cc-cta">맞춤 준비물 · 해결책 보기 →</span>
+        <span class="cc-cta">꼭 챙길 준비물 · 계산기 보기 →</span>
       </a>`).join('')}
     </div>
   </section>
 
   <section class="sec">
-    <div class="sec-head"><h2>창업 첫 단추부터 1년 결산까지 (막무가내 계약 방지)</h2><a href="/start-guide">32단계 전체 체크리스트 →</a></div>
+    <div class="sec-head"><h2>창업 첫 단추부터 1년 결산까지 (덜컥 계약하기 전 필독)</h2><a href="/start-guide">32가지 전체 순서표 →</a></div>
     <div class="cat-calc-stack">
       <a class="cat-calc card" href="/start-guide" style="padding:24px">
         <span class="ico-box">${icon('book', 22)}</span>
         <div>
-          <span class="pill">실전 4컷 만화 광고 3편 + D-60 ~ D+365 시계열 마스터 가이드</span>
-          <h3 style="margin:7px 0 5px;font-size:20px">개인사업자 창업 준비 ~ 1년 차 시계열 완벽 로드맵</h3>
-          <p style="margin:0;color:var(--text-2);font-size:14.5px">정화조·전기 용량 확인과 임대차 방어특약 → 일반과세 등록(인테리어 부가세 조기환급) → 사업용 계좌·카드 홈택스 등록 → 한전·통신 부가세 전환 → 매달 원천세·1월/7월 부가세·12월 노란우산·5월 종소세까지 시계열 순서대로 챙겨 드립니다.</p>
+          <span class="pill">실제 사례 4컷 만화 3편 + 계약 전 ~ 첫 세금 신고 순서표</span>
+          <h3 style="margin:7px 0 5px;font-size:20px">개인사업자 첫 1년 할 일 순서표 (사업자등록 · 통장 · 카드 · 세금)</h3>
+          <p style="margin:0;color:var(--text-2);font-size:14.5px">정화조·전기 용량 확인과 계약서 방어 문구 → 일반과세 등록(인테리어 부가세 환급) → 사업자 통장·카드 홈택스 등록 → 한전·통신비 부가세 전환 → 매달 원천세·1월/7월 부가세·12월 노란우산·5월 종소세까지 날짜 순서대로 알기 쉽게 안내합니다.</p>
         </div>
-        <span class="cc-cta">시계열 가이드 열기 →</span>
+        <span class="cc-cta">1년 순서표 열기 →</span>
       </a>
       <a class="cat-calc card" href="/calculators/${masterCalc.slug}" style="padding:24px">
         <span class="ico-box">${icon(masterCalc.iconKey, 22)}</span>
         <div>
-          <span class="pill">30대 업종 계절지수 · 보증금/인테리어 · 세금 · 대출원리금 올인원</span>
+          <span class="pill">30대 업종 계절 변화 · 보증금/인테리어 · 세금 · 대출이자 올인원</span>
           <h3 style="margin:7px 0 5px;font-size:20px">${esc(masterCalc.name)}</h3>
-          <p style="margin:0;color:var(--text-2);font-size:14.5px">업종을 선택하면 시장 통상 원가율과 성수기·비수기 12개월 매출 파동, 스마트상점 키오스크 국비보조, 부가세·종소세, 정책자금 대출 원리금 상환 후 실제로 손에 쥐는 1년 현금흐름과 집객 팁까지 한 번에 시뮬레이션합니다.</p>
+          <p style="margin:0;color:var(--text-2);font-size:14.5px">업종을 고르면 일반적인 원가율과 성수기·비수기 12개월 매출 차이, 키오스크 국비보조, 부가세·종소세, 대출 원리금 상환 후 실제로 손에 쥐는 1년 수익과 손님 모으는 팁까지 한 번에 계산합니다.</p>
         </div>
-        <span class="cc-cta">풀코스 설계 시작 →</span>
+        <span class="cc-cta">전체 수익 계산하기 →</span>
       </a>
     </div>
   </section>
 
   <section class="sec">
-    <div class="sec-head"><h2>자금 조달 & 상권 입지 전문 인텔리전스</h2></div>
+    <div class="sec-head"><h2>사업자금 마련 & 우리 가게 자리 알아보기</h2></div>
     <div class="calc-grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
       <a class="calc-card card" href="/funding">
         <span class="ico-box">${icon('bank', 20)}</span>
