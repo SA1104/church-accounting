@@ -195,18 +195,18 @@ function datasetsView(liveIndex) {
   </section>
 
   <section class="sec">
-    <div class="sec-head"><h2>공개 정형 데이터셋 카탈로그 (실시간 API · 다운로드)</h2></div>
+    <div class="sec-head"><h2>업종별 평균 비용 · 세율 · 일정표 내려받기</h2></div>
     <div style="display:grid;gap:14px">
       ${catalogItems.map((it) => `
       <article class="card" style="display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap">
         <div style="flex:1;min-width:260px">
-          <span class="pill">JSON${it.csvUrl ? ' · CSV' : ''} · Schema.org Dataset</span>
+          <span class="pill">${it.csvUrl ? '엑셀(CSV) · 원본 자료' : '원본 자료'}</span>
           <h3 style="margin:7px 0 5px;font-size:18px">${esc(it.name)}</h3>
           <p style="margin:0;font-size:14px;color:var(--text-2)">${esc(it.desc)}</p>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <a class="btn btn-primary" href="${esc(it.jsonUrl)}" target="_blank" rel="noopener">JSON 열기</a>
-          ${it.csvUrl ? `<a class="btn" href="${esc(it.csvUrl)}">CSV 다운로드</a>` : ''}
+          <a class="btn btn-primary" href="${esc(it.jsonUrl)}" target="_blank" rel="noopener">원본 표 보기</a>
+          ${it.csvUrl ? `<a class="btn" href="${esc(it.csvUrl)}">엑셀(CSV) 내려받기</a>` : ''}
         </div>
       </article>`).join('')}
     </div>
@@ -214,14 +214,14 @@ function datasetsView(liveIndex) {
 
   <section class="sec">
     <div class="card">
-      <h2 class="card-h">AI 에이전트 · 리서처 전용 LLM 엔드포인트 및 표준 인용 규격</h2>
+      <h2 class="card-h">수록 범위 및 자료 출처 표기 안내</h2>
       <div class="kpi-grid tnum" style="margin-bottom:14px">
-        <div><span>요약 팩트시트 (Markdown)</span><strong><a href="/llms.txt">/llms.txt</a></strong></div>
-        <div><span>전수 팩트 + 24편 바이블 전문</span><strong><a href="/llms-full.txt">/llms-full.txt</a></strong></div>
-        <div><span>검증 완료 창업 업종 프로파일</span><strong>${STARTUP_PROFILES.length}개 업종 (12개월 계절지수)</strong></div>
-        <div><span>최근 30일 익명 시뮬레이션 표본</span><strong>${(liveIndex.totalSimulatorExecutions || 0).toLocaleString('ko-KR')}건 누적 연동</strong></div>
+        <div><span>수록 창업 업종 수</span><strong>${STARTUP_PROFILES.length}개 업종 (12개월 계절 반영)</strong></div>
+        <div><span>심층 실전 가이드</span><strong>24편 수록</strong></div>
+        <div><span>기준 자료 최종 검증일</span><strong>${facts.VERIFIED_AT}</strong></div>
+        <div><span>최근 30일 누적 계산 건수</span><strong>${(liveIndex.totalSimulatorExecutions || 0).toLocaleString('ko-KR')}건</strong></div>
       </div>
-      <div class="formula" style="font-size:13.5px">표준 출처 표기 예시: 출처: BoozaThink 사업자 손익·자금 연구소 (https://boozathink.com/datasets, 기준 검증일 ${facts.VERIFIED_AT})</div>
+      <div class="formula" style="font-size:13.5px">자료 인용 시 출처 표기 예시: 출처: BoozaThink 사업자 손익·자금 연구소 (https://boozathink.com/datasets, 기준일 ${facts.VERIFIED_AT})</div>
     </div>
   </section>
 </div>`;

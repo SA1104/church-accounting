@@ -395,7 +395,7 @@ function startupMasterView(q) {
       <div class="card bench" data-bench aria-live="polite"><div class="bench-head"><span class="pill">같은 업종 평균과 비교</span><span class="bench-src" data-bench-src>익명 계산 통계</span></div><p class="bench-text" data-bench-text>같은 업종을 계산해 본 예비창업자 평균 수익률과 비교해 드립니다.</p></div>
       <div class="calc-actions" role="group" aria-label="결과 공유">
         <button type="button" class="btn btn-primary" data-action="copy-link">${icon('link', 16)} 내 창업 설계 링크 복사</button>
-        <button type="button" class="btn" data-action="receipt">${icon('receipt', 16)} 창업 손익 종합 진단서 PNG 저장</button>
+        <button type="button" class="btn" data-action="receipt">${icon('receipt', 16)} 창업 손익 진단표 이미지 저장</button>
         <a class="btn" href="/funding">${icon('bank', 16)} 부족 자금 최저금리 조달법 보기</a>
         <button type="button" class="btn btn-ghost" data-action="reset">초기화</button>
         <span class="toast" role="status" aria-live="polite" data-toast></span>

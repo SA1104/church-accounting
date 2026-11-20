@@ -54,12 +54,12 @@ function renderComicEpisode(ep) {
   return `<div class="comic-board" data-ep-panel="${esc(ep.id)}">
     <div class="comic-top">
       <div>
-        <span class="pill">${esc(ep.tag)}</span>
+        <span class="pill">${esc(ep.badge || ep.tag)}</span>
         <h3 style="margin:6px 0 4px;font-size:20px">${esc(ep.title)}</h3>
         <p style="margin:0;font-size:14px;color:var(--text-2)">${esc(ep.hook)}</p>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button type="button" class="btn" data-download-comic="${esc(ep.id)}">${icon('receipt', 16)} 4컷 만화 이미지로 저장·공유하기</button>
+        <button type="button" class="btn" data-download-comic="${esc(ep.id)}">${icon('receipt', 16)} 이미지로 저장 · 공유하기</button>
         <a class="btn btn-primary" href="${esc(ep.ctaHref)}">${esc(ep.ctaLabel)} →</a>
       </div>
     </div>
@@ -138,9 +138,9 @@ function startGuideView(q) {
 
   <section class="sec" id="comics">
     <div class="sec-head">
-      <h2>실제 사례 4컷 만화 — “와, 이런 것까지 챙겨야 하는구나!”</h2>
+      <h2>주변에서 흔히 겪는 세 가지 아찔한 순간</h2>
     </div>
-    <p class="sec-desc">현장에서 몰라서 수백만 원씩 손해 보는 대표적인 세 가지 순간을 쉬운 4컷 만화로 그렸습니다. 주변에 창업을 준비하는 가족·지인이 있다면 이미지로 저장해 공유해 보세요.</p>
+    <p class="sec-desc">처음 시작할 때 미처 몰라서 수백만 원씩 손해 보는 실제 상황들입니다. 창업을 준비하는 가족이나 지인이 있다면 함께 살펴보세요.</p>
     <div class="prof-chips" style="margin-bottom:12px" data-comic-tabs>
       ${COMIC_EPISODES.map((ep, idx) => `<button type="button" class="prof-chip${idx === 0 ? ' active' : ''}" data-comic-tab="${esc(ep.id)}">${esc(ep.tag)}</button>`).join('')}
     </div>
@@ -323,7 +323,7 @@ function startGuideView(q) {
       var url = URL.createObjectURL(blob);
       var a = document.createElement('a');
       a.href = url;
-      a.download = 'boozathink-comic-' + ep.id + '.png';
+      a.download = 'boozathink-story-' + ep.id + '.png';
       document.body.appendChild(a);
       a.click();
       setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);}, 500);
@@ -336,7 +336,7 @@ function startGuideView(q) {
     });
   });
 
-  // 3. 시계열 체크리스트 localStorage 영구 저장 & 진행률 바
+  // 3. 체크리스트 localStorage 영구 저장 & 진행률 바
   var KEY = 'bt-timeline-v1';
   var saved = {};
   try { saved = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch(e){ saved = {}; }
@@ -377,7 +377,7 @@ function startGuideView(q) {
     {
       '@context': 'https://schema.org',
       '@type': 'HowTo',
-      name: '개인사업자 창업 준비부터 첫 1년(부가세·종소세) 시계열 로드맵',
+      name: '개인사업자 계약 전부터 첫 1년 세금 신고까지 할 일 순서표',
       description: '상가 계약 전 정화조·전기 확인부터 일반과세 사업자등록, 사업용 통장·카드 홈택스 등록, 원천세, 부가세 조기환급, 노란우산, 5월 종합소득세까지 8단계 절차.',
       step: TIMELINE_STAGES.map((st, idx) => ({
         '@type': 'HowToStep',

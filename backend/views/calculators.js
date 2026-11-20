@@ -41,7 +41,7 @@ function o(key, text, cls) { return `<span data-out="${key}"${cls ? ` class="${c
 function actions() {
   return `<div class="calc-actions" role="group" aria-label="결과 공유">
   <button type="button" class="btn btn-primary" data-action="copy-link">${icon('link', 16)} 내 매장 시뮬레이션 링크 복사</button>
-  <button type="button" class="btn" data-action="receipt">${icon('receipt', 16)} 손익 진단 영수증 PNG 저장</button>
+  <button type="button" class="btn" data-action="receipt">${icon('receipt', 16)} 손익 계산 영수증 이미지 저장</button>
   <button type="button" class="btn btn-ghost" data-action="reset">초기화</button>
   <span class="toast" role="status" aria-live="polite" data-toast></span>
 </div>`;

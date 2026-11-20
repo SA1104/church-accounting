@@ -168,7 +168,7 @@ function fundingView(q) {
         </div>
         <div class="calc-actions">
           <button type="button" class="btn btn-primary" data-action="copy-link">${icon('link', 16)} 내 한도·금리 진단 결과 링크 복사</button>
-          <button type="button" class="btn" data-action="receipt">${icon('receipt', 16)} 자금 조달 진단서 PNG 저장</button>
+          <button type="button" class="btn" data-action="receipt">${icon('receipt', 16)} 자금 조달 진단표 이미지 저장</button>
           <span class="toast" role="status" aria-live="polite" data-toast></span>
         </div>
       </div>

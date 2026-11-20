@@ -73,7 +73,7 @@ function home(ctx) {
 
 <div class="container">
   <section class="sec">
-    <div class="sec-head"><h2>지금 내 상황에 딱 맞는 곳부터 시작해 보세요</h2><a href="/start-guide">실제 사례 4컷 만화 & 1년 순서표 →</a></div>
+    <div class="sec-head"><h2>지금 내 상황에 딱 맞는 곳부터 시작해 보세요</h2><a href="/start-guide">창업 첫 1년 순서표 보기 →</a></div>
     <div class="calc-grid calc-grid-6">
       ${PERSONAS.map((ps) => `<a class="calc-card card" href="/start-guide?persona=${encodeURIComponent(ps.id)}">
         <span class="pill" style="align-self:flex-start">${esc(ps.tabLabel)}</span>
@@ -90,7 +90,7 @@ function home(ctx) {
       <a class="cat-calc card" href="/start-guide" style="padding:24px">
         <span class="ico-box">${icon('book', 22)}</span>
         <div>
-          <span class="pill">실제 사례 4컷 만화 3편 + 계약 전 ~ 첫 세금 신고 순서표</span>
+          <span class="pill">계약 도장 찍기 전부터 첫 세금 신고까지</span>
           <h3 style="margin:7px 0 5px;font-size:20px">개인사업자 첫 1년 할 일 순서표 (사업자등록 · 통장 · 카드 · 세금)</h3>
           <p style="margin:0;color:var(--text-2);font-size:14.5px">정화조·전기 용량 확인과 계약서 방어 문구 → 일반과세 등록(인테리어 부가세 환급) → 사업자 통장·카드 홈택스 등록 → 한전·통신비 부가세 전환 → 매달 원천세·1월/7월 부가세·12월 노란우산·5월 종소세까지 날짜 순서대로 알기 쉽게 안내합니다.</p>
         </div>
@@ -119,9 +119,9 @@ function home(ctx) {
       </a>
       <a class="calc-card card" href="/commercial-area">
         <span class="ico-box">${icon('mapPin', 20)}</span>
-        <h3>상권 · 배후연령 · 경쟁점 컨설팅 Lab</h3>
-        <p>입점 상권 유형과 업종·반경을 선택하면 주력 소비 연령대, 피크타임, 반경 내 동종 경쟁업체 밀도와 생존 포지셔닝 전략을 분석하고 핀포인트 리포트를 연결합니다.</p>
-        <span class="cc-cta">상권 궁합 시뮬레이션 →</span>
+        <h3>우리 동네 상권 · 주변 경쟁가게 지도</h3>
+        <p>들어가려는 골목·역세권 지도를 직접 찍어 반경 내 주변 점포 수와 주요 방문 연령대, 업종별 추천 자리를 확인합니다.</p>
+        <span class="cc-cta">지도로 상권 살펴보기 →</span>
       </a>
     </div>
   </section>
@@ -137,8 +137,8 @@ function home(ctx) {
   <section class="sec prose why"><h2>진심을 담아 디테일을 완성하는 원칙</h2>
     <div class="why-grid">
       <div class="card">
-        <h3>${icon('layers', 18)} 현장의 경험 + 정밀 AI 검산</h3>
-        <p>보온팩·용기 하나에 새는 포장원가, 여름·겨울 비수기 현금흐름 절벽, 상가 환산보증금 초과 시 빠지는 5% 상한 특약까지. 실제 창업·운영 현장에서 겪는 시행착오를 AI 수식 엔진으로 빠짐없이 검증했습니다.</p>
+        <h3>${icon('layers', 18)} 현장의 실무 경험 + 꼼꼼한 공식 검산</h3>
+        <p>보온팩·용기 하나에 새는 포장원가, 여름·겨울 비수기 현금흐름 공백, 상가 환산보증금 초과 시 빠지는 5% 상한 특약까지. 실제 창업·운영 현장에서 겪는 시행착오를 정밀한 계산 공식으로 빠짐없이 검증했습니다.</p>
       </div>
       <div class="card">
         <h3>${icon('shield', 18)} 공식 데이터와 투명한 기준 각주</h3>
@@ -203,8 +203,8 @@ ${breadcrumbHtml(crumbs)}
   </div>
   <div class="cta-box card"><div><strong style="display:inline-flex;align-items:center;gap:6px">${icon(calc.iconKey, 17)} 내 숫자로 정밀하게 계산해 보세요</strong><p>${esc(calc.name)}</p></div><a class="btn btn-primary" href="${esc(a.miniCalc.cta.href)}">시뮬레이터 열기 →</a></div>
   ${faqHtml(a.faq)}
-  <aside class="trust-box"><h2>데이터 검증 & 기준 연도 각주 (E-E-A-T)</h2>
-    <p><strong>데이터 검증 기준일:</strong> ${fmtDate(a.updatedAt)} · <strong>작성·검수:</strong> BoozaThink 손익 연구소 편집팀 (실무 경험 + 수식 검증 엔진 교차 검수)</p>
+  <aside class="trust-box"><h2>자료 출처 및 기준일 안내</h2>
+    <p><strong>데이터 검증 기준일:</strong> ${fmtDate(a.updatedAt)} · <strong>작성·검수:</strong> BoozaThink 손익 연구소 편집팀 (실무 경험 + 수식 검산 교차 확인)</p>
     <p><strong>공식 참고 기관:</strong> ${a.sources.map((s) => `<a href="${esc(s.url)}" rel="nofollow noopener" target="_blank">${esc(s.name)}</a>`).join(' · ')}</p>
     <p><strong>면책조항:</strong> 본 글의 수수료율·세율·보험요율·지원사업 조건은 작성 기준일의 최신 공시와 확정 고시를 바탕으로 정리한 일반 참고 자료이며, 개별 계약·공고 차수·세무 처리에 따라 달라질 수 있습니다. 세무·노무·법률·금융 자문을 대체하지 않습니다. 자세한 내용은 <a href="/terms-of-service">이용약관</a>과 <a href="/privacy-policy">개인정보처리방침</a>을 확인하세요.</p>
   </aside>
@@ -244,8 +244,8 @@ function legalPage(slug, title, desc, inner, extraLd) {
 function about(ctx) {
   return legalPage('about', 'BoozaThink 연구소 소개', '', `
 <p class="lead">BoozaThink(부자씽크)는 예비 창업가와 자영업 사장님, 이커머스 셀러가 막연한 기대 매출이 아니라 “실제로 통장에 남는 돈”과 “안전한 자금 계획”으로 의사결정할 수 있도록 진심을 담아 만든 손익·자금 연구소입니다.</p>
-<h2>인간의 현장 경험 × 정밀 AI 엔진의 결합</h2>
-<p>창업과 사업 현장에는 겉으로 잘 보이지 않는 비용들이 곳곳에 숨어 있습니다. 메뉴 한 그릇에 따라붙는 보온용기 원가, 여름·겨울 계절 비수기의 현금흐름 공백, 환산보증금 기준을 넘겼을 때 사라지는 5% 임대료 인상 상한, 주 15시간을 넘는 순간 붙는 주휴수당과 4대보험, 그리고 대출 순서 하나 잘못 밟아 막혀버리는 저금리 보증 한도까지. BoozaThink는 실제 현장의 경험에서 건져 올린 디테일을 정밀 수식 엔진으로 구현하여 ${CALCULATORS.length}종의 시뮬레이터, <a href="/funding">사업자 대출·정책자금 라운지</a>, <a href="/commercial-area">상권·입지 컨설팅 Lab</a>, ${ctx.articles.length}편의 실전 바이블로 제공합니다.</p>
+<h2>현장의 실무 경험과 꼼꼼한 숫자 검증의 결합</h2>
+<p>창업과 사업 현장에는 겉으로 잘 보이지 않는 비용들이 곳곳에 숨어 있습니다. 메뉴 한 그릇에 따라붙는 보온용기 원가, 여름·겨울 계절 비수기의 현금흐름 공백, 환산보증금 기준을 넘겼을 때 사라지는 5% 임대료 인상 상한, 주 15시간을 넘는 순간 붙는 주휴수당과 4대보험, 그리고 대출 순서 하나 잘못 밟아 막혀버리는 저금리 보증 한도까지. BoozaThink는 실제 현장의 경험에서 건져 올린 디테일을 정밀한 수식 검증으로 구현하여 ${CALCULATORS.length}종의 시뮬레이터, <a href="/funding">사업자 대출·정책자금 라운지</a>, <a href="/commercial-area">우리 동네 상권 · 지도 분석</a>, ${ctx.articles.length}편의 실전 바이블로 제공합니다.</p>
 <h2>편집 및 수식 검증 4대 원칙</h2>
 <ol>
   <li><strong>공식 출처 우선 및 기준 연도 각주 표기:</strong> 모든 요율과 한도는 정부 부처 고시·법령, 금융권 및 플랫폼 공식 공시를 1차 출처로 삼으며, 본문과 계산기 하단 주석에 적용 기준 연도와 검증일(${facts.VERIFIED_AT})을 투명하게 표기합니다.</li>

@@ -108,12 +108,12 @@ app.get('/', (req, res) => {
   });
 });
 
-// 개인사업자 계약 전 ~ 첫 1년 할 일 순서표 & 실제 사례 4컷 만화
+// 개인사업자 계약 전 ~ 첫 1년 할 일 순서표
 app.get('/start-guide', (req, res) => {
   const v = startGuideViews.startGuideView(req.query);
   send(res, {
     title: '계약 전부터 첫 세금 신고까지 — 개인사업자 1년 할 일 순서표 (사업자등록·통장·카드·부가세·종소세)',
-    description: '상가 계약 전 정화조·전기 확인과 방어 문구부터 일반과세 사업자등록, 사업자 통장·카드 홈택스 등록, 한전 부가세 전환, 조기환급, 원천세, 부가세, 노란우산, 5월 종소세까지 1년의 전 과정을 쉬운 순서표와 4컷 만화로 안내합니다.',
+    description: '상가 계약 전 정화조·전기 확인과 방어 문구부터 일반과세 사업자등록, 사업자 통장·카드 홈택스 등록, 한전 부가세 전환, 조기환급, 원천세, 부가세, 노란우산, 5월 종소세까지 1년의 전 과정을 쉬운 그림과 순서표로 안내합니다.',
     path: '/start-guide',
     jsonld: v.jsonld,
     body: v.body,
@@ -332,7 +332,7 @@ app.use('/api', express.json({ limit: '12kb', type: ['application/json', 'text/p
 app.get('/api/version', (req, res) => {
   res.set('Cache-Control', 'no-store').json({
     app: 'BoozaThink 2.0',
-    version: '2.5.1',
+    version: '2.6.1',
     simulators: layout.CALCULATORS.length,
     articles: content.articles.length,
     branch: process.env.RENDER_GIT_BRANCH || 'main',

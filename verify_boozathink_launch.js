@@ -146,13 +146,15 @@ async function main() {
       const hasCanon = /<link rel="canonical" href="https:\/\/boozathink\.com/.test(r.text);
       const visibleText = stripTags(r.text);
       const noUndefined = !/\bundefined\b/.test(visibleText);
-      const noJargon = !visibleText.includes('페르소나') && !visibleText.includes('만화 광고');
+      const bannedMetaTerms = ['페르소나', '만화 광고', '4컷 만화', '4컷만화', '만화 1편', '만화 2편', '만화 3편', '1컷', '2컷', '시계열', 'AI 인용', 'LLM 팩트시트', 'E-E-A-T', 'Schema.org'];
+      const hitTerm = bannedMetaTerms.find((t) => visibleText.includes(t));
+      const noJargon = !hitTerm;
       const ldMatches = [...r.text.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
       let ldValid = ldMatches.length > 0;
       for (const lm of ldMatches) {
         try { JSON.parse(lm[1]); } catch (e) { ldValid = false; }
       }
-      assert(r.status === 200 && hasTitle && hasDesc && hasCanon && ldValid && noUndefined && noJargon, `SSR Page ${p}`, `HTTP ${r.status}, JSON-LD=${ldMatches.length}, cleanCopy=${noJargon}`);
+      assert(r.status === 200 && hasTitle && hasDesc && hasCanon && ldValid && noUndefined && noJargon, `SSR Page ${p}`, `HTTP ${r.status}, JSON-LD=${ldMatches.length}, cleanCopy=${noJargon}${hitTerm ? ' (FOUND: ' + hitTerm + ')' : ''}`);
       extractInternalUrls(r.text).forEach((u) => discoveredInternalLinks.add(u));
     }
 
