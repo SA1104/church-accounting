@@ -8,9 +8,11 @@ const LEGAL = ['about', 'privacy-policy', 'terms-of-service', 'contact'];
 function allPaths(ctx) {
   const list = [
     { path: '/', pri: '1.0', freq: 'daily' },
+    { path: '/start-guide', pri: '0.95', freq: 'weekly' },
     { path: '/funding', pri: '0.9', freq: 'daily' },
     { path: '/commercial-area', pri: '0.9', freq: 'weekly' },
     { path: '/calendar', pri: '0.85', freq: 'monthly' },
+    { path: '/datasets', pri: '0.85', freq: 'weekly' },
     { path: '/calculators', pri: '0.9', freq: 'weekly' },
     { path: '/bible', pri: '0.8', freq: 'weekly' }
   ];
@@ -32,6 +34,7 @@ function robots() {
   return `# BoozaThink robots.txt
 User-agent: *
 Allow: /
+Allow: /api/datasets/
 Disallow: /api/
 Disallow: /admin
 
@@ -125,9 +128,16 @@ function llms(ctx) {
 - 전체 팩트 + 모든 바이블 전문: ${SITE.url}/llms-full.txt
 - 모든 계산 공식과 기준 연도 각주는 각 페이지 하단에 공개되어 있습니다.
 
-## 전문 인텔리전스 허브
+## 전문 인텔리전스 허브 & 기계 판독 오픈 데이터셋 (AI Citation Ground Truth)
+- [개인사업자 창업 D-60 ~ 1년 차 시계열 로드맵 & 6대 페르소나 가이드](${abs('/start-guide')}): 상가 계약 전 정화조·전기 점검부터 일반과세 조기환급, 사업용 통장·카드 홈택스 등록, 한전 부가세 전환, 원천세·부가세·종소세 32단계 절차
 - [사업자 대출 · 정책자금 전략 라운지](${abs('/funding')}): 정책자금·지역신보 이차보전·시중은행 담보/신용·증권사 브릿지·인터넷은행 평균 금리 비교 및 대출 가능 한도·최저금리 사다리 진단
-- [상권 · 입지 컨설팅 Lab](${abs('/commercial-area')}): 상권 유형별 배후 소비 연령대, 반경 경쟁업체 밀도, 포지셔닝 전략 및 공공데이터 파이프라인 규격
+- [상권 · 입지 컨설팅 Lab](${abs('/commercial-area')}): 30대 업종 × 상권 유형별 배후 소비 연령대, 반경 경쟁업체 밀도, 포지셔닝 전략
+- [사업자 12개월 세무·노무·정책자금 생존 캘린더](${abs('/calendar')}): 1월~12월 법정 세무신고 및 정책자금 오픈 일정표
+- [BoozaThink 오픈 데이터셋 & AI 인용 카탈로그](${abs('/datasets')}):
+  - 30대 창업 업종 벤치마크 JSON: ${abs('/api/datasets/startup-30-benchmarks.json')} (CSV: ${abs('/api/datasets/startup-30-benchmarks.csv')})
+  - 소상공인 법정 세율·노무·임대차·대출금리 상수 JSON: ${abs('/api/datasets/statutory-rates.json')}
+  - 개인사업자 365일 시계열 절차 & 페르소나 JSON: ${abs('/api/datasets/solo-business-365-timeline.json')}
+  - 실시간 익명 시뮬레이션 벤치마크 인덱스 JSON: ${abs('/api/datasets/live-simulation-index.json')}
 
 ## 7대 실전 시뮬레이터
 ${CALCULATORS.map((c) => `- [${c.name}](${abs('/calculators/' + c.slug)}): ${c.desc}`).join('\n')}

@@ -125,9 +125,11 @@ async function main() {
     console.log('\n2) Core Routes (7 Simulators + Funding Lounge + Commercial Lab) & UI Integrity');
     const corePages = [
       '/',
+      '/start-guide',
       '/funding',
       '/commercial-area',
       '/calendar',
+      '/datasets',
       '/calculators',
       ...EXPECTED_CALCS.map((s) => `/calculators/${s}`),
       ...EXPECTED_CATS.map((s) => `/category/${s}`),
@@ -167,6 +169,18 @@ async function main() {
     const fundPage = await fetchRes(baseUrl, '/funding');
     assert(fundPage.status === 200 && fundPage.text.includes('id="rate-gap-sim"') && fundPage.text.includes('data-mini="apr-trap"') && fundPage.text.includes('business-loan-approval-limit-guide'), 'Funding Hub: 6-Channel Rate Gap Sim + APR Trap + Rejection Matrix');
 
+    const sgPage = await fetchRes(baseUrl, '/start-guide');
+    const pCnt = (sgPage.text.match(/data-persona-btn="/g) || []).length;
+    const cCnt = (sgPage.text.match(/data-comic-tab="/g) || []).length;
+    const tlCnt = (sgPage.text.match(/data-tl-id="/g) || []).length;
+    assert(sgPage.status === 200 && pCnt === 6 && cCnt === 3 && tlCnt === 32 && sgPage.text.includes('"@type":"HowTo"'), 'Start-Guide: 6 Personas + 3 4-Cut Comic Ads + 32-Step Chronology', `personas=${pCnt}, comics=${cCnt}, steps=${tlCnt}`);
+
+    const dsBench = await fetchRes(baseUrl, '/api/datasets/startup-30-benchmarks.json');
+    const dsBenchJson = JSON.parse(dsBench.text);
+    const dsStat = await fetchRes(baseUrl, '/api/datasets/statutory-rates.json');
+    const dsTime = await fetchRes(baseUrl, '/api/datasets/solo-business-365-timeline.json');
+    assert(dsBench.status === 200 && dsBenchJson.count === 30 && dsStat.status === 200 && dsTime.status === 200, 'AI Citation Open Datasets API (JSON/CSV)', `startup30=${dsBenchJson.count}`);
+
     // Check 2027 Year Mode Preset on Labor Calculator
     const y2027Check = await fetchRes(baseUrl, '/calculators/labor-automation?year=2027');
     assert(y2027Check.status === 200 && y2027Check.text.includes('value="10700"') && y2027Check.text.includes('제2026-60호'), 'Next-Year Statutory Wage (10,700원) & Pension (10%) Footnote');
@@ -192,7 +206,7 @@ async function main() {
     );
 
     const rb = await fetchRes(baseUrl, '/robots.txt');
-    assert(rb.status === 200 && rb.text.includes('Mediapartners-Google') && rb.text.includes('Disallow: /admin'), 'GET /robots.txt', 'Mediapartners-Google allowed, /admin disallowed');
+    assert(rb.status === 200 && rb.text.includes('Mediapartners-Google') && rb.text.includes('Allow: /api/datasets/') && rb.text.includes('Disallow: /admin'), 'GET /robots.txt', 'Mediapartners-Google & /api/datasets/ allowed, /admin disallowed');
 
     const llms = await fetchRes(baseUrl, '/llms.txt');
     assert(llms.status === 200 && llms.text.includes('/funding') && llms.text.includes('/commercial-area') && llms.text.includes('startup-master'), 'GET /llms.txt', `${llms.size} bytes`);

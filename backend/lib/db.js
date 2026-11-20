@@ -353,6 +353,8 @@ function classifyPageType(p) {
   if (p === '/funding') return 'funding';
   if (p === '/commercial-area') return 'commercial';
   if (p === '/calendar') return 'calendar';
+  if (p.startsWith('/start-guide')) return 'start-guide';
+  if (p === '/datasets') return 'datasets';
   if (p.startsWith('/bible/')) return 'bible';
   if (p === '/bible') return 'bible-index';
   if (p.startsWith('/category/')) return 'category';
@@ -383,8 +385,12 @@ async function collectEvent(payload, reqMeta) {
   const refInfo = classifyReferrer(payload.ref);
   const refSource = refInfo.source === 'internal' ? 'direct' : refInfo.source;
   const pageType = classifyPageType(rawPath);
-  const ALLOWED_EVENTS = ['pageview', 'copy_link', 'download_receipt'];
+  const ALLOWED_EVENTS = ['pageview', 'copy_link', 'download_receipt', 'persona_pick'];
   const eventName = mode === 'action' && ALLOWED_EVENTS.includes(payload.event) ? payload.event : 'pageview';
+  const VALID_PERSONAS = ['first-founder', 'delivery-owner', 'ecommerce-seller', 'growth-borrower', 'unmanned-njob', 'tax-reboot-owner'];
+  const effectivePath = (eventName === 'persona_pick' && VALID_PERSONAS.includes(payload.persona))
+    ? '/start-guide/persona/' + payload.persona
+    : rawPath;
 
   if (state.connected && driver === 'pg') {
     try {
@@ -401,7 +407,7 @@ async function collectEvent(payload, reqMeta) {
          ON CONFLICT (view_id) WHERE view_id IS NOT NULL DO UPDATE
          SET dwell_sec = GREATEST(public.biz_page_events.dwell_sec, EXCLUDED.dwell_sec),
              scroll_pct = GREATEST(public.biz_page_events.scroll_pct, EXCLUDED.scroll_pct)`,
-        [mode === 'action' ? null : viewId, sessionHash, rawPath, pageType, refSource, refInfo.host, device, dwell, scroll, eventName]
+        [mode === 'action' ? null : viewId, sessionHash, effectivePath, pageType, refSource, refInfo.host, device, dwell, scroll, eventName]
       );
       return { ok: true };
     } catch (e) {
@@ -422,7 +428,7 @@ async function collectEvent(payload, reqMeta) {
     created_at: new Date(),
     view_id: mode === 'action' ? null : viewId,
     session_hash: sessionHash,
-    path: rawPath,
+    path: effectivePath,
     page_type: pageType,
     ref_source: refSource,
     ref_host: refInfo.host,

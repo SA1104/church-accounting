@@ -1,6 +1,7 @@
 'use strict';
 const { esc, CALCULATORS } = require('./layout');
 const { icon } = require('./icons');
+const { PERSONAS } = require('../data/start-timeline');
 
 const SOURCE_LABELS = {
   google: 'Google 검색',
@@ -27,6 +28,8 @@ function resolvePageTitle(pathStr, ctx) {
   if (pathStr === '/funding') return '[자금라운지] 사업자 대출 · 정책자금 전략 라운지';
   if (pathStr === '/commercial-area') return '[상권Lab] 상권 · 입지 컨설팅 Lab';
   if (pathStr === '/calendar') return '[생존캘린더] 사업자 12개월 세무·자금 캘린더';
+  if (pathStr === '/start-guide') return '[창업시계열] 개인사업자 D-60~1년 로드맵 & 만화';
+  if (pathStr === '/datasets') return '[AI데이터허브] 오픈 데이터셋 & AI 인용 아키텍처';
   if (pathStr === '/bible') return '실전 바이블 전체 목록';
   if (pathStr.startsWith('/calculators/')) {
     const slug = pathStr.slice('/calculators/'.length);
@@ -160,6 +163,28 @@ function dashboardView(data, ctx, envStatus) {
       </section>
     </div>
   </div>
+
+  <section class="card admin-sec">
+    <h2 class="card-h">6대 사업자 페르소나별 니즈 · 트래픽 매핑 모니터링</h2>
+    <p class="note" style="margin:0 0 12px">방문자의 페이지 열람 및 시뮬레이터 실행 패턴을 6대 핵심 페르소나에 자동 매핑하여 현재 어떤 사업자군의 어떤 고민이 가장 많이 유입되고 있는지 모니터링합니다.</p>
+    <div class="table-scroll">
+      <table class="mini-table admin-table">
+        <thead><tr><th>페르소나 분류</th><th style="text-align:left">핵심 모니터링 질문</th><th>연계 트래픽 지수</th><th style="text-align:left">핵심 연결 도구</th></tr></thead>
+        <tbody>
+          ${PERSONAS.map((ps) => {
+            const matchPaths = ps.mustDoNow.map((m) => m.href.split('#')[0].split('?')[0]);
+            const score = topPages.filter((tp) => matchPaths.includes(tp.path)).reduce((a, b) => a + b.pv, 0);
+            return `<tr>
+              <th><strong>${esc(ps.badge)}</strong><span class="path-sub">${esc(ps.title)}</span></th>
+              <td style="text-align:left;font-weight:500;font-size:13px">${esc(ps.monitoredQuestions[0])}</td>
+              <td class="tnum">${score.toLocaleString('ko-KR')} PV</td>
+              <td style="text-align:left;font-size:12.5px"><a href="${esc(ps.mustDoNow[0].href)}" target="_blank">${esc(ps.mustDoNow[0].label)}</a></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  </section>
 
   <div class="admin-two">
     <section class="card admin-sec">

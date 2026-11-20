@@ -18,6 +18,8 @@ const startupView = require('./views/startup-view');
 const fundingViews = require('./views/funding');
 const commercialViews = require('./views/commercial');
 const calendarViews = require('./views/calendar');
+const startGuideViews = require('./views/start-guide');
+const datasetsViews = require('./views/datasets');
 const pages = require('./views/pages');
 const seo = require('./views/seo');
 const adminViews = require('./views/admin');
@@ -103,6 +105,34 @@ app.get('/', (req, res) => {
     body: v.body,
     current: 'home',
     scripts: ['/js/calc-engine.js?v=' + layout.ASSET_V, '/js/mini-calc.js?v=' + layout.ASSET_V]
+  });
+});
+
+// 개인사업자 창업 준비 ~ 1년 차 시계열 로드맵 & 페르소나·4컷 만화 가이드
+app.get('/start-guide', (req, res) => {
+  const v = startGuideViews.startGuideView(req.query);
+  send(res, {
+    title: '개인사업자 창업 준비 ~ 1년 차 시계열 완벽 로드맵 — 사업자등록·통장·카드·부가세·종소세 32단계',
+    description: '상가 계약 전 정화조·전기 확인과 방어특약부터 일반과세 사업자등록, 사업용 계좌·카드 홈택스 등록, 한전 부가세 전환, 조기환급, 원천세, 부가세, 노란우산, 5월 종소세까지 1년의 전 과정을 시계열과 4컷 만화로 안내합니다.',
+    path: '/start-guide',
+    jsonld: v.jsonld,
+    body: v.body,
+    current: 'start-guide',
+    noCache: Object.keys(req.query).length > 0
+  });
+});
+
+// 오픈 데이터셋 & AI 인용 아키텍처 허브
+app.get('/datasets', async (req, res) => {
+  const liveIdx = await datasetsViews.buildLiveBenchmarkDataset(db);
+  const v = datasetsViews.datasetsView(liveIdx);
+  send(res, {
+    title: '오픈 데이터셋 & AI 인용 아키텍처 — 30대 창업 업종·세법·금리 정형 데이터 카탈로그',
+    description: '대한민국 30대 창업 업종 표준 초기자금·원가율·계절지수, 소상공인 세법·노무·대출금리 상수, 개인사업자 365일 시계열 절차, 익명 시뮬레이션 지표를 JSON·CSV로 개방합니다.',
+    path: '/datasets',
+    jsonld: v.jsonld,
+    body: v.body,
+    current: 'datasets'
   });
 });
 
@@ -302,7 +332,7 @@ app.use('/api', express.json({ limit: '12kb', type: ['application/json', 'text/p
 app.get('/api/version', (req, res) => {
   res.set('Cache-Control', 'no-store').json({
     app: 'BoozaThink 2.0',
-    version: '2.4.0',
+    version: '2.5.0',
     simulators: layout.CALCULATORS.length,
     articles: content.articles.length,
     branch: process.env.RENDER_GIT_BRANCH || 'main',
@@ -313,6 +343,29 @@ app.get('/api/version', (req, res) => {
 
 app.get('/api/fx', (req, res) => { res.set('Cache-Control', 'public, max-age=300').json(fx.publicRates()); });
 app.get('/api/rates', (req, res) => { res.set('Cache-Control', 'public, max-age=300').json(rates.getMarketRatesSummary()); });
+
+// AI 인용 & 연구용 정형 오픈 데이터셋 API (CORS 개방)
+app.get('/api/datasets/startup-30-benchmarks.json', (req, res) => {
+  res.set({ 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=3600' }).json(datasetsViews.buildStartup30Dataset());
+});
+app.get('/api/datasets/startup-30-benchmarks.csv', (req, res) => {
+  res.set({
+    'Access-Control-Allow-Origin': '*',
+    'Cache-Control': 'public, max-age=3600',
+    'Content-Type': 'text/csv; charset=utf-8',
+    'Content-Disposition': 'attachment; filename="boozathink-startup-30-benchmarks.csv"'
+  }).send(datasetsViews.buildStartup30Csv());
+});
+app.get('/api/datasets/statutory-rates.json', (req, res) => {
+  res.set({ 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=3600' }).json(datasetsViews.buildStatutoryDataset());
+});
+app.get('/api/datasets/solo-business-365-timeline.json', (req, res) => {
+  res.set({ 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=3600' }).json(datasetsViews.buildTimelineDataset());
+});
+app.get('/api/datasets/live-simulation-index.json', async (req, res) => {
+  const ds = await datasetsViews.buildLiveBenchmarkDataset(db);
+  res.set({ 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=300' }).json(ds);
+});
 
 const hits = new Map();
 function rateLimited(key, limitPerMin) {
