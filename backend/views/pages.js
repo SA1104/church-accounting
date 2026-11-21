@@ -155,7 +155,7 @@ function home(ctx) {
 </div>`;
   const jsonld = [
     { '@context': 'https://schema.org', '@type': 'WebSite', name: 'BoozaThink', alternateName: 'BoozaThink 사업자 손익·자금 연구소', url: SITE.url, inLanguage: 'ko-KR', description: SITE.description },
-    { '@context': 'https://schema.org', '@type': 'Organization', name: 'BoozaThink', url: SITE.url, logo: abs('/img/apple-touch-icon.png'), email: SITE.email },
+    { '@context': 'https://schema.org', '@type': 'Organization', name: 'BoozaThink', alternateName: '부자생각 창업·손익 연구소', url: SITE.url, logo: abs('/img/apple-touch-icon.png'), email: SITE.email, sameAs: ['https://www.youtube.com/@BoozaThink'] },
     { '@context': 'https://schema.org', '@type': 'ItemList', name: 'BoozaThink 실전 시뮬레이터', itemListElement: CALCULATORS.map((c, i) => ({ '@type': 'ListItem', position: i + 1, url: abs('/calculators/' + c.slug), name: c.name })) },
     faqLd(faq)
   ];

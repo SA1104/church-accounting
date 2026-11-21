@@ -149,7 +149,7 @@ function footer(categories) {
     </div>
     <div class="f-col"><h3>핵심 시뮬레이터</h3><ul>${CALCULATORS.slice(0, 5).map((c) => `<li><a href="/calculators/${c.slug}">${esc(c.short)}</a></li>`).join('')}<li><a href="/calculators">전체 계산기 보기</a></li><li><a href="/requests">필요한 계산기 신청 · 투표</a></li></ul></div>
     <div class="f-col"><h3>창업 · 자금 · 상권</h3><ul><li><a href="/start-guide">첫 창업 1년 할 일 순서표</a></li><li><a href="/funding">사업자 대출 · 정책자금 라운지</a></li><li><a href="/commercial-area">우리 동네 상권 · 지도 분석</a></li><li><a href="/calendar">12개월 세무 · 자금 달력</a></li>${categories.slice(0, 2).map((c) => `<li><a href="/category/${c.slug}">${esc(c.name)}</a></li>`).join('')}</ul></div>
-    <div class="f-col"><h3>기준 자료 · 이용 안내</h3><ul><li><a href="/datasets">업종별 평균 비용 · 세율 기준표</a></li><li><a href="/about">서비스 소개 & 데이터 원칙</a></li><li><a href="/privacy-policy">개인정보처리방침</a></li><li><a href="/terms-of-service">이용약관 · 면책고지</a></li><li><a href="/contact">제휴 · 오류 제보</a></li></ul></div>
+    <div class="f-col"><h3>기준 자료 · 이용 안내</h3><ul><li><a href="https://www.youtube.com/@BoozaThink" target="_blank" rel="noopener">공식 유튜브 · 부자생각</a></li><li><a href="/datasets">업종별 평균 비용 · 세율 기준표</a></li><li><a href="/about">서비스 소개 & 데이터 원칙</a></li><li><a href="/privacy-policy">개인정보처리방침</a></li><li><a href="/terms-of-service">이용약관 · 면책고지</a></li><li><a href="/contact">제휴 · 오류 제보</a></li></ul></div>
   </div>
   <div class="footer-src">
     <p><strong>공식 데이터 출처 및 각주</strong> · 소상공인시장진흥공단 · 공정거래위원회 · 국세청 · 고용노동부(현행 및 차기 확정 최저임금 고시 반영) · 한국은행·은행연합회·금융투자협회 공시 지표 · 법제처(상가건물 임대차보호법) · 중소기업중앙회 (최신 검증 기준일 ${facts.VERIFIED_AT} · 55개 핵심 수식 자동 검산 완료)</p>

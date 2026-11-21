@@ -304,10 +304,59 @@ def upload_ep01(privacy: str = "public", force_api_upload: bool = False) -> str:
     )
 
 
+def upload_intro(privacy: str = "public", force_api_upload: bool = False) -> tuple[str, str]:
+    intro_dir = STUDIO_DIR / "output" / "official_channel_intro"
+    mp4_16 = intro_dir / "BOOZATHINK_Official_01_Channel_Intro_16x9_1080p.mp4"
+    mp4_9 = intro_dir / "BOOZATHINK_Official_01_Channel_Intro_9x16_Shorts.mp4"
+    thumb = intro_dir / "BOOZATHINK_Official_01_Channel_Intro_Thumbnail_1280x720.jpg"
+    if not mp4_16.exists() or not mp4_9.exists():
+        raise FileNotFoundError(f"공식 채널 소개 영상이 아직 생성되지 않았습니다: {intro_dir}")
+
+    r16 = upload_shorts_package(
+        mp4_path=mp4_16,
+        thumb_path=thumb,
+        title="[부자생각 공식 소개] 창업 전 예상수익 계산부터 운영 중 새는 돈 구멍까지! 무료 3초 실전 시뮬레이터",
+        description=(
+            "창업을 앞두고 실제로 한 달에 얼마가 남을지 미리 계산해 보고 싶으신가요?\n"
+            "아니면 지금 열심히 사업은 하고 있는데 도대체 어디서 돈이 새는지 손익 구조의 구멍을 확실히 찾아내고 싶으신가요?\n\n"
+            "예비창업자 · 매장 사장님 · 온라인 셀러를 위한 실전 창업·손익 연구소, 부자생각(boozathink.com)을 소개합니다!\n\n"
+            "• 30개 업종 실전 창업 마스터: 초기 인테리어·창업비용부터 비수기 버티는 힘까지 계산\n"
+            "• 매장 손익 구멍 정밀 탐지: 배달·포장 수수료 마진, 상가 월세 손익분기점, 주휴수당 vs 키오스크 비교\n"
+            "• 온라인 셀러 & 자금·세금 판독: 쿠팡·스토어 광고 효율·반품 손실, 저금리 정책자금·대환 진단, 부가세·종소세 계산기\n\n"
+            "올해 12월 31일까지만 모든 업종 시뮬레이터를 무료로 열어두었으니 누구나 편하게 찾아와 사용해 보세요!\n\n"
+            "👉 부자생각 무료 3초 시뮬레이터: https://boozathink.com/?utm_source=youtube&utm_medium=channel_intro\n\n"
+            "#부자생각 #BoozaThink #창업시뮬레이터 #자영업순수익 #배달마진계산기 #스마트스토어마진 #정책자금"
+        ),
+        pinned_comment=(
+            "창업 전에 예상 수익을 미리 계산해 보고 싶은 분도, 사업 중 어디서 돈이 새는지 확실히 점검하고 싶은 사장님도 누구나 무료로 써보실 수 있습니다 (올해 12.31까지 무료 개방)!\n"
+            "👉 https://boozathink.com/?utm_source=youtube&utm_medium=intro_pinned"
+        ),
+        tags=["부자생각", "BoozaThink", "창업시뮬레이터", "자영업순수익", "배달마진", "스마트스토어", "정책자금", "손익계산기"],
+        privacy=privacy,
+        force_api_upload=force_api_upload,
+    )
+    r9 = upload_shorts_package(
+        mp4_path=mp4_9,
+        thumb_path=None,
+        title="창업 전 예상수익 계산도, 장사 중 새는 돈 구멍 찾기도 3초 만에 끝내는 법! #부자생각 #Shorts",
+        description=(
+            "30개 업종 창업비용부터 배달·셀러 수수료 마진, 월세 손익분기점, 정책자금·세금까지 3초 만에 확인해 보세요! (올해 12.31까지 무료 개방)\n\n"
+            "👉 무료 3초 실전 시뮬레이터: https://boozathink.com/?utm_source=yt_shorts&utm_medium=intro_shorts\n\n"
+            "#부자생각 #BoozaThink #창업비용계산기 #자영업 #소상공인 #온라인셀러 #Shorts"
+        ),
+        pinned_comment="내 업종·매장 손익 구멍 3초 무료 판독기 👉 https://boozathink.com/?utm_source=yt_shorts&utm_medium=intro_shorts_pinned",
+        tags=["부자생각", "BoozaThink", "창업계산기", "자영업", "온라인셀러", "Shorts"],
+        privacy=privacy,
+        force_api_upload=force_api_upload,
+    )
+    return r16, r9
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--auth", action="store_true", help="최초 1회 부자생각(@BoozaThink) 브랜드 채널 전용 OAuth 연동")
     parser.add_argument("--verify-channel", action="store_true", help="현재 연결된 토큰이 부자생각 채널인지 2중 검증")
+    parser.add_argument("--upload-intro", action="store_true", help="공식 채널 소개 영상(16:9 + 9:16) 대기함/API 업로드")
     parser.add_argument("--upload-ep01", action="store_true", help="1호 펜 스케치 쇼츠 스테이징 또는 업로드")
     parser.add_argument("--privacy", default="public", choices=["public", "unlisted", "private"])
     parser.add_argument("--force-api-upload", action="store_true", help="대기함 저장과 동시에 YouTube API 직접 업로드 실행")
@@ -321,7 +370,9 @@ if __name__ == "__main__":
         yt_c = get_youtube_client(interactive_auth=False)
         info = assert_boozathink_channel_identity(yt_c, on_auth=False)
         print(f"[검증 통과] 안전하게 부자생각 채널에 연결되어 있습니다: {info}")
+    elif args.upload_intro:
+        upload_intro(privacy=args.privacy, force_api_upload=args.force_api_upload)
     elif args.upload_ep01:
         upload_ep01(privacy=args.privacy, force_api_upload=args.force_api_upload)
     else:
-        print("Ready. Options: --auth | --verify-channel | --upload-ep01 [--force-api-upload]")
+        print("Ready. Options: --auth | --verify-channel | --upload-intro | --upload-ep01 [--force-api-upload]")

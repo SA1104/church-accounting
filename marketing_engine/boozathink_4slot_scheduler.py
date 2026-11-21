@@ -94,7 +94,13 @@ def run_slot(slot: str, live: bool = False, force: bool = False) -> dict:
     elif slot == "breaktime":
         result["indexnow"] = posters.ping_indexnow([card["target_url"]], live=live)
     elif slot == "night_shorts":
-        result["youtube_shorts"] = yt_up.upload_ep01(privacy="public", force_api_upload=False)
+        s_idx = int(st.get("shorts_idx", 0))
+        if s_idx % 2 == 0:
+            result["youtube_shorts"] = yt_up.upload_intro(privacy="public", force_api_upload=False)
+        else:
+            result["youtube_shorts"] = yt_up.upload_ep01(privacy="public", force_api_upload=False)
+        if live:
+            st["shorts_idx"] = s_idx + 1
         result["threads"] = posters.post_to_threads(card["threads_caption"], first_party_img, live=live)
 
     if live:
