@@ -363,6 +363,151 @@ def write_channel_setup_guide(out_txt: Path) -> None:
     out_txt.write_text(guide, encoding="utf-8")
 
 
+def build_watermark_dark_gold_html() -> str:
+    """
+    400x400 RGBA transparent-corner YouTube Video Watermark (Option 1 — Recommended).
+    Designed to remain ultra-legible even when YouTube shrinks it to ~40x40 CSS px in the player corner!
+    """
+    return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><style>
+    {FONT_CSS}
+    body {{
+      width: 400px; height: 400px; overflow: hidden; background: transparent;
+      display: flex; align-items: center; justify-content: center;
+    }}
+    .badge {{
+      width: 376px; height: 376px; border-radius: 84px;
+      background: linear-gradient(145deg, #162447 0%, #0b132b 100%);
+      border: 12px solid #f4c95d;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.42);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 16px;
+    }}
+    .pen-svg {{ width: 126px; height: 118px; margin-bottom: 4px; }}
+    .ko {{
+      font-size: 74px; font-weight: 900; color: #ffffff;
+      letter-spacing: -0.04em; line-height: 1.04;
+    }}
+    .sub-pill {{
+      margin-top: 14px; background: #ef4444; color: #ffffff;
+      padding: 8px 34px; border-radius: 999px; border: 4px solid #ffffff;
+      font-size: 40px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.05;
+    }}
+    </style></head><body>
+      <div class="badge">
+        <svg class="pen-svg" viewBox="0 0 140 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22 96 L42 56 L98 56 L116 96 Z" fill="rgba(244,201,93,0.22)" stroke="#F4C95D" stroke-width="8" stroke-linejoin="round"/>
+          <path d="M34 96 V120 H104 V96" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+          <g transform="translate(104, 14) rotate(36)">
+            <path d="M0 0 L22 48 L11 64 L-11 64 L-22 48 Z" fill="#F4C95D" stroke="#FFFFFF" stroke-width="5" stroke-linejoin="round"/>
+            <line x1="0" y1="4" x2="0" y2="34" stroke="#0B132B" stroke-width="5" stroke-linecap="round"/>
+            <circle cx="0" cy="38" r="6" fill="#0B132B"/>
+          </g>
+        </svg>
+        <div class="ko">부자생각</div>
+        <div class="sub-pill">구독 +</div>
+      </div>
+    </body></html>"""
+
+
+def build_watermark_transparent_stamp_html() -> str:
+    """
+    400x400 RGBA pure transparent TV-bug style watermark (Option 2 — Minimalist Clean).
+    Strong white outer stroke/halo so it pops over both light sketchbook paper and dark backgrounds.
+    """
+    return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><style>
+    {FONT_CSS}
+    body {{
+      width: 400px; height: 400px; overflow: hidden; background: transparent;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }}
+    .wrap {{
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      filter: drop-shadow(0 4px 10px rgba(15,23,42,0.45));
+    }}
+    .pen-svg {{ width: 150px; height: 136px; margin-bottom: 4px; }}
+    .en1 {{
+      font-size: 76px; font-weight: 900; color: #0f172a; line-height: 0.94;
+      letter-spacing: -0.02em;
+      -webkit-text-stroke: 10px #ffffff; paint-order: stroke fill;
+    }}
+    .en2 {{
+      font-size: 72px; font-weight: 900; color: #1d4ed8; line-height: 0.98;
+      letter-spacing: 0.03em; margin-top: 4px;
+      -webkit-text-stroke: 10px #ffffff; paint-order: stroke fill;
+    }}
+    .ko-tag {{
+      margin-top: 10px; background: #0f172a; color: #fde047;
+      border: 5px solid #ffffff; border-radius: 999px;
+      padding: 6px 26px; font-size: 36px; font-weight: 900;
+    }}
+    </style></head><body>
+      <div class="wrap">
+        <svg class="pen-svg" viewBox="0 0 150 136" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(86, 12) rotate(36)">
+            <path d="M0 0 L34 74 L17 98 L-17 98 L-34 74 Z" fill="#F4C95D" stroke="#FFFFFF" stroke-width="14" stroke-linejoin="round"/>
+            <path d="M0 0 L34 74 L17 98 L-17 98 L-34 74 Z" fill="#F4C95D" stroke="#0F172A" stroke-width="6" stroke-linejoin="round"/>
+            <line x1="0" y1="6" x2="0" y2="50" stroke="#0F172A" stroke-width="6.5" stroke-linecap="round"/>
+            <circle cx="0" cy="56" r="8" fill="#0F172A"/>
+          </g>
+        </svg>
+        <div class="en1">BOOZA</div>
+        <div class="en2">THINK</div>
+        <div class="ko-tag">부자생각</div>
+      </div>
+    </body></html>"""
+
+
+def build_watermark_sketch_subscribe_html() -> str:
+    """
+    400x400 RGBA Sketchbook Note Watermark (Option 3 — Warm Sketchbook Card + Red Subscribe Pill).
+    """
+    return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><style>
+    {FONT_CSS}
+    body {{
+      width: 400px; height: 400px; overflow: hidden; background: transparent;
+      display: flex; align-items: center; justify-content: center;
+    }}
+    .card {{
+      width: 372px; height: 372px; border-radius: 76px;
+      background-color: #fcfbf7;
+      background-image:
+        linear-gradient(#e2e8f0 2px, transparent 2px),
+        linear-gradient(90deg, #e2e8f0 2px, transparent 2px);
+      background-size: 32px 32px;
+      border: 12px solid #18223c;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.32);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 14px;
+    }}
+    .pen-svg {{ width: 120px; height: 112px; margin-bottom: 4px; }}
+    .ko {{
+      font-size: 72px; font-weight: 900; color: #0f172a;
+      letter-spacing: -0.04em; line-height: 1.04;
+      background: linear-gradient(transparent 58%, #fef08a 58%);
+      padding: 0 8px;
+    }}
+    .sub-btn {{
+      margin-top: 14px; background: #1d4ed8; color: #ffffff;
+      border: 4px solid #0f172a; border-radius: 999px;
+      padding: 8px 34px; font-size: 38px; font-weight: 900; line-height: 1.05;
+    }}
+    </style></head><body>
+      <div class="card">
+        <svg class="pen-svg" viewBox="0 0 140 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22 96 L42 56 L98 56 L116 96 Z" fill="#FEF08A" stroke="#18223C" stroke-width="8" stroke-linejoin="round"/>
+          <path d="M34 96 V120 H104 V96" fill="#FFFFFF" stroke="#18223C" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+          <g transform="translate(104, 14) rotate(36)">
+            <path d="M0 0 L22 48 L11 64 L-11 64 L-22 48 Z" fill="#2563EB" stroke="#18223C" stroke-width="5.5" stroke-linejoin="round"/>
+            <line x1="0" y1="4" x2="0" y2="34" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
+            <circle cx="0" cy="38" r="6" fill="#FEF08A"/>
+          </g>
+        </svg>
+        <div class="ko">부자생각</div>
+        <div class="sub-btn">구독하기</div>
+      </div>
+    </body></html>"""
+
+
 def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     MANUAL_BOX.mkdir(parents=True, exist_ok=True)
@@ -373,6 +518,9 @@ def main() -> None:
     logo_dark_path = OUT_DIR / "BoozaThink_Profile_Logo_Dark_800x800.png"
     logo_sketch_path = OUT_DIR / "BoozaThink_Profile_Logo_Sketch_800x800.png"
     banner_path = OUT_DIR / "BoozaThink_Channel_Banner_2560x1440.png"
+    wm_dark_path = OUT_DIR / "BoozaThink_Video_Watermark_DarkGold_400x400.png"
+    wm_stamp_path = OUT_DIR / "BoozaThink_Video_Watermark_Transparent_Stamp_400x400.png"
+    wm_sketch_path = OUT_DIR / "BoozaThink_Video_Watermark_Sketch_Subscribe_400x400.png"
     guide_path = OUT_DIR / "BoozaThink_유튜브_채널세팅_복사용_가이드.txt"
 
     with sync_playwright() as p:
@@ -391,11 +539,30 @@ def main() -> None:
         pg_ban.screenshot(path=str(banner_path), type="png")
         pg_ban.close()
 
+        pg_wm = browser.new_page(viewport={"width": 400, "height": 400}, device_scale_factor=1)
+        pg_wm.set_content(build_watermark_dark_gold_html(), wait_until="networkidle")
+        pg_wm.screenshot(path=str(wm_dark_path), type="png", omit_background=True)
+
+        pg_wm.set_content(build_watermark_transparent_stamp_html(), wait_until="networkidle")
+        pg_wm.screenshot(path=str(wm_stamp_path), type="png", omit_background=True)
+
+        pg_wm.set_content(build_watermark_sketch_subscribe_html(), wait_until="networkidle")
+        pg_wm.screenshot(path=str(wm_sketch_path), type="png", omit_background=True)
+        pg_wm.close()
+
         browser.close()
 
     write_channel_setup_guide(guide_path)
 
-    for src in (logo_dark_path, logo_sketch_path, banner_path, guide_path):
+    for src in (
+        logo_dark_path,
+        logo_sketch_path,
+        banner_path,
+        wm_dark_path,
+        wm_stamp_path,
+        wm_sketch_path,
+        guide_path,
+    ):
         shutil.copy2(src, MANUAL_BOX / src.name)
         print(f"[OK] {src.name} ({src.stat().st_size:,} bytes) -> staged to Desktop box")
 
