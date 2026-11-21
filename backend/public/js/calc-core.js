@@ -638,14 +638,20 @@
       return E.fmt(val, 1) + unit;
     }
 
+    function isOwnerBrowser() {
+      try { if (localStorage.getItem('bt-ignore-analytics') === '1') return true; } catch (e) {}
+      return /(?:^|;\s*)bt_owner_ui=1/.test(document.cookie || '');
+    }
+
     function scheduleBench(payload) {
       if (!payload || !benchTextEl) return;
       clearTimeout(benchTimer);
       benchTimer = setTimeout(function () {
+        var sendBody = isOwnerBrowser() ? Object.assign({}, payload, { owner_preview: 1 }) : payload;
         fetch('/api/biz/benchmark', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(sendBody)
         }).then(function (r) { return r.json(); }).then(function (d) {
           if (!d || !d.ok) return;
           var indName = d.profileLabel || IND_LABEL[payload.industry] || '동종업계';

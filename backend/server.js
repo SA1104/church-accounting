@@ -279,6 +279,9 @@ if (process.env.ADSENSE_CLIENT) {
 function makeAdminToken() {
   return crypto.createHmac('sha256', COOKIE_SECRET).update('bt-admin:' + ADMIN_PASSCODE).digest('hex');
 }
+function makeOwnerDeviceSig() {
+  return crypto.createHmac('sha256', COOKIE_SECRET).update('bt-owner-device:' + ADMIN_PASSCODE).digest('hex').slice(0, 24);
+}
 function parseCookies(header) {
   const out = {};
   String(header || '').split(';').forEach((part) => {
@@ -293,6 +296,26 @@ function isAdminAuthed(req) {
   const expected = makeAdminToken();
   if (tok.length !== expected.length) return false;
   try { return crypto.timingSafeEqual(Buffer.from(tok), Buffer.from(expected)); } catch (e) { return false; }
+}
+function isOwnerDevice(req) {
+  const cookies = parseCookies(req.headers.cookie);
+  const sig = cookies.bt_owner || '';
+  const expected = makeOwnerDeviceSig();
+  if (sig.length !== expected.length) return false;
+  try { return crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected)); } catch (e) { return false; }
+}
+function buildOwnerCookies(req, enable) {
+  const secureFlag = req.secure || process.env.NODE_ENV === 'production' ? '; Secure' : '';
+  if (!enable) {
+    return [
+      `bt_owner=off; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000${secureFlag}`,
+      `bt_owner_ui=0; Path=/; SameSite=Lax; Max-Age=0${secureFlag}`
+    ];
+  }
+  return [
+    `bt_owner=${makeOwnerDeviceSig()}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000${secureFlag}`,
+    `bt_owner_ui=1; Path=/; SameSite=Lax; Max-Age=31536000${secureFlag}`
+  ];
 }
 
 const loginAttempts = new Map();
@@ -310,6 +333,12 @@ app.get('/admin', async (req, res) => {
   if (!isAdminAuthed(req)) {
     return send(res, { title: '관리자 로그인', path: '/admin', body: adminViews.loginView(req.query.err ? '패스코드가 올바르지 않습니다.' : ''), noindex: true, noCache: true, skipAnalytics: true });
   }
+  const cookies = parseCookies(req.headers.cookie);
+  let ownerExcluded = isOwnerDevice(req);
+  if (!ownerExcluded && cookies.bt_owner !== 'off') {
+    res.setHeader('Set-Cookie', buildOwnerCookies(req, true));
+    ownerExcluded = true;
+  }
   const summary = await db.getAnalyticsSummary(req.query.days);
   const envStatus = {
     ga4: Boolean(process.env.GA_MEASUREMENT_ID),
@@ -317,9 +346,42 @@ app.get('/admin', async (req, res) => {
     gsc: Boolean(process.env.GOOGLE_SITE_VERIFICATION),
     naver: Boolean(process.env.NAVER_SITE_VERIFICATION),
     clarity: Boolean(process.env.CLARITY_PROJECT_ID),
-    adsense: Boolean(process.env.ADSENSE_CLIENT)
+    adsense: Boolean(process.env.ADSENSE_CLIENT),
+    ownerExcluded,
+    phoneEnrollUrl: `${layout.SITE.url}/admin/exclude-device?k=${makeOwnerDeviceSig()}`,
+    notice: req.query.msg || ''
   };
   send(res, { title: 'Site Kit 상황판', path: '/admin', body: adminViews.dashboardView(summary, content, envStatus), noindex: true, noCache: true, skipAnalytics: true });
+});
+
+app.get('/admin/exclude-device', (req, res) => {
+  res.set('X-Robots-Tag', 'noindex, nofollow');
+  const k = String(req.query.k || '');
+  const expected = makeOwnerDeviceSig();
+  const valid = k.length === expected.length && crypto.timingSafeEqual(Buffer.from(k), Buffer.from(expected));
+  if (!valid) return res.status(403).type('text/plain; charset=utf-8').send('유효하지 않은 기기 등록 링크입니다.');
+  res.setHeader('Set-Cookie', buildOwnerCookies(req, true));
+  send(res, {
+    title: '사장님 기기 통계 제외 완료',
+    path: '/admin/exclude-device',
+    body: adminViews.deviceEnrolledView(),
+    noindex: true,
+    noCache: true,
+    skipAnalytics: true
+  });
+});
+
+app.post('/admin/toggle-owner-exclude', express.urlencoded({ extended: false, limit: '2kb' }), (req, res) => {
+  if (!isAdminAuthed(req)) return res.redirect(303, '/admin');
+  const enable = String((req.body && req.body.enable) || '') === '1';
+  res.setHeader('Set-Cookie', buildOwnerCookies(req, enable));
+  res.redirect(303, '/admin?msg=' + (enable ? 'excluded_on' : 'excluded_off'));
+});
+
+app.post('/admin/reset-traffic', express.urlencoded({ extended: false, limit: '2kb' }), async (req, res) => {
+  if (!isAdminAuthed(req)) return res.redirect(303, '/admin');
+  await db.resetTrafficLogs();
+  res.redirect(303, '/admin?msg=traffic_reset');
 });
 
 app.post('/admin/login', express.urlencoded({ extended: false, limit: '4kb' }), (req, res) => {
@@ -331,7 +393,10 @@ app.post('/admin/login', express.urlencoded({ extended: false, limit: '4kb' }), 
   const ok = a.length === b.length && crypto.timingSafeEqual(a, b);
   if (!ok) return res.redirect(303, '/admin?err=1');
   const secureFlag = req.secure || process.env.NODE_ENV === 'production' ? '; Secure' : '';
-  res.setHeader('Set-Cookie', `bt_admin=${makeAdminToken()}; Path=/admin; HttpOnly; SameSite=Strict; Max-Age=604800${secureFlag}`);
+  res.setHeader('Set-Cookie', [
+    `bt_admin=${makeAdminToken()}; Path=/admin; HttpOnly; SameSite=Strict; Max-Age=604800${secureFlag}`,
+    ...buildOwnerCookies(req, true)
+  ]);
   res.redirect(303, '/admin');
 });
 
@@ -405,6 +470,7 @@ function rateLimited(key, limitPerMin) {
 
 app.post('/api/biz/collect', async (req, res) => {
   res.set('Cache-Control', 'no-store');
+  if (isOwnerDevice(req)) return res.status(204).end();
   if (rateLimited('c:' + req.ip, 90)) return res.status(204).end();
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
@@ -454,7 +520,7 @@ app.post('/api/biz/benchmark', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   if (rateLimited('b:' + req.ip, 35)) return res.status(429).json({ ok: false, error: 'too many requests' });
   try {
-    const out = await db.record(req.body || {});
+    const out = await db.record(req.body || {}, { skipInsert: isOwnerDevice(req) });
     res.status(out.ok ? 200 : 400).json(out);
   } catch (e) {
     res.status(500).json({ ok: false, error: 'benchmark unavailable' });

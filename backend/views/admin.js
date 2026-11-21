@@ -3,7 +3,10 @@ const { esc, CALCULATORS } = require('./layout');
 const { icon } = require('./icons');
 const { PERSONAS } = require('../data/start-timeline');
 const { STARTUP_PROFILES } = require('../data/startup-profiles');
+const { SEED_TOOL_IDEAS } = require('../data/tool-requests-seed');
 const E = require('../lib/calc-engine.js');
+
+const SEED_VOTE_MAP = Object.fromEntries(SEED_TOOL_IDEAS.map((s) => [s.slug, s.baseVotes || 0]));
 
 const SOURCE_LABELS = {
   google: 'Google 검색',
@@ -67,6 +70,28 @@ function resolvePageTitle(pathStr, ctx) {
   return pathStr;
 }
 
+function deviceEnrolledView() {
+  return `
+<div class="container narrow">
+  <div class="card" style="margin:36px 0;border:2px solid #059669;padding:28px">
+    <span class="pill" style="background:#d1fae5;color:#065f46;font-weight:800">사장님 기기 등록 완료</span>
+    <h1 style="margin:12px 0 8px;font-size:24px">이 기기(스마트폰·브라우저)는 이제 통계에서 자동 제외됩니다!</h1>
+    <p style="color:var(--text-2);line-height:1.6;margin:0 0 18px">
+      브라우저 안에 <strong>1년 유지 전용 인식표</strong>가 저장되었습니다.<br>
+      이제 집 와이파이든 밖에서 LTE/5G로 접속하든, 이 브라우저로 사이트를 둘러보거나 시뮬레이터를 돌려도 <strong>방문수(PV·UV)와 실행 횟수에 절대 카운트되지 않습니다.</strong>
+    </p>
+    <p style="font-size:13.5px;color:var(--text-3);margin:0 0 20px">
+      ※ 팁: 카카오톡 안에서 링크를 열었을 때와 기본 인터넷 앱(사파리·크롬·삼성인터넷)은 저장소가 따로 움직이므로, <strong>자주 쓰시는 휴대폰 기본 브라우저에서도 이 링크를 한 번 열어주시면</strong> 양쪽 모두 완벽하게 제외됩니다.
+    </p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn btn-primary" href="/">홈으로 이동하기 →</a>
+      <a class="btn" href="/admin">관리자 상황판 열기</a>
+    </div>
+  </div>
+</div>
+<script>try{localStorage.setItem('bt-ignore-analytics','1');}catch(e){}</script>`;
+}
+
 function loginView(errMsg) {
   return `
 <div class="container narrow">
@@ -122,6 +147,56 @@ function dashboardView(data, ctx, envStatus) {
       <form method="POST" action="/admin/logout"><button type="submit" class="btn btn-ghost">로그아웃</button></form>
     </div>
   </header>
+
+  ${envStatus.notice === 'traffic_reset' ? '<div class="callout" style="margin-bottom:16px;border-color:#059669;background:rgba(16,185,129,0.08)"><strong>초기화 완료:</strong> 이전 테스트 방문·계산기 실행 기록을 모두 0으로 비웠습니다. 이제부터는 사장님 기기를 제외한 <strong>100% 순수 외부 손님</strong>만 집계됩니다.</div>' : ''}
+
+  <section class="card admin-sec" style="border:2px solid #059669;margin-bottom:18px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap">
+      <div style="flex:1;min-width:260px">
+        <span class="pill" style="background:${envStatus.ownerExcluded ? '#d1fae5;color:#065f46' : '#fee2e2;color:#991b1b'};font-weight:800">
+          ${envStatus.ownerExcluded ? '✓ 현재 이 기기(브라우저) 통계 자동 제외 중' : '현재 이 기기 통계 포함 중'}
+        </span>
+        <h2 class="card-h" style="margin:8px 0 4px;font-size:18px">사장님 본인 PC · 스마트폰 방문 카운트 제외 관리</h2>
+        <p style="margin:0;font-size:13.5px;color:var(--text-2);line-height:1.55">
+          휴대폰은 LTE/5G로 IP가 계속 바뀌지만, 아래 <strong>[스마트폰 제외 등록 링크]</strong>를 카톡 ‘나에게 보내기’로 보낸 뒤 휴대폰 브라우저(사파리·크롬·삼성인터넷)에서 <strong>딱 한 번만 눌러 열면</strong> 휴대폰에 1년짜리 인식표가 저장되어 외부 손님으로 잘못 잡히지 않습니다.
+        </p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <form method="POST" action="/admin/toggle-owner-exclude" style="margin:0">
+          <input type="hidden" name="enable" value="${envStatus.ownerExcluded ? '0' : '1'}">
+          <button type="submit" class="btn btn-sm">${envStatus.ownerExcluded ? '이 기기 제외 일시해제' : '이 기기 제외 켜기'}</button>
+        </form>
+        <form method="POST" action="/admin/reset-traffic" style="margin:0" onsubmit="return confirm('지금까지 테스트하며 쌓인 방문수(PV/UV)와 계산기 실행 로그를 모두 0으로 비우고, 지금부터 순수 외부 방문자만 새로 집계할까요? (문의·계산기 제안은 그대로 보존됩니다)');">
+          <button type="submit" class="btn btn-sm" style="color:var(--danger);border-color:rgba(220,38,38,0.35)">기존 테스트 방문·실행 0으로 비우기</button>
+        </form>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center">
+      <input type="text" id="owner-phone-link" readonly value="${esc(envStatus.phoneEnrollUrl || '')}" style="flex:1 1 280px;padding:8px 12px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg);color:var(--text-2);font-size:13px">
+      <button type="button" class="btn btn-primary btn-sm" id="copy-phone-enroll">스마트폰 제외 등록 링크 복사</button>
+      <span id="copy-phone-msg" style="font-size:12.5px;color:#059669;font-weight:700"></span>
+    </div>
+  </section>
+  <script>
+  (function(){
+    try {
+      if (${envStatus.ownerExcluded ? 'true' : 'false'}) localStorage.setItem('bt-ignore-analytics', '1');
+      else localStorage.removeItem('bt-ignore-analytics');
+    } catch(e){}
+    var btn = document.getElementById('copy-phone-enroll');
+    var inp = document.getElementById('owner-phone-link');
+    var msg = document.getElementById('copy-phone-msg');
+    if (btn && inp) {
+      btn.addEventListener('click', function(){
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(inp.value).then(function(){ msg.textContent = '복사 완료! 카톡 나에게 보내기로 휴대폰에서 1회 열어주세요.'; });
+        } else {
+          inp.select(); document.execCommand('copy'); msg.textContent = '복사 완료!';
+        }
+      });
+    }
+  })();
+  </script>
 
   <section class="admin-kpis tnum">
     <div class="card"><span class="ak-label">페이지 조회수 (PV)</span><strong class="ak-val">${kpis.pv.toLocaleString('ko-KR')}</strong><small>봇·크롤러 제외 실방문</small></div>
@@ -226,9 +301,14 @@ function dashboardView(data, ctx, envStatus) {
 
   <div class="admin-two">
     <section class="card admin-sec">
-      <h2 class="card-h">차기 계산기 고객 공감 투표 순위 (/requests)</h2>
+      <h2 class="card-h">차기 계산기 고객 공감 투표 순위 (/requests · 실제 클릭 분리 표시)</h2>
       <ul class="stat-bars tnum">
-        ${ci.topToolVotes.map((t, i) => `<li><div class="sb-row"><span><strong>${i + 1}위.</strong> ${esc(t.title)}</span><strong>${Number(t.votes).toLocaleString('ko-KR')}표</strong></div></li>`).join('')}
+        ${ci.topToolVotes.map((t, i) => {
+          const baseV = SEED_VOTE_MAP[t.slug] || 0;
+          const totalV = Number(t.votes) || 0;
+          const realV = Math.max(0, totalV - baseV);
+          return `<li><div class="sb-row"><span><strong>${i + 1}위.</strong> ${esc(t.title)}</span><strong>실제 +${realV.toLocaleString('ko-KR')}표 <small style="color:var(--text-3);font-weight:500">(노출합산 ${totalV.toLocaleString('ko-KR')}표)</small></strong></div></li>`;
+        }).join('')}
       </ul>
       ${ci.customToolIdeas.length ? `<h3 class="sub-h">고객 직접 신청 계산기 아이디어 (${ci.customToolIdeas.length}건)</h3><ul class="inq-list">${ci.customToolIdeas.map((idea) => `<li><div class="inq-meta"><span class="pill">${esc(idea.category_label)}</span><strong>${esc(idea.title)}</strong></div><p class="inq-msg">${esc(idea.desc_text)}</p></li>`).join('')}</ul>` : ''}
     </section>
@@ -273,4 +353,4 @@ function dashboardView(data, ctx, envStatus) {
 </div>`;
 }
 
-module.exports = { loginView, dashboardView };
+module.exports = { loginView, dashboardView, deviceEnrolledView };

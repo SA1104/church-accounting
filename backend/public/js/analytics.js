@@ -5,6 +5,18 @@
   var p = window.location.pathname || '/';
   if (p.indexOf('/admin') === 0) return;
 
+  function isOwnerExcluded() {
+    try {
+      if (localStorage.getItem('bt-ignore-analytics') === '1') return true;
+    } catch (e) {}
+    return /(?:^|;\s*)bt_owner_ui=1/.test(document.cookie || '');
+  }
+
+  if (isOwnerExcluded()) {
+    root.BTTrack = function () {};
+    return;
+  }
+
   var vid = Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-6);
   var activeMs = 0;
   var lastVisibleAt = document.visibilityState === 'visible' ? Date.now() : 0;

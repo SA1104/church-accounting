@@ -394,9 +394,10 @@ function summarize(calc, values, value, profileLabel) {
   };
 }
 
-async function record(body) {
+async function record(body, opts) {
   const row = sanitize(body || {});
   if (!row) return { ok: false, error: 'invalid calculator' };
+  const skipInsert = Boolean((opts && opts.skipInsert) || (body && body.owner_preview === 1));
   const m = METRICS[row.calculator];
   const value = row[m.col];
   const groupInd = row.industry;
@@ -406,11 +407,13 @@ async function record(body) {
 
   if (state.connected && driver === 'pg') {
     try {
-      await pool.query(
-        `INSERT INTO public.biz_simulator_runs (calculator, industry, net_margin_pct, break_even_roas, payback_months, monthly_saving_krw, matched_programs, eff_tax_rate, rent_ratio_pct, meta)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb)`,
-        [row.calculator, row.industry, row.net_margin_pct, row.break_even_roas, row.payback_months, row.monthly_saving_krw, row.matched_programs, row.eff_tax_rate, row.rent_ratio_pct, JSON.stringify(row.meta || {})]
-      );
+      if (!skipInsert) {
+        await pool.query(
+          `INSERT INTO public.biz_simulator_runs (calculator, industry, net_margin_pct, break_even_roas, payback_months, monthly_saving_krw, matched_programs, eff_tax_rate, rent_ratio_pct, meta)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb)`,
+          [row.calculator, row.industry, row.net_margin_pct, row.break_even_roas, row.payback_months, row.monthly_saving_krw, row.matched_programs, row.eff_tax_rate, row.rent_ratio_pct, JSON.stringify(row.meta || {})]
+        );
+      }
       const q = await pool.query(
         `SELECT ${m.col}::float8 AS v, meta->>'profile' AS prof FROM public.biz_simulator_runs
          WHERE calculator = $1 AND ($2 = 'etc' OR industry = $2) AND ${m.col} IS NOT NULL
@@ -421,17 +424,19 @@ async function record(body) {
       let vals = profVals.length >= 20 ? profVals : q.rows.map((r) => Number(r.v));
       const real = vals.length;
       if (real < 30) vals = vals.concat(seedSample(row.calculator));
-      return { ok: true, storage: 'supabase-pg', realSamples: real, ...summarize(row.calculator, vals, value, profLabel) };
+      return { ok: true, storage: 'supabase-pg', skippedOwner: skipInsert, realSamples: real, ...summarize(row.calculator, vals, value, profLabel) };
     } catch (e) {
       state.lastError = e.message;
     }
   } else if (state.connected && driver === 'supabase-rpc') {
     try {
       const lit = (v) => (v == null ? 'NULL' : Number(v));
-      await rpcExecSql(
-        `INSERT INTO public.biz_simulator_runs (calculator, industry, net_margin_pct, break_even_roas, payback_months, monthly_saving_krw, matched_programs, eff_tax_rate, rent_ratio_pct, meta) VALUES (?, ?, ${lit(row.net_margin_pct)}, ${lit(row.break_even_roas)}, ${lit(row.payback_months)}, ${lit(row.monthly_saving_krw)}, ${lit(row.matched_programs)}, ${lit(row.eff_tax_rate)}, ${lit(row.rent_ratio_pct)}, ?::jsonb)`,
-        [row.calculator, row.industry, JSON.stringify(row.meta || {})]
-      );
+      if (!skipInsert) {
+        await rpcExecSql(
+          `INSERT INTO public.biz_simulator_runs (calculator, industry, net_margin_pct, break_even_roas, payback_months, monthly_saving_krw, matched_programs, eff_tax_rate, rent_ratio_pct, meta) VALUES (?, ?, ${lit(row.net_margin_pct)}, ${lit(row.break_even_roas)}, ${lit(row.payback_months)}, ${lit(row.monthly_saving_krw)}, ${lit(row.matched_programs)}, ${lit(row.eff_tax_rate)}, ${lit(row.rent_ratio_pct)}, ?::jsonb)`,
+          [row.calculator, row.industry, JSON.stringify(row.meta || {})]
+        );
+      }
       const qRows = await rpcExecSql(
         `SELECT ${m.col}::float8 AS v, meta->>'profile' AS prof FROM public.biz_simulator_runs WHERE calculator = ? AND (? = 'etc' OR industry = ?) AND ${m.col} IS NOT NULL ORDER BY created_at DESC LIMIT 5000`,
         [row.calculator, groupInd, groupInd]
@@ -440,20 +445,22 @@ async function record(body) {
       let vals = profVals.length >= 20 ? profVals : qRows.map((r) => Number(r.v));
       const real = vals.length;
       if (real < 30) vals = vals.concat(seedSample(row.calculator));
-      return { ok: true, storage: 'supabase-rpc', realSamples: real, ...summarize(row.calculator, vals, value, profLabel) };
+      return { ok: true, storage: 'supabase-rpc', skippedOwner: skipInsert, realSamples: real, ...summarize(row.calculator, vals, value, profLabel) };
     } catch (e) {
       state.lastError = e.message;
     }
   }
 
   const mem = memory[row.calculator];
-  if (Number.isFinite(value)) { mem.push(value); if (mem.length > 5000) mem.shift(); }
-  if (row.meta && Object.keys(row.meta).length) {
-    memRunMetas.push({ created_at: new Date(), calculator: row.calculator, meta: row.meta });
-    if (memRunMetas.length > 3000) memRunMetas.shift();
+  if (!skipInsert) {
+    if (Number.isFinite(value)) { mem.push(value); if (mem.length > 5000) mem.shift(); }
+    if (row.meta && Object.keys(row.meta).length) {
+      memRunMetas.push({ created_at: new Date(), calculator: row.calculator, meta: row.meta });
+      if (memRunMetas.length > 3000) memRunMetas.shift();
+    }
   }
   const vals = mem.concat(mem.length < 30 ? seedSample(row.calculator) : []);
-  return { ok: true, storage: 'memory', realSamples: mem.length, ...summarize(row.calculator, vals, value, profLabel) };
+  return { ok: true, storage: 'memory', skippedOwner: skipInsert, realSamples: mem.length, ...summarize(row.calculator, vals, value, profLabel) };
 }
 
 /* ───────── 자체 방문·체류시간·유입채널·UTM·바이럴 이벤트 수집 ───────── */
@@ -527,7 +534,7 @@ async function collectEvent(payload, reqMeta) {
   const refInfo = classifyReferrer(payload.ref, utmSource);
   const refSource = refInfo.source === 'internal' ? 'direct' : refInfo.source;
   const pageType = classifyPageType(rawPath);
-  const ALLOWED_EVENTS = ['pageview', 'copy_link', 'download_receipt', 'persona_pick', 'save_scenario', 'tool_vote'];
+  const ALLOWED_EVENTS = ['pageview', 'copy_link', 'download_receipt', 'download_compare_png', 'print_compare_pdf', 'persona_pick', 'save_scenario', 'tool_vote'];
   const eventName = mode === 'action' && ALLOWED_EVENTS.includes(payload.event) ? payload.event : 'pageview';
   const VALID_PERSONAS = ['first-founder', 'delivery-owner', 'ecommerce-seller', 'growth-borrower', 'unmanned-njob', 'tax-reboot-owner'];
   const effectivePath = (eventName === 'persona_pick' && VALID_PERSONAS.includes(payload.persona))
@@ -731,9 +738,9 @@ async function getAnalyticsSummary(daysInput) {
              COUNT(DISTINCT session_hash) FILTER (WHERE event_name = 'pageview')::int AS uv,
              COALESCE(ROUND(AVG(NULLIF(dwell_sec, 0)) FILTER (WHERE event_name = 'pageview')), 0)::int AS avg_dwell,
              COALESCE(ROUND(AVG(NULLIF(scroll_pct, 0)) FILTER (WHERE event_name = 'pageview')), 0)::int AS avg_scroll,
-             COUNT(*) FILTER (WHERE event_name IN ('copy_link','download_receipt','save_scenario'))::int AS shares,
+             COUNT(*) FILTER (WHERE event_name IN ('copy_link','download_receipt','download_compare_png','print_compare_pdf','save_scenario'))::int AS shares,
              COUNT(*) FILTER (WHERE event_name = 'copy_link')::int AS copy_clicks,
-             COUNT(*) FILTER (WHERE event_name = 'download_receipt')::int AS receipt_downloads
+             COUNT(*) FILTER (WHERE event_name IN ('download_receipt','download_compare_png','print_compare_pdf'))::int AS receipt_downloads
            FROM public.biz_page_events
            WHERE created_at >= now() - $1::interval`,
           [interval]
@@ -960,6 +967,20 @@ async function rlsStatus() {
   }
 }
 
+async function resetTrafficLogs() {
+  if (state.connected && driver === 'pg') {
+    await pool.query(`DELETE FROM public.biz_page_events`);
+    await pool.query(`DELETE FROM public.biz_simulator_runs`);
+  } else if (state.connected && driver === 'supabase-rpc') {
+    await rpcExecSql(`DELETE FROM public.biz_page_events WHERE id > 0`);
+    await rpcExecSql(`DELETE FROM public.biz_simulator_runs WHERE id > 0`);
+  }
+  CALCS.forEach((c) => { memory[c].length = 0; });
+  memRunMetas.length = 0;
+  memEvents.length = 0;
+  return { ok: true };
+}
+
 async function close() {
   if (pool) {
     try { await pool.end(); } catch (e) { /* noop */ }
@@ -970,6 +991,6 @@ async function close() {
 
 module.exports = {
   init, record, collectEvent, createInquiry, getPublicToolRequests, voteToolRequest, submitToolRequest,
-  getAnalyticsSummary, rlsStatus, close,
+  getAnalyticsSummary, resetTrafficLogs, rlsStatus, close,
   state: () => ({ ...state }), MIGRATION_SQL, ENFORCE_ALL_RLS_SQL, RLS_STATUS_SQL, CALCS
 };
