@@ -1,8 +1,21 @@
-# Secrets
+# Secrets & OAuth tokens (strictly isolated for BoozaThink)
 .env
 .env.*
 !.env.example
 **/.env
+**/client_secret*.json
+**/*_token*.json
+**/.boozathink_meta_guard.json
+**/boozathink_4slot_state.json
+**/*.jsonl
+
+# Python & video studio intermediate / heavy renders
+__pycache__/
+**/__pycache__/
+*.pyc
+youtube_studio/_work*/
+youtube_studio/output/**/*.mp4
+youtube_studio/output/**/*.wav
 
 # Dependencies
 node_modules/
