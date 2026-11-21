@@ -1,36 +1,32 @@
 # -*- coding: utf-8 -*-
 """
-BOOZA THINK (부자생각) — Official YouTube Channel Branding Kit (v2.0 — Pure Business & Startup Identity)
+BOOZA THINK (부자생각) — Official YouTube Channel Branding Kit (v3.0 — Master Brush Calligraphy Edition)
 ========================================================================================================
-Identity Alignment (100% Distinct Sibling of SA Think & Korea Think — ZERO "Art/Drawing" Misunderstanding):
-  - Korea Think : 글로벌 K-컬처 · 여행 라운지
-  - SA Think    : 가계 경제 · 절세 · 부동산 데이터 연구소
-  - BoozaThink  : 창업 · 자영업 · 온라인 셀러 실전 손익 & 정책자금 연구소 ("부자생각")
-
-Outputs (staged directly to Desktop `BoozaThink_유튜브_릴스_직접업로드_대기함/00_유튜브_채널_로고_배너_세팅팩`):
-  1. `BoozaThink_Profile_Logo_Dark_800x800.png`
-     - Deep Executive Navy + Royal Cobalt & Gold double-ring emblem, bold `BT` + Rising Profit Bars monogram,
-       `BOOZA THINK` + `부자생각 · 창업·손익 연구소`
-  2. `BoozaThink_Profile_Logo_White_800x800.png`
-     - Clean Studio Ivory-White + Royal Cobalt Blue fintech emblem (`boozathink.com` web palette match)
-  3. `BoozaThink_Channel_Banner_2560x1440.png`
-     - Non-cartoon, executive startup/profit simulator dashboard banner strictly inside YouTube's
-       1546x423 All-Devices Safe Zone (Mobile + PC + TV zero crop!)
-  4. 3 Transparent `400x400 PNG` Video Watermarks (`DarkGold`, `Minimal`, `CobaltWhite`) — zero pen nibs,
-     pure business/profit symbol + crisp `부자생각` / `구독` CTA.
-  5. `BoozaThink_유튜브_채널세팅_복사용_가이드.txt`
+THINK Universe Unified Signature:
+  - Korea Think : 힘있는 2단 붓글씨 (`KOREA THINK`)
+  - SA Think    : 힘있는 일필휘지 붓글씨 (`SA` + 데이터 연구소 대시보드)
+  - BoozaThink  : 힘있는 정통 먹물·골드 붓글씨 (`BOOZA THINK` 2단 워드마크 & `BT` 일필휘지 시그니처)
+                  + AI 티 나는 차트/화살표/이모티콘 100% 배제!
+                  + 승인된 문구 ("부자생각 창업·손익 연구소") 그대로 유지!
 """
 from __future__ import annotations
 
+import base64
+import io
 import shutil
 import sys
 from pathlib import Path
+
+import cv2
+import numpy as np
+from PIL import Image, ImageFilter
 from playwright.sync_api import sync_playwright
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 STUDIO_DIR = Path(__file__).resolve().parent
+ASSETS_DIR = STUDIO_DIR / "assets"
 OUT_DIR = STUDIO_DIR / "output" / "channel_branding"
 MANUAL_BOX = Path(r"C:\Users\new-s\OneDrive\Desktop\BoozaThink_유튜브_릴스_직접업로드_대기함") / "00_유튜브_채널_로고_배너_세팅팩"
 
@@ -41,179 +37,288 @@ body { font-family: 'Pretendard', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-s
 """
 
 
-def _profit_emblem_svg(size_w: int = 230, size_h: int = 165, dark_mode: bool = True) -> str:
-    """
-    Iconic Business & Profit Growth Emblem:
-    3 ascending revenue/margin bars + dynamic upward profit trajectory arrow (zero pen/art icons!).
-    """
-    bar1 = "#60A5FA" if dark_mode else "#93C5FD"
-    bar2 = "#3B82F6" if dark_mode else "#3B82F6"
-    bar3 = "#F59E0B" if dark_mode else "#1D4ED8"
-    arrow = "#FBBF24" if dark_mode else "#F59E0B"
-    base_line = "#94A3B8" if dark_mode else "#1E293B"
-    return f"""
-    <svg width="{size_w}" height="{size_h}" viewBox="0 0 240 170" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <!-- Subtle baseline -->
-      <line x1="28" y1="148" x2="212" y2="148" stroke="{base_line}" stroke-width="5" stroke-linecap="round" opacity="0.55"/>
-      <!-- 3 Ascending Profit & Margin Bars -->
-      <rect x="46" y="96" width="34" height="52" rx="8" fill="{bar1}"/>
-      <rect x="98" y="66" width="34" height="82" rx="8" fill="{bar2}"/>
-      <rect x="150" y="32" width="36" height="116" rx="8" fill="{bar3}"/>
-      <!-- Crisp Upward Profit Breakthrough Arrow -->
-      <path d="M40 84 L96 48 L132 60 L196 14" stroke="{arrow}" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M170 12 H198 V40" stroke="{arrow}" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>"""
+def _pil_to_data_uri(im: Image.Image) -> str:
+    buf = io.BytesIO()
+    im.save(buf, format="PNG")
+    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
 
 
-def build_logo_dark_html() -> str:
-    """800x800 Executive Royal Navy, Cobalt & Gold Circular Emblem (THINK Universe Family Look)."""
+def extract_2line_brush_wordmark_uri(
+    top_rgb: tuple[int, int, int],
+    bot_rgb: tuple[int, int, int],
+    target_w: int = 560,
+    add_white_outline: bool = False,
+) -> str:
+    """
+    Extracts `boozathink_2line_brush.jpg` (`BOOZA` / `THINK` master dry-brush calligraphy) into a razor-sharp
+    transparent RGBA PNG, coloring `BOOZA` with `top_rgb` and `THINK` with `bot_rgb` while preserving every
+    delicate horsehair bristle (`갈필 / 비백`).
+    """
+    src = Image.open(ASSETS_DIR / "boozathink_2line_brush.jpg").convert("L")
+    arr_full = np.asarray(src, dtype=np.float32)
+    ink_mask = arr_full < 236.0
+    ys, xs = np.nonzero(ink_mask)
+    pad = 18
+    x0, x1 = max(0, int(xs.min()) - pad), min(src.width, int(xs.max()) + pad)
+    y0, y1 = max(0, int(ys.min()) - pad), min(src.height, int(ys.max()) + pad)
+
+    cropped = src.crop((x0, y0, x1, y1))
+    scale = target_w / float(cropped.width)
+    new_w = target_w
+    new_h = max(32, int(round(cropped.height * scale)))
+    resized = cropped.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
+    arr = np.asarray(resized, dtype=np.float32)
+    alpha = np.clip((244.0 - arr) * 1.48, 0.0, 255.0)
+
+    # Connected-component separation between 'BOOZA' (top row) and 'THINK' (bottom row):
+    # guarantees 0% color bleed even where slanted brush bristles overlap in vertical Y!
+    fg_bin = (alpha > 8.0).astype(np.uint8)
+    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(fg_bin, connectivity=8)
+    is_top = np.zeros((new_h, new_w), dtype=bool)
+    for lbl in range(1, num_labels):
+        cy = float(centroids[lbl, 1])
+        if cy < new_h * 0.48:
+            is_top[labels == lbl] = True
+
+    # Assign any ultra-faint (alpha <= 8) anti-aliased fringe pixels by gentle slanted separator
+    slanted_y = (new_h * 0.49) - (np.arange(new_w, dtype=np.float32)[None, :] / float(new_w)) * (new_h * 0.06)
+    fringe = ~fg_bin.astype(bool)
+    is_top[fringe] = (np.arange(new_h, dtype=np.float32)[:, None] < slanted_y)[fringe]
+
+    rgba = np.zeros((new_h, new_w, 4), dtype=np.uint8)
+    rgba[is_top, 0] = top_rgb[0]
+    rgba[is_top, 1] = top_rgb[1]
+    rgba[is_top, 2] = top_rgb[2]
+
+    rgba[~is_top, 0] = bot_rgb[0]
+    rgba[~is_top, 1] = bot_rgb[1]
+    rgba[~is_top, 2] = bot_rgb[2]
+    rgba[:, :, 3] = alpha.astype(np.uint8)
+
+    fg_im = Image.fromarray(rgba)
+    if not add_white_outline:
+        return _pil_to_data_uri(fg_im)
+
+    # Optional crisp white halo for pure transparent video watermark
+    pad_o = 14
+    canvas = Image.new("RGBA", (new_w + pad_o * 2, new_h + pad_o * 2), (0, 0, 0, 0))
+    a_pad = Image.new("L", canvas.size, 0)
+    a_pad.paste(Image.fromarray(alpha.astype(np.uint8)), (pad_o, pad_o))
+    dilated = a_pad.filter(ImageFilter.MaxFilter(13)).filter(ImageFilter.GaussianBlur(1.4))
+    dil_arr = np.clip(np.asarray(dilated, dtype=np.float32) * 1.6, 0.0, 255.0).astype(np.uint8)
+    halo = np.zeros((canvas.height, canvas.width, 4), dtype=np.uint8)
+    halo[:, :, :3] = 255
+    halo[:, :, 3] = dil_arr
+    out = Image.fromarray(halo)
+    out.alpha_composite(fg_im, (pad_o, pad_o))
+    return _pil_to_data_uri(out)
+
+
+def extract_bt_monogram_uri(
+    ink_rgb: tuple[int, int, int],
+    target_h: int = 340,
+) -> tuple[str, int]:
+    """
+    Extracts `bt_monogram_brush.jpg` (`BT` single-breath calligraphy monogram) to transparent RGBA and returns
+    `(data_uri, optical_shift_x_px)` so the heavy stroke mass of `BT` sits dead-center inside circular seals
+    even with the dynamic right-sweeping `T` crossbar!
+    """
+    src = Image.open(ASSETS_DIR / "bt_monogram_brush.jpg").convert("L")
+    arr_full = np.asarray(src, dtype=np.float32)
+    ys, xs = np.nonzero(arr_full < 236.0)
+    pad = 16
+    x0, x1 = max(0, int(xs.min()) - pad), min(src.width, int(xs.max()) + pad)
+    y0, y1 = max(0, int(ys.min()) - pad), min(src.height, int(ys.max()) + pad)
+
+    cropped = src.crop((x0, y0, x1, y1))
+    scale = target_h / float(cropped.height)
+    new_h = target_h
+    new_w = max(32, int(round(cropped.width * scale)))
+    resized = cropped.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
+    arr = np.asarray(resized, dtype=np.float32)
+    alpha = np.clip((244.0 - arr) * 1.48, 0.0, 255.0)
+
+    # Compute horizontal ink center-of-mass to counter the long upper-right T tail
+    x_coords = np.arange(new_w, dtype=np.float32)[None, :]
+    cx_mass = float((alpha * x_coords).sum() / max(1.0, alpha.sum()))
+    bbox_mid = new_w * 0.5
+    optical_shift_x = int(round((bbox_mid - cx_mass) * 0.65))
+
+    rgba = np.zeros((new_h, new_w, 4), dtype=np.uint8)
+    rgba[:, :, 0] = ink_rgb[0]
+    rgba[:, :, 1] = ink_rgb[1]
+    rgba[:, :, 2] = ink_rgb[2]
+    rgba[:, :, 3] = alpha.astype(np.uint8)
+    return _pil_to_data_uri(Image.fromarray(rgba)), optical_shift_x
+
+
+# ---------------------------------------------------------------------------
+# 1. Three Master Brush-Calligraphy Profile Logos (800x800, Zero Clip-Art!)
+# ---------------------------------------------------------------------------
+def build_logo_01_wordmark_dark_html(wordmark_uri: str) -> str:
+    """Option 1 (Recommended): Deep Royal Navy & Gold Ring + 2-Line Brush `BOOZA THINK` + Approved Copy Pill."""
     return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><style>
     {FONT_CSS}
     body {{
-      width: 800px; height: 800px; overflow: hidden;
-      background: #080e1e;
+      width: 800px; height: 800px; overflow: hidden; background: #070d1b;
       display: flex; align-items: center; justify-content: center;
     }}
     .disc {{
       width: 756px; height: 756px; border-radius: 50%;
-      background: radial-gradient(circle at 38% 26%, #172b56 0%, #0b132b 62%, #060b18 100%);
-      border: 12px solid #f59e0b;
-      box-shadow: inset 0 0 0 11px #0b132b, inset 0 0 0 15px rgba(59, 130, 246, 0.72);
+      background: radial-gradient(circle at 46% 36%, #182e5c 0%, #0b132b 64%, #060b18 100%);
+      border: 13px solid #d99b26;
+      box-shadow: inset 0 0 0 11px #0b132b, inset 0 0 0 15px rgba(96, 165, 250, 0.52);
       position: relative;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
     }}
-    .grid-bg {{
-      position: absolute; inset: 28px; border-radius: 50%;
-      background-image:
-        linear-gradient(rgba(255,255,255,0.038) 1.5px, transparent 1.5px),
-        linear-gradient(90deg, rgba(255,255,255,0.038) 1.5px, transparent 1.5px);
-      background-size: 38px 38px;
-    }}
-    .emblem-wrap {{ margin-top: -12px; margin-bottom: 8px; z-index: 2; }}
-    .en-top {{
-      font-size: 92px; font-weight: 900; letter-spacing: -0.025em; line-height: 0.94;
-      color: #ffffff; z-index: 2;
-      text-shadow: 0 6px 20px rgba(0,0,0,0.45);
-    }}
-    .en-sub {{
-      font-size: 80px; font-weight: 900; letter-spacing: 0.06em; line-height: 1.02;
-      color: #fbbf24; margin-top: 4px; z-index: 2;
+    .brush-img {{
+      width: 536px; height: auto; margin-top: 22px;
+      filter: drop-shadow(0 10px 22px rgba(0,0,0,0.55));
     }}
     .ko-pill {{
-      margin-top: 26px; z-index: 2;
-      background: rgba(15, 23, 42, 0.92); color: #f8fafc;
-      padding: 12px 36px; border-radius: 999px;
-      border: 3px solid #f59e0b;
+      margin-top: 38px;
+      background: rgba(11, 19, 43, 0.94); color: #f8fafc;
+      padding: 13px 38px; border-radius: 999px;
+      border: 3px solid #d99b26;
       font-size: 29px; font-weight: 800; letter-spacing: -0.015em;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.40);
     }}
-    .ko-pill span {{ color: #60a5fa; font-weight: 900; }}
+    .ko-pill span {{ color: #fbbf24; font-weight: 900; }}
     </style></head><body>
       <div class="disc">
-        <div class="grid-bg"></div>
-        <div class="emblem-wrap">{_profit_emblem_svg(224, 158, dark_mode=True)}</div>
-        <div class="en-top">BOOZA</div>
-        <div class="en-sub">THINK</div>
+        <img src="{wordmark_uri}" class="brush-img" alt="BOOZA THINK" />
         <div class="ko-pill"><span>부자생각</span> · 창업·손익 연구소</div>
       </div>
     </body></html>"""
 
 
-def build_logo_white_html() -> str:
-    """800x800 Clean Fintech White & Royal Cobalt Emblem (Matches boozathink.com Web Theme)."""
+def build_logo_02_bt_dark_html(bt_white_uri: str, shift_x: int) -> str:
+    """Option 2: Deep Royal Navy & Gold Ring + Single-Breath White Brush `BT` Monogram (SA Think Sibling)."""
     return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><style>
     {FONT_CSS}
     body {{
-      width: 800px; height: 800px; overflow: hidden;
-      background: #f8fafc;
+      width: 800px; height: 800px; overflow: hidden; background: #070d1b;
       display: flex; align-items: center; justify-content: center;
     }}
     .disc {{
       width: 756px; height: 756px; border-radius: 50%;
-      background: radial-gradient(circle at 50% 35%, #ffffff 0%, #f1f5f9 100%);
-      border: 13px solid #1e3a8a;
-      box-shadow: inset 0 0 0 11px #ffffff, inset 0 0 0 15px #3b82f6;
+      background: radial-gradient(circle at 46% 36%, #182e5c 0%, #0b132b 64%, #060b18 100%);
+      border: 13px solid #d99b26;
+      box-shadow: inset 0 0 0 11px #0b132b, inset 0 0 0 15px rgba(217, 155, 38, 0.42);
       position: relative;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
     }}
-    .emblem-wrap {{ margin-top: -12px; margin-bottom: 8px; z-index: 2; }}
-    .en-top {{
-      font-size: 92px; font-weight: 900; letter-spacing: -0.025em; line-height: 0.94;
-      color: #0f172a; z-index: 2;
-    }}
-    .en-sub {{
-      font-size: 80px; font-weight: 900; letter-spacing: 0.06em; line-height: 1.02;
-      color: #2563eb; margin-top: 4px; z-index: 2;
+    .bt-img {{
+      height: 365px; width: auto; margin-top: 14px;
+      transform: translateX({shift_x}px);
+      filter: drop-shadow(0 10px 24px rgba(0,0,0,0.55));
     }}
     .ko-pill {{
-      margin-top: 26px; z-index: 2;
-      background: #0f172a; color: #ffffff;
-      padding: 12px 36px; border-radius: 999px;
-      border: 3px solid #2563eb;
+      margin-top: 34px;
+      background: #f8fafc; color: #0b132b;
+      padding: 13px 38px; border-radius: 999px;
+      border: 3.5px solid #d99b26;
+      font-size: 29px; font-weight: 900; letter-spacing: -0.015em;
+    }}
+    .ko-pill span {{ color: #1d4ed8; font-weight: 900; }}
+    </style></head><body>
+      <div class="disc">
+        <img src="{bt_white_uri}" class="bt-img" alt="BT" />
+        <div class="ko-pill"><span>BOOZA THINK</span> · 창업·손익 연구소</div>
+      </div>
+    </body></html>"""
+
+
+def build_logo_03_bt_ivory_html(bt_ink_uri: str, shift_x: int) -> str:
+    """Option 3: Warm Executive Ivory & Sumi Ink `BT` Brush Calligraphy + Royal Cobalt/Gold Double Ring."""
+    return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><style>
+    {FONT_CSS}
+    body {{
+      width: 800px; height: 800px; overflow: hidden; background: #faf8f3;
+      display: flex; align-items: center; justify-content: center;
+    }}
+    .disc {{
+      width: 756px; height: 756px; border-radius: 50%;
+      background: #faf8f3;
+      border: 14px solid #1e3a8a;
+      box-shadow: inset 0 0 0 11px #faf8f3, inset 0 0 0 15px #b48e4c;
+      position: relative;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }}
+    .bt-img {{
+      height: 365px; width: auto; margin-top: 14px;
+      transform: translateX({shift_x}px);
+    }}
+    .ko-pill {{
+      margin-top: 34px;
+      background: #0f172a; color: #f8fafc;
+      padding: 13px 38px; border-radius: 999px;
+      border: 3px solid #b48e4c;
       font-size: 29px; font-weight: 800; letter-spacing: -0.015em;
     }}
     .ko-pill span {{ color: #fbbf24; font-weight: 900; }}
     </style></head><body>
       <div class="disc">
-        <div class="emblem-wrap">{_profit_emblem_svg(224, 158, dark_mode=False)}</div>
-        <div class="en-top">BOOZA</div>
-        <div class="en-sub">THINK</div>
+        <img src="{bt_ink_uri}" class="bt-img" alt="BT" />
         <div class="ko-pill"><span>부자생각</span> · 창업·손익 연구소</div>
       </div>
     </body></html>"""
 
 
-def build_channel_banner_html() -> str:
+# ---------------------------------------------------------------------------
+# 2. Executive Channel Banner (2560x1440 — Brush Seal + Approved Copy + Clean Data)
+# ---------------------------------------------------------------------------
+def build_channel_banner_html(wordmark_uri: str) -> str:
     """
-    2560x1440 Executive Startup, Store Profit & Policy-Fund Simulator Dashboard Banner.
-    Harmonized with SA Think's high-trust data banner architecture — 100% distinct Royal Navy/Cobalt/Amber palette!
-    CRITICAL YOUTUBE SAFE ZONE:
-      Center 1546 x 423 px -> left: 507px..2053px, top: 508px..931px.
-      Executive card sits strictly inside (520, 518) .. (2040, 922) = 1520 x 404 px!
+    2560x1440 Executive Banner inside strict 1546x423 YouTube All-Devices Safe Zone.
+    ZERO generic clip-art icons/arrows — Left seal features pure Master Brush `BOOZA THINK` calligraphy!
     """
     return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><style>
     {FONT_CSS}
     body {{
       width: 2560px; height: 1440px; overflow: hidden; position: relative;
-      background-color: #f4f7fb;
+      background-color: #f5f7fb;
       background-image:
-        linear-gradient(#e2e8f0 2px, transparent 2px),
-        linear-gradient(90deg, #e2e8f0 2px, transparent 2px);
+        linear-gradient(#e4eaf3 2px, transparent 2px),
+        linear-gradient(90deg, #e4eaf3 2px, transparent 2px);
       background-size: 48px 48px;
     }}
-    /* Strict Center Safe-Zone Executive Dashboard Card (x: 520..2040, y: 518..922) */
     .exec-card {{
       position: absolute; left: 520px; top: 518px; width: 1520px; height: 404px;
-      background: linear-gradient(135deg, #0b132b 0%, #111f42 58%, #0d1833 100%);
-      border: 5px solid #f59e0b;
+      background: linear-gradient(135deg, #0b132b 0%, #122147 58%, #0c1631 100%);
+      border: 5px solid #d99b26;
       border-radius: 36px;
-      box-shadow: 0 22px 50px rgba(11, 19, 43, 0.28), inset 0 0 0 2px rgba(96, 165, 250, 0.28);
+      box-shadow: 0 22px 50px rgba(11, 19, 43, 0.28), inset 0 0 0 2px rgba(96, 165, 250, 0.24);
       display: flex; align-items: center; justify-content: space-between;
       padding: 28px 38px;
     }}
-    /* Left Round Brand Seal */
     .seal {{
-      width: 248px; height: 248px; border-radius: 50%; flex-shrink: 0;
-      background: radial-gradient(circle at 40% 30%, #1e3a8a 0%, #0b132b 75%);
-      border: 6px solid #f59e0b;
-      box-shadow: inset 0 0 0 5px rgba(255,255,255,0.12);
+      width: 252px; height: 252px; border-radius: 50%; flex-shrink: 0;
+      background: radial-gradient(circle at 44% 34%, #1b3468 0%, #091024 78%);
+      border: 6px solid #d99b26;
+      box-shadow: inset 0 0 0 5px rgba(255,255,255,0.10);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 16px;
     }}
-    .seal .s-en1 {{ font-size: 40px; font-weight: 900; color: #ffffff; line-height: 0.95; margin-top: 6px; }}
-    .seal .s-en2 {{ font-size: 35px; font-weight: 900; color: #fbbf24; letter-spacing: 0.06em; line-height: 1.02; }}
+    .seal img {{
+      width: 204px; height: auto;
+      filter: drop-shadow(0 6px 14px rgba(0,0,0,0.5));
+    }}
 
-    /* Center Copy Block */
     .mid-col {{
       flex: 1; padding: 0 34px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
     }}
     .pill-row {{ display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }}
     .kicker-pill {{
-      background: rgba(37, 99, 235, 0.28); color: #93c5fd;
+      background: rgba(37, 99, 235, 0.26); color: #93c5fd;
       border: 2px solid #3b82f6; border-radius: 999px;
       padding: 6px 18px; font-size: 20px; font-weight: 800;
     }}
     .free-pill {{
-      background: rgba(245, 158, 11, 0.20); color: #fde047;
-      border: 2px solid #f59e0b; border-radius: 999px;
+      background: rgba(217, 155, 38, 0.20); color: #fde047;
+      border: 2px solid #d99b26; border-radius: 999px;
       padding: 6px 16px; font-size: 19px; font-weight: 800;
     }}
     .main-title {{
@@ -226,17 +331,16 @@ def build_channel_banner_html() -> str:
       letter-spacing: -0.015em;
     }}
     .cta-btn {{
-      margin-top: 22px; background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+      margin-top: 22px; background: linear-gradient(90deg, #d99b26 0%, #fbbf24 100%);
       color: #0b132b; border-radius: 999px; padding: 12px 30px;
       font-size: 24px; font-weight: 900; letter-spacing: -0.01em;
-      box-shadow: 0 8px 20px rgba(245, 158, 11, 0.32);
+      box-shadow: 0 8px 20px rgba(217, 155, 38, 0.30);
     }}
 
-    /* Right Live Profit & Startup Simulator Preview Widget */
     .sim-widget {{
       width: 468px; height: 334px; flex-shrink: 0;
-      background: rgba(15, 23, 42, 0.88);
-      border: 2.5px solid rgba(148, 163, 184, 0.35);
+      background: rgba(11, 18, 36, 0.90);
+      border: 2.5px solid rgba(148, 163, 184, 0.32);
       border-radius: 24px; padding: 20px 22px;
       display: flex; flex-direction: column; justify-content: space-between;
     }}
@@ -251,25 +355,23 @@ def build_channel_banner_html() -> str:
     .m-lbl {{ color: #e2e8f0; }}
     .m-val-good {{ color: #34d399; font-weight: 900; }}
     .m-val-warn {{ color: #fb7185; font-weight: 900; }}
-    .bar-track {{ width: 100%; height: 15px; background: #1e293b; border-radius: 999px; overflow: hidden; }}
+    .bar-track {{ width: 100%; height: 14px; background: #1e293b; border-radius: 999px; overflow: hidden; }}
     .bar-good {{ width: 78%; height: 100%; background: linear-gradient(90deg, #3b82f6, #34d399); border-radius: 999px; }}
     .bar-warn {{ width: 42%; height: 100%; background: linear-gradient(90deg, #f43f5e, #fb923c); border-radius: 999px; }}
     .w-bottom-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }}
     .mini-box {{
       border-radius: 14px; padding: 11px 14px;
       background: rgba(30, 41, 59, 0.78);
-      border: 1.8px solid rgba(59, 130, 246, 0.45);
+      border: 1.8px solid rgba(59, 130, 246, 0.42);
     }}
-    .mini-box.gold {{ border-color: rgba(245, 158, 11, 0.55); }}
+    .mini-box.gold {{ border-color: rgba(217, 155, 38, 0.55); }}
     .mb-k {{ font-size: 16px; font-weight: 700; color: #94a3b8; white-space: nowrap; }}
     .mb-v {{ margin-top: 4px; font-size: 20px; font-weight: 900; color: #ffffff; white-space: nowrap; letter-spacing: -0.02em; }}
     .mini-box.gold .mb-v {{ color: #fde047; }}
     </style></head><body>
       <div class="exec-card">
         <div class="seal">
-          {_profit_emblem_svg(120, 86, dark_mode=True)}
-          <div class="s-en1">BOOZA</div>
-          <div class="s-en2">THINK</div>
+          <img src="{wordmark_uri}" alt="BOOZA THINK" />
         </div>
 
         <div class="mid-col">
@@ -316,8 +418,11 @@ def build_channel_banner_html() -> str:
     </body></html>"""
 
 
-def build_watermark_dark_gold_html() -> str:
-    """400x400 RGBA Executive Navy & Gold Subscribe Watermark (Zero pen nib — Profit Bars + 부자생각)."""
+# ---------------------------------------------------------------------------
+# 3. Three Pure Brush-Calligraphy Video Watermarks (400x400 Transparent PNG)
+# ---------------------------------------------------------------------------
+def build_wm_01_wordmark_dark_html(wordmark_uri: str) -> str:
+    """Watermark Option 1 (Recommended — Matches Korea Think's Brush Squircle Watermark!)."""
     return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><style>
     {FONT_CSS}
     body {{
@@ -325,33 +430,64 @@ def build_watermark_dark_gold_html() -> str:
       display: flex; align-items: center; justify-content: center;
     }}
     .badge {{
-      width: 376px; height: 376px; border-radius: 84px;
-      background: linear-gradient(145deg, #162a58 0%, #0b132b 100%);
-      border: 12px solid #f59e0b;
-      box-shadow: 0 10px 24px rgba(0,0,0,0.42);
+      width: 376px; height: 376px; border-radius: 82px;
+      background: linear-gradient(145deg, #162a58 0%, #091024 100%);
+      border: 12px solid #d99b26;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.44);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      padding: 16px;
+      padding: 18px;
     }}
-    .ko {{
-      margin-top: 6px; font-size: 74px; font-weight: 900; color: #ffffff;
-      letter-spacing: -0.04em; line-height: 1.04;
-    }}
+    .wm-img {{ width: 304px; height: auto; margin-top: 6px; }}
     .sub-pill {{
-      margin-top: 14px; background: #ef4444; color: #ffffff;
-      padding: 8px 34px; border-radius: 999px; border: 4px solid #ffffff;
-      font-size: 40px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.05;
+      margin-top: 18px; background: #e11d48; color: #ffffff;
+      padding: 8px 36px; border-radius: 999px; border: 3.5px solid #ffffff;
+      font-size: 36px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.05;
     }}
     </style></head><body>
       <div class="badge">
-        {_profit_emblem_svg(152, 108, dark_mode=True)}
+        <img src="{wordmark_uri}" class="wm-img" alt="BOOZA THINK" />
+        <div class="sub-pill">구독 +</div>
+      </div>
+    </body></html>"""
+
+
+def build_wm_02_bt_dark_html(bt_white_uri: str, shift_x: int) -> str:
+    """Watermark Option 2: `BT` Brush Monogram + `부자생각` + `구독 +`."""
+    return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><style>
+    {FONT_CSS}
+    body {{
+      width: 400px; height: 400px; overflow: hidden; background: transparent;
+      display: flex; align-items: center; justify-content: center;
+    }}
+    .badge {{
+      width: 376px; height: 376px; border-radius: 82px;
+      background: linear-gradient(145deg, #162a58 0%, #091024 100%);
+      border: 12px solid #d99b26;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.44);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 14px;
+    }}
+    .bt-img {{ height: 152px; width: auto; transform: translateX({int(shift_x * 0.42)}px); }}
+    .ko {{
+      margin-top: 4px; font-size: 62px; font-weight: 900; color: #fbbf24;
+      letter-spacing: -0.03em; line-height: 1.04;
+    }}
+    .sub-pill {{
+      margin-top: 10px; background: #e11d48; color: #ffffff;
+      padding: 6px 32px; border-radius: 999px; border: 3.5px solid #ffffff;
+      font-size: 34px; font-weight: 900; line-height: 1.05;
+    }}
+    </style></head><body>
+      <div class="badge">
+        <img src="{bt_white_uri}" class="bt-img" alt="BT" />
         <div class="ko">부자생각</div>
         <div class="sub-pill">구독 +</div>
       </div>
     </body></html>"""
 
 
-def build_watermark_transparent_stamp_html() -> str:
-    """400x400 RGBA Pure Transparent Broadcast Corner Stamp (BOOZA THINK + 부자생각)."""
+def build_wm_03_transparent_brush_html(outlined_wordmark_uri: str) -> str:
+    """Watermark Option 3: Box-free pure transparent corner stamp with Brush `BOOZA THINK` + `부자생각`."""
     return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><style>
     {FONT_CSS}
     body {{
@@ -360,84 +496,47 @@ def build_watermark_transparent_stamp_html() -> str:
     }}
     .wrap {{
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      filter: drop-shadow(0 4px 10px rgba(15,23,42,0.48));
+      filter: drop-shadow(0 5px 12px rgba(15,23,42,0.45));
     }}
-    .en1 {{
-      margin-top: 4px; font-size: 76px; font-weight: 900; color: #0f172a; line-height: 0.94;
-      letter-spacing: -0.02em;
-      -webkit-text-stroke: 10px #ffffff; paint-order: stroke fill;
-    }}
-    .en2 {{
-      font-size: 72px; font-weight: 900; color: #1d4ed8; line-height: 0.98;
-      letter-spacing: 0.03em; margin-top: 4px;
-      -webkit-text-stroke: 10px #ffffff; paint-order: stroke fill;
-    }}
+    .wm-img {{ width: 356px; height: auto; }}
     .ko-tag {{
-      margin-top: 10px; background: #0b132b; color: #fbbf24;
+      margin-top: 12px; background: #0b132b; color: #fbbf24;
       border: 5px solid #ffffff; border-radius: 999px;
-      padding: 6px 28px; font-size: 36px; font-weight: 900;
+      padding: 6px 30px; font-size: 36px; font-weight: 900;
     }}
     </style></head><body>
       <div class="wrap">
-        {_profit_emblem_svg(154, 108, dark_mode=False)}
-        <div class="en1">BOOZA</div>
-        <div class="en2">THINK</div>
+        <img src="{outlined_wordmark_uri}" class="wm-img" alt="BOOZA THINK" />
         <div class="ko-tag">부자생각</div>
       </div>
     </body></html>"""
 
 
-def build_watermark_cobalt_white_html() -> str:
-    """400x400 RGBA Fintech White & Royal Cobalt Subscribe Badge (Matches boozathink.com)."""
-    return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><style>
-    {FONT_CSS}
-    body {{
-      width: 400px; height: 400px; overflow: hidden; background: transparent;
-      display: flex; align-items: center; justify-content: center;
-    }}
-    .card {{
-      width: 374px; height: 374px; border-radius: 80px;
-      background: #ffffff;
-      border: 12px solid #1e3a8a;
-      box-shadow: 0 10px 24px rgba(15,23,42,0.32);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      padding: 14px;
-    }}
-    .ko {{
-      margin-top: 6px; font-size: 72px; font-weight: 900; color: #0f172a;
-      letter-spacing: -0.04em; line-height: 1.04;
-    }}
-    .sub-btn {{
-      margin-top: 14px; background: #2563eb; color: #ffffff;
-      border: 4px solid #0f172a; border-radius: 999px;
-      padding: 8px 34px; font-size: 38px; font-weight: 900; line-height: 1.05;
-    }}
-    </style></head><body>
-      <div class="card">
-        {_profit_emblem_svg(148, 104, dark_mode=False)}
-        <div class="ko">부자생각</div>
-        <div class="sub-btn">구독하기</div>
-      </div>
-    </body></html>"""
-
-
 def write_channel_setup_guide(out_txt: Path) -> None:
-    guide = """[부자생각 (BoozaThink) 유튜브 채널 핸들 변경 & 공식 브랜딩 세팅 시트 (v2.0)]
+    guide = """[부자생각 (BoozaThink) 유튜브 채널 핸들 변경 & 공식 붓글씨 브랜딩 세팅 시트 (v3.0)]
 ================================================================================
 
-1. 유튜브 스튜디오 [맞춤설정] 업로드 파일 안내
+1. 유튜브 스튜디오 [맞춤설정] 업로드 파일 안내 (차트 이모티콘 완전 제거 · 정통 붓글씨 버전)
 --------------------------------------------------------------------------------
-  - [사진 (프로필 로고)]:
-      추천 1) `BoozaThink_Profile_Logo_Dark_800x800.png` (네이비·골드 THINK 패밀리 시그니처)
-      추천 2) `BoozaThink_Profile_Logo_White_800x800.png` (화이트·코발트블루 모던형)
-  - [배너 이미지]:
-      `BoozaThink_Channel_Banner_2560x1440.png` (창업·순수익·정책자금 실전 시뮬레이터 대시보드형)
-  - [동영상 워터마크] (표시 시간: '전체 동영상' 선택 권장):
-      추천 1) `BoozaThink_Video_Watermark_DarkGold_400x400.png`
-      추천 2) `BoozaThink_Video_Watermark_Transparent_Stamp_400x400.png`
-      추천 3) `BoozaThink_Video_Watermark_CobaltWhite_400x400.png`
+  - [사진 (프로필 로고 — 800x800 PNG)]:
+      추천 1) `BoozaThink_Profile_Logo_01_NavyGold_BrushWordmark_800x800.png`
+              (다크 네이비 & 골드 링 + 힘있는 2단 붓글씨 `BOOZA THINK` — Korea Think 패밀리 톤)
+      추천 2) `BoozaThink_Profile_Logo_02_NavyGold_BT_Calligraphy_800x800.png`
+              (다크 네이비 & 골드 링 + 일필휘지 화이트 붓글씨 `BT` — SA Think 다크 패밀리 톤)
+      추천 3) `BoozaThink_Profile_Logo_03_IvoryInk_BT_Calligraphy_800x800.png`
+              (웜 아이보리 & 먹물 네이비 붓글씨 `BT` — SA Think 아이보리 먹물 패밀리 톤)
+
+  - [배너 이미지 — 2560x1440 PNG]:
+      `BoozaThink_Channel_Banner_2560x1440.png`
+      (좌측 붓글씨 인장 + 부자생각 창업·손익 연구소 + 우측 3초 실전 시뮬레이터 데이터 보드)
+
+  - [동영상 워터마크 — 400x400 투명 PNG] (표시 시간: '전체 동영상' 선택 권장):
+      추천 1) `BoozaThink_Video_Watermark_01_BrushWordmark_Dark_400x400.png` (2단 붓글씨 + 구독)
+      추천 2) `BoozaThink_Video_Watermark_02_BT_Calligraphy_Dark_400x400.png` (BT 붓글씨 + 부자생각 + 구독)
+      추천 3) `BoozaThink_Video_Watermark_03_Transparent_Brush_400x400.png` (배경 없는 투명 붓글씨 스탬프)
+
   - [이름]: `부자생각 BoozaThink` (또는 `BoozaThink` / `부자생각`)
-  - [핸들]: `@BoozaThink` (만약 선점되어 있다면 `@BoozaThinkcom`)
+  - [핸들]: `@BoozaThink` (선점되어 있을 경우 `@BoozaThinkcom`)
 
 ================================================================================
 
@@ -481,64 +580,72 @@ def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     MANUAL_BOX.mkdir(parents=True, exist_ok=True)
 
-    # Remove old v1 sketch-named files from output & Desktop box so there is zero confusion!
+    # Clean out old v2 chart-icon files from both output and Desktop folder
     for folder in (OUT_DIR, MANUAL_BOX):
-        for old_f in (
-            "BoozaThink_Profile_Logo_Sketch_800x800.png",
-            "BoozaThink_Video_Watermark_Sketch_Subscribe_400x400.png",
-        ):
-            (folder / old_f).unlink(missing_ok=True)
+        for old_p in folder.glob("*.png"):
+            old_p.unlink(missing_ok=True)
 
-    logo_dark_path = OUT_DIR / "BoozaThink_Profile_Logo_Dark_800x800.png"
-    logo_white_path = OUT_DIR / "BoozaThink_Profile_Logo_White_800x800.png"
-    banner_path = OUT_DIR / "BoozaThink_Channel_Banner_2560x1440.png"
-    wm_dark_path = OUT_DIR / "BoozaThink_Video_Watermark_DarkGold_400x400.png"
-    wm_stamp_path = OUT_DIR / "BoozaThink_Video_Watermark_Transparent_Stamp_400x400.png"
-    wm_cobalt_path = OUT_DIR / "BoozaThink_Video_Watermark_CobaltWhite_400x400.png"
-    guide_path = OUT_DIR / "BoozaThink_유튜브_채널세팅_복사용_가이드.txt"
+    wm_white_gold = extract_2line_brush_wordmark_uri(
+        top_rgb=(255, 255, 255),
+        bot_rgb=(251, 191, 36),
+        target_w=560,
+        add_white_outline=False,
+    )
+    wm_navy_cobalt_outlined = extract_2line_brush_wordmark_uri(
+        top_rgb=(15, 23, 42),
+        bot_rgb=(29, 78, 216),
+        target_w=380,
+        add_white_outline=True,
+    )
+    bt_white_uri, bt_shift_x = extract_bt_monogram_uri(ink_rgb=(255, 255, 255), target_h=380)
+    bt_ink_uri, _ = extract_bt_monogram_uri(ink_rgb=(15, 23, 42), target_h=380)
+
+    logo1 = OUT_DIR / "BoozaThink_Profile_Logo_01_NavyGold_BrushWordmark_800x800.png"
+    logo2 = OUT_DIR / "BoozaThink_Profile_Logo_02_NavyGold_BT_Calligraphy_800x800.png"
+    logo3 = OUT_DIR / "BoozaThink_Profile_Logo_03_IvoryInk_BT_Calligraphy_800x800.png"
+    banner = OUT_DIR / "BoozaThink_Channel_Banner_2560x1440.png"
+    wm1 = OUT_DIR / "BoozaThink_Video_Watermark_01_BrushWordmark_Dark_400x400.png"
+    wm2 = OUT_DIR / "BoozaThink_Video_Watermark_02_BT_Calligraphy_Dark_400x400.png"
+    wm3 = OUT_DIR / "BoozaThink_Video_Watermark_03_Transparent_Brush_400x400.png"
+    guide = OUT_DIR / "BoozaThink_유튜브_채널세팅_복사용_가이드.txt"
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
 
         pg_logo = browser.new_page(viewport={"width": 800, "height": 800}, device_scale_factor=1)
-        pg_logo.set_content(build_logo_dark_html(), wait_until="networkidle")
-        pg_logo.screenshot(path=str(logo_dark_path), type="png")
+        pg_logo.set_content(build_logo_01_wordmark_dark_html(wm_white_gold), wait_until="networkidle")
+        pg_logo.screenshot(path=str(logo1), type="png")
 
-        pg_logo.set_content(build_logo_white_html(), wait_until="networkidle")
-        pg_logo.screenshot(path=str(logo_white_path), type="png")
+        pg_logo.set_content(build_logo_02_bt_dark_html(bt_white_uri, bt_shift_x), wait_until="networkidle")
+        pg_logo.screenshot(path=str(logo2), type="png")
+
+        pg_logo.set_content(build_logo_03_bt_ivory_html(bt_ink_uri, bt_shift_x), wait_until="networkidle")
+        pg_logo.screenshot(path=str(logo3), type="png")
         pg_logo.close()
 
         pg_ban = browser.new_page(viewport={"width": 2560, "height": 1440}, device_scale_factor=1)
-        pg_ban.set_content(build_channel_banner_html(), wait_until="networkidle")
-        pg_ban.screenshot(path=str(banner_path), type="png")
+        pg_ban.set_content(build_channel_banner_html(wm_white_gold), wait_until="networkidle")
+        pg_ban.screenshot(path=str(banner), type="png")
         pg_ban.close()
 
         pg_wm = browser.new_page(viewport={"width": 400, "height": 400}, device_scale_factor=1)
-        pg_wm.set_content(build_watermark_dark_gold_html(), wait_until="networkidle")
-        pg_wm.screenshot(path=str(wm_dark_path), type="png", omit_background=True)
+        pg_wm.set_content(build_wm_01_wordmark_dark_html(wm_white_gold), wait_until="networkidle")
+        pg_wm.screenshot(path=str(wm1), type="png", omit_background=True)
 
-        pg_wm.set_content(build_watermark_transparent_stamp_html(), wait_until="networkidle")
-        pg_wm.screenshot(path=str(wm_stamp_path), type="png", omit_background=True)
+        pg_wm.set_content(build_wm_02_bt_dark_html(bt_white_uri, bt_shift_x), wait_until="networkidle")
+        pg_wm.screenshot(path=str(wm2), type="png", omit_background=True)
 
-        pg_wm.set_content(build_watermark_cobalt_white_html(), wait_until="networkidle")
-        pg_wm.screenshot(path=str(wm_cobalt_path), type="png", omit_background=True)
+        pg_wm.set_content(build_wm_03_transparent_brush_html(wm_navy_cobalt_outlined), wait_until="networkidle")
+        pg_wm.screenshot(path=str(wm3), type="png", omit_background=True)
         pg_wm.close()
 
         browser.close()
 
-    write_channel_setup_guide(guide_path)
+    write_channel_setup_guide(guide)
 
-    for src in (
-        logo_dark_path,
-        logo_white_path,
-        banner_path,
-        wm_dark_path,
-        wm_stamp_path,
-        wm_cobalt_path,
-        guide_path,
-    ):
+    for src in (logo1, logo2, logo3, banner, wm1, wm2, wm3, guide):
         shutil.copy2(src, MANUAL_BOX / src.name)
-        print(f"[OK v2] {src.name} ({src.stat().st_size:,} bytes) -> staged to Desktop box")
+        print(f"[OK v3 Brush] {src.name} ({src.stat().st_size:,} bytes) -> staged to Desktop box")
 
 
 if __name__ == "__main__":

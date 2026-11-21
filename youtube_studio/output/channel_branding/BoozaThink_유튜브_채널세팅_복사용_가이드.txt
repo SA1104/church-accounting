@@ -1,19 +1,27 @@
-[부자생각 (BoozaThink) 유튜브 채널 핸들 변경 & 공식 브랜딩 세팅 시트 (v2.0)]
+[부자생각 (BoozaThink) 유튜브 채널 핸들 변경 & 공식 붓글씨 브랜딩 세팅 시트 (v3.0)]
 ================================================================================
 
-1. 유튜브 스튜디오 [맞춤설정] 업로드 파일 안내
+1. 유튜브 스튜디오 [맞춤설정] 업로드 파일 안내 (차트 이모티콘 완전 제거 · 정통 붓글씨 버전)
 --------------------------------------------------------------------------------
-  - [사진 (프로필 로고)]:
-      추천 1) `BoozaThink_Profile_Logo_Dark_800x800.png` (네이비·골드 THINK 패밀리 시그니처)
-      추천 2) `BoozaThink_Profile_Logo_White_800x800.png` (화이트·코발트블루 모던형)
-  - [배너 이미지]:
-      `BoozaThink_Channel_Banner_2560x1440.png` (창업·순수익·정책자금 실전 시뮬레이터 대시보드형)
-  - [동영상 워터마크] (표시 시간: '전체 동영상' 선택 권장):
-      추천 1) `BoozaThink_Video_Watermark_DarkGold_400x400.png`
-      추천 2) `BoozaThink_Video_Watermark_Transparent_Stamp_400x400.png`
-      추천 3) `BoozaThink_Video_Watermark_CobaltWhite_400x400.png`
+  - [사진 (프로필 로고 — 800x800 PNG)]:
+      추천 1) `BoozaThink_Profile_Logo_01_NavyGold_BrushWordmark_800x800.png`
+              (다크 네이비 & 골드 링 + 힘있는 2단 붓글씨 `BOOZA THINK` — Korea Think 패밀리 톤)
+      추천 2) `BoozaThink_Profile_Logo_02_NavyGold_BT_Calligraphy_800x800.png`
+              (다크 네이비 & 골드 링 + 일필휘지 화이트 붓글씨 `BT` — SA Think 다크 패밀리 톤)
+      추천 3) `BoozaThink_Profile_Logo_03_IvoryInk_BT_Calligraphy_800x800.png`
+              (웜 아이보리 & 먹물 네이비 붓글씨 `BT` — SA Think 아이보리 먹물 패밀리 톤)
+
+  - [배너 이미지 — 2560x1440 PNG]:
+      `BoozaThink_Channel_Banner_2560x1440.png`
+      (좌측 붓글씨 인장 + 부자생각 창업·손익 연구소 + 우측 3초 실전 시뮬레이터 데이터 보드)
+
+  - [동영상 워터마크 — 400x400 투명 PNG] (표시 시간: '전체 동영상' 선택 권장):
+      추천 1) `BoozaThink_Video_Watermark_01_BrushWordmark_Dark_400x400.png` (2단 붓글씨 + 구독)
+      추천 2) `BoozaThink_Video_Watermark_02_BT_Calligraphy_Dark_400x400.png` (BT 붓글씨 + 부자생각 + 구독)
+      추천 3) `BoozaThink_Video_Watermark_03_Transparent_Brush_400x400.png` (배경 없는 투명 붓글씨 스탬프)
+
   - [이름]: `부자생각 BoozaThink` (또는 `BoozaThink` / `부자생각`)
-  - [핸들]: `@BoozaThink` (만약 선점되어 있다면 `@BoozaThinkcom`)
+  - [핸들]: `@BoozaThink` (선점되어 있을 경우 `@BoozaThinkcom`)
 
 ================================================================================
 
