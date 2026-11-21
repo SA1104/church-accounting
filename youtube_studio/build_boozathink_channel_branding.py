@@ -1,22 +1,27 @@
 # -*- coding: utf-8 -*-
 """
-BOOZA THINK (부자생각) — Official YouTube Channel Branding Kit Generator
-========================================================================
-Generates crisp, publication-grade YouTube branding assets for `부자생각 (@BoozaThink)`:
+BOOZA THINK (부자생각) — Official YouTube Channel Branding Kit (v2.0 — Pure Business & Startup Identity)
+========================================================================================================
+Identity Alignment (100% Distinct Sibling of SA Think & Korea Think — ZERO "Art/Drawing" Misunderstanding):
+  - Korea Think : 글로벌 K-컬처 · 여행 라운지
+  - SA Think    : 가계 경제 · 절세 · 부동산 데이터 연구소
+  - BoozaThink  : 창업 · 자영업 · 온라인 셀러 실전 손익 & 정책자금 연구소 ("부자생각")
+
+Outputs (staged directly to Desktop `BoozaThink_유튜브_릴스_직접업로드_대기함/00_유튜브_채널_로고_배너_세팅팩`):
   1. `BoozaThink_Profile_Logo_Dark_800x800.png`
-     - THINK Universe dark navy & gold double-ring family emblem (harmonized with `SA Think` & `Korea Think`)
-     - Custom SVG fountain-pen nib sketching a bright storefront roof + upward growth line
-  2. `BoozaThink_Profile_Logo_Sketch_800x800.png`
-     - Warm cream sketchbook grid paper circular emblem with navy fountain-pen line art
+     - Deep Executive Navy + Royal Cobalt & Gold double-ring emblem, bold `BT` + Rising Profit Bars monogram,
+       `BOOZA THINK` + `부자생각 · 창업·손익 연구소`
+  2. `BoozaThink_Profile_Logo_White_800x800.png`
+     - Clean Studio Ivory-White + Royal Cobalt Blue fintech emblem (`boozathink.com` web palette match)
   3. `BoozaThink_Channel_Banner_2560x1440.png`
-     - Full 2560x1440 TV canvas with strict centering inside YouTube's 1546x423 All-Devices Safe Zone
-       (x: 507..2053, y: 508..931) so zero text or artwork is cropped on Mobile, Desktop, or TV!
-  4. `BoozaThink_유튜브_채널세팅_복사용_가이드.txt`
-     - Exact step-by-step `@BoozaThnk -> @BoozaThink` handle update guide + copy-paste Channel Info.
+     - Non-cartoon, executive startup/profit simulator dashboard banner strictly inside YouTube's
+       1546x423 All-Devices Safe Zone (Mobile + PC + TV zero crop!)
+  4. 3 Transparent `400x400 PNG` Video Watermarks (`DarkGold`, `Minimal`, `CobaltWhite`) — zero pen nibs,
+     pure business/profit symbol + crisp `부자생각` / `구독` CTA.
+  5. `BoozaThink_유튜브_채널세팅_복사용_가이드.txt`
 """
 from __future__ import annotations
 
-import base64
 import shutil
 import sys
 from pathlib import Path
@@ -26,7 +31,6 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 STUDIO_DIR = Path(__file__).resolve().parent
-ASSETS_DIR = STUDIO_DIR / "assets"
 OUT_DIR = STUDIO_DIR / "output" / "channel_branding"
 MANUAL_BOX = Path(r"C:\Users\new-s\OneDrive\Desktop\BoozaThink_유튜브_릴스_직접업로드_대기함") / "00_유튜브_채널_로고_배너_세팅팩"
 
@@ -37,337 +41,283 @@ body { font-family: 'Pretendard', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-s
 """
 
 
+def _profit_emblem_svg(size_w: int = 230, size_h: int = 165, dark_mode: bool = True) -> str:
+    """
+    Iconic Business & Profit Growth Emblem:
+    3 ascending revenue/margin bars + dynamic upward profit trajectory arrow (zero pen/art icons!).
+    """
+    bar1 = "#60A5FA" if dark_mode else "#93C5FD"
+    bar2 = "#3B82F6" if dark_mode else "#3B82F6"
+    bar3 = "#F59E0B" if dark_mode else "#1D4ED8"
+    arrow = "#FBBF24" if dark_mode else "#F59E0B"
+    base_line = "#94A3B8" if dark_mode else "#1E293B"
+    return f"""
+    <svg width="{size_w}" height="{size_h}" viewBox="0 0 240 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Subtle baseline -->
+      <line x1="28" y1="148" x2="212" y2="148" stroke="{base_line}" stroke-width="5" stroke-linecap="round" opacity="0.55"/>
+      <!-- 3 Ascending Profit & Margin Bars -->
+      <rect x="46" y="96" width="34" height="52" rx="8" fill="{bar1}"/>
+      <rect x="98" y="66" width="34" height="82" rx="8" fill="{bar2}"/>
+      <rect x="150" y="32" width="36" height="116" rx="8" fill="{bar3}"/>
+      <!-- Crisp Upward Profit Breakthrough Arrow -->
+      <path d="M40 84 L96 48 L132 60 L196 14" stroke="{arrow}" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M170 12 H198 V40" stroke="{arrow}" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>"""
+
+
 def build_logo_dark_html() -> str:
-    """800x800 THINK-family dark navy & gold circular emblem (matches Korea Think & SA Think switcher look)."""
+    """800x800 Executive Royal Navy, Cobalt & Gold Circular Emblem (THINK Universe Family Look)."""
     return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><style>
     {FONT_CSS}
     body {{
       width: 800px; height: 800px; overflow: hidden;
-      background: #0b132b;
-      display: flex; align-items: center; justify-content: center;
-    }}
-    .disc {{
-      width: 760px; height: 760px; border-radius: 50%;
-      background: radial-gradient(circle at 35% 28%, #1d3557 0%, #0f172a 58%, #080d1a 100%);
-      border: 10px solid #f4c95d;
-      box-shadow: inset 0 0 0 12px #0f172a, inset 0 0 0 16px rgba(244, 201, 93, 0.52);
-      position: relative;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-    }}
-    .grid-overlay {{
-      position: absolute; inset: 28px; border-radius: 50%;
-      background-image:
-        linear-gradient(rgba(255,255,255,0.045) 1.5px, transparent 1.5px),
-        linear-gradient(90deg, rgba(255,255,255,0.045) 1.5px, transparent 1.5px);
-      background-size: 36px 36px;
-      pointer-events: none;
-    }}
-    .sketch-svg {{
-      width: 310px; height: 195px; margin-top: -18px; margin-bottom: 6px; z-index: 2;
-    }}
-    .en-top {{
-      font-size: 86px; font-weight: 900; letter-spacing: -0.02em; line-height: 0.96;
-      color: #ffffff; text-shadow: 0 6px 18px rgba(0,0,0,0.45); z-index: 2;
-    }}
-    .en-sub {{
-      font-size: 78px; font-weight: 900; letter-spacing: 0.06em; line-height: 1.02;
-      color: #f4c95d; margin-top: 2px; z-index: 2;
-    }}
-    .ko-pill {{
-      margin-top: 24px; z-index: 2;
-      background: #fcfbf7; color: #0f172a;
-      padding: 11px 34px; border-radius: 999px;
-      border: 3.5px solid #f4c95d;
-      font-size: 30px; font-weight: 800; letter-spacing: -0.01em;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.35);
-    }}
-    .ko-pill span {{ color: #1d4ed8; font-weight: 900; }}
-    </style></head><body>
-      <div class="disc">
-        <div class="grid-overlay"></div>
-        <svg class="sketch-svg" viewBox="0 0 320 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <!-- Hand-drawn storefront roof & warm window -->
-          <path d="M44 128 L72 78 L188 78 L214 128 Z" fill="rgba(244,201,93,0.18)" stroke="#F4C95D" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M64 128 V176 H196 V128" stroke="#FFFFFF" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <rect x="86" y="140" width="44" height="36" rx="4" fill="rgba(56,189,248,0.25)" stroke="#93C5FD" stroke-width="5"/>
-          <path d="M148 176 V142 H176 V176" stroke="#F4C95D" stroke-width="5"/>
-          <!-- Dotted pen-sketch trajectory rising into fountain pen nib -->
-          <path d="M26 176 Q 130 182 232 96" stroke="#60A5FA" stroke-width="5.5" stroke-dasharray="10 10" stroke-linecap="round"/>
-          <!-- Crisp Golden Fountain Pen Nib at upper right -->
-          <g transform="translate(242, 34) rotate(38)">
-            <path d="M0 0 L22 52 L11 68 L-11 68 L-22 52 Z" fill="#F4C95D" stroke="#FFFFFF" stroke-width="4.5" stroke-linejoin="round"/>
-            <line x1="0" y1="2" x2="0" y2="34" stroke="#0F172A" stroke-width="4.5" stroke-linecap="round"/>
-            <circle cx="0" cy="38" r="5.5" fill="#0F172A"/>
-            <rect x="-13" y="68" width="26" height="14" rx="3" fill="#E2E8F0" stroke="#FFFFFF" stroke-width="3.5"/>
-          </g>
-        </svg>
-        <div class="en-top">BOOZA</div>
-        <div class="en-sub">THINK</div>
-        <div class="ko-pill"><span>부자생각</span> · 쉬운 창업 스케치</div>
-      </div>
-    </body></html>"""
-
-
-def build_logo_sketch_html() -> str:
-    """800x800 Warm Cream Sketchbook Paper & Navy Fountain-Pen Ink Logo (Alternative Light Version)."""
-    return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><style>
-    {FONT_CSS}
-    body {{
-      width: 800px; height: 800px; overflow: hidden;
-      background: #fcfbf7;
+      background: #080e1e;
       display: flex; align-items: center; justify-content: center;
     }}
     .disc {{
       width: 756px; height: 756px; border-radius: 50%;
-      background-color: #fcfbf7;
-      background-image:
-        linear-gradient(#e5ecf6 2px, transparent 2px),
-        linear-gradient(90deg, #e5ecf6 2px, transparent 2px);
-      background-size: 36px 36px;
-      border: 12px solid #18223c;
-      box-shadow: inset 0 0 0 12px #fcfbf7, inset 0 0 0 17px #2563eb;
+      background: radial-gradient(circle at 38% 26%, #172b56 0%, #0b132b 62%, #060b18 100%);
+      border: 12px solid #f59e0b;
+      box-shadow: inset 0 0 0 11px #0b132b, inset 0 0 0 15px rgba(59, 130, 246, 0.72);
       position: relative;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
     }}
-    .hl-bar {{
-      position: absolute; width: 470px; height: 42px; background: #fef08a;
-      border-radius: 12px; top: 470px; z-index: 1; transform: rotate(-1.5deg);
+    .grid-bg {{
+      position: absolute; inset: 28px; border-radius: 50%;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.038) 1.5px, transparent 1.5px),
+        linear-gradient(90deg, rgba(255,255,255,0.038) 1.5px, transparent 1.5px);
+      background-size: 38px 38px;
     }}
-    .sketch-svg {{ width: 310px; height: 195px; margin-top: -16px; margin-bottom: 6px; z-index: 2; }}
+    .emblem-wrap {{ margin-top: -12px; margin-bottom: 8px; z-index: 2; }}
     .en-top {{
-      font-size: 86px; font-weight: 900; letter-spacing: -0.02em; line-height: 0.96;
-      color: #18223c; z-index: 2;
+      font-size: 92px; font-weight: 900; letter-spacing: -0.025em; line-height: 0.94;
+      color: #ffffff; z-index: 2;
+      text-shadow: 0 6px 20px rgba(0,0,0,0.45);
     }}
     .en-sub {{
-      font-size: 78px; font-weight: 900; letter-spacing: 0.06em; line-height: 1.04;
-      color: #1d4ed8; margin-top: 2px; z-index: 2;
+      font-size: 80px; font-weight: 900; letter-spacing: 0.06em; line-height: 1.02;
+      color: #fbbf24; margin-top: 4px; z-index: 2;
     }}
     .ko-pill {{
-      margin-top: 24px; z-index: 2;
-      background: #18223c; color: #ffffff;
-      padding: 11px 34px; border-radius: 999px;
-      font-size: 30px; font-weight: 800;
+      margin-top: 26px; z-index: 2;
+      background: rgba(15, 23, 42, 0.92); color: #f8fafc;
+      padding: 12px 36px; border-radius: 999px;
+      border: 3px solid #f59e0b;
+      font-size: 29px; font-weight: 800; letter-spacing: -0.015em;
     }}
-    .ko-pill span {{ color: #fde047; font-weight: 900; }}
+    .ko-pill span {{ color: #60a5fa; font-weight: 900; }}
     </style></head><body>
       <div class="disc">
-        <div class="hl-bar"></div>
-        <svg class="sketch-svg" viewBox="0 0 320 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M44 128 L72 78 L188 78 L214 128 Z" fill="#FEF08A" stroke="#18223C" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M64 128 V176 H196 V128" fill="#FFFFFF" stroke="#18223C" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-          <rect x="86" y="140" width="44" height="36" rx="4" fill="#BFDBFE" stroke="#18223C" stroke-width="5.5"/>
-          <path d="M148 176 V142 H176 V176" fill="#FDE68A" stroke="#18223C" stroke-width="5.5"/>
-          <path d="M26 176 Q 130 182 232 96" stroke="#2563EB" stroke-width="6" stroke-dasharray="10 10" stroke-linecap="round"/>
-          <g transform="translate(242, 34) rotate(38)">
-            <path d="M0 0 L22 52 L11 68 L-11 68 L-22 52 Z" fill="#2563EB" stroke="#18223C" stroke-width="5" stroke-linejoin="round"/>
-            <line x1="0" y1="2" x2="0" y2="34" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round"/>
-            <circle cx="0" cy="38" r="5.5" fill="#FEF08A"/>
-            <rect x="-13" y="68" width="26" height="14" rx="3" fill="#18223C"/>
-          </g>
-        </svg>
+        <div class="grid-bg"></div>
+        <div class="emblem-wrap">{_profit_emblem_svg(224, 158, dark_mode=True)}</div>
         <div class="en-top">BOOZA</div>
         <div class="en-sub">THINK</div>
-        <div class="ko-pill"><span>부자생각</span> · 쉬운 창업 스케치</div>
+        <div class="ko-pill"><span>부자생각</span> · 창업·손익 연구소</div>
       </div>
     </body></html>"""
 
 
-def build_channel_banner_html(shop_b64: str, steps_b64: str) -> str:
+def build_logo_white_html() -> str:
+    """800x800 Clean Fintech White & Royal Cobalt Emblem (Matches boozathink.com Web Theme)."""
+    return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><style>
+    {FONT_CSS}
+    body {{
+      width: 800px; height: 800px; overflow: hidden;
+      background: #f8fafc;
+      display: flex; align-items: center; justify-content: center;
+    }}
+    .disc {{
+      width: 756px; height: 756px; border-radius: 50%;
+      background: radial-gradient(circle at 50% 35%, #ffffff 0%, #f1f5f9 100%);
+      border: 13px solid #1e3a8a;
+      box-shadow: inset 0 0 0 11px #ffffff, inset 0 0 0 15px #3b82f6;
+      position: relative;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }}
+    .emblem-wrap {{ margin-top: -12px; margin-bottom: 8px; z-index: 2; }}
+    .en-top {{
+      font-size: 92px; font-weight: 900; letter-spacing: -0.025em; line-height: 0.94;
+      color: #0f172a; z-index: 2;
+    }}
+    .en-sub {{
+      font-size: 80px; font-weight: 900; letter-spacing: 0.06em; line-height: 1.02;
+      color: #2563eb; margin-top: 4px; z-index: 2;
+    }}
+    .ko-pill {{
+      margin-top: 26px; z-index: 2;
+      background: #0f172a; color: #ffffff;
+      padding: 12px 36px; border-radius: 999px;
+      border: 3px solid #2563eb;
+      font-size: 29px; font-weight: 800; letter-spacing: -0.015em;
+    }}
+    .ko-pill span {{ color: #fbbf24; font-weight: 900; }}
+    </style></head><body>
+      <div class="disc">
+        <div class="emblem-wrap">{_profit_emblem_svg(224, 158, dark_mode=False)}</div>
+        <div class="en-top">BOOZA</div>
+        <div class="en-sub">THINK</div>
+        <div class="ko-pill"><span>부자생각</span> · 창업·손익 연구소</div>
+      </div>
+    </body></html>"""
+
+
+def build_channel_banner_html() -> str:
     """
-    2560x1440 Official YouTube Banner.
+    2560x1440 Executive Startup, Store Profit & Policy-Fund Simulator Dashboard Banner.
+    Harmonized with SA Think's high-trust data banner architecture — 100% distinct Royal Navy/Cobalt/Amber palette!
     CRITICAL YOUTUBE SAFE ZONE:
       Center 1546 x 423 px -> left: 507px..2053px, top: 508px..931px.
-      Everything essential sits strictly inside (530, 522) .. (2030, 918)!
+      Executive card sits strictly inside (520, 518) .. (2040, 922) = 1520 x 404 px!
     """
     return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><style>
     {FONT_CSS}
     body {{
       width: 2560px; height: 1440px; overflow: hidden; position: relative;
-      background-color: #f8fafc;
+      background-color: #f4f7fb;
       background-image:
-        linear-gradient(#e6edf7 2px, transparent 2px),
-        linear-gradient(90deg, #e6edf7 2px, transparent 2px);
-      background-size: 44px 44px;
+        linear-gradient(#e2e8f0 2px, transparent 2px),
+        linear-gradient(90deg, #e2e8f0 2px, transparent 2px);
+      background-size: 48px 48px;
     }}
-    /* Subtle ambient sketchbook frame for TV viewers outside the 423px strip */
-    .tv-top-note {{
-      position: absolute; top: 180px; left: 0; right: 0; text-align: center;
-      font-size: 38px; font-weight: 800; color: #94a3b8; letter-spacing: 0.14em;
-    }}
-    .tv-bot-note {{
-      position: absolute; bottom: 180px; left: 0; right: 0; text-align: center;
-      font-size: 34px; font-weight: 700; color: #94a3b8; letter-spacing: 0.06em;
-    }}
-    /* Desktop full-width subtle cream band (y: 508..931, height: 423px) */
-    .desktop-band {{
-      position: absolute; left: 0; right: 0; top: 508px; height: 423px;
-      background: linear-gradient(90deg, #f1f5f9 0%, #fcfbf7 18%, #fcfbf7 82%, #f1f5f9 100%);
-      border-top: 4px solid #cbd5e1;
-      border-bottom: 4px solid #cbd5e1;
-    }}
-    /* Strict All-Devices Safe Zone Container (x: 530..2030 = 1500px, y: 524..915 = 391px) */
-    .safe-zone {{
-      position: absolute; left: 530px; top: 524px; width: 1500px; height: 391px;
+    /* Strict Center Safe-Zone Executive Dashboard Card (x: 520..2040, y: 518..922) */
+    .exec-card {{
+      position: absolute; left: 520px; top: 518px; width: 1520px; height: 404px;
+      background: linear-gradient(135deg, #0b132b 0%, #111f42 58%, #0d1833 100%);
+      border: 5px solid #f59e0b;
+      border-radius: 36px;
+      box-shadow: 0 22px 50px rgba(11, 19, 43, 0.28), inset 0 0 0 2px rgba(96, 165, 250, 0.28);
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0 22px;
+      padding: 28px 38px;
     }}
-    .left-sketch-card {{
-      width: 320px; height: 346px; background: #ffffff;
-      border: 4.5px solid #18223c; border-radius: 26px;
-      box-shadow: 8px 8px 0 #1d4ed8;
+    /* Left Round Brand Seal */
+    .seal {{
+      width: 248px; height: 248px; border-radius: 50%; flex-shrink: 0;
+      background: radial-gradient(circle at 40% 30%, #1e3a8a 0%, #0b132b 75%);
+      border: 6px solid #f59e0b;
+      box-shadow: inset 0 0 0 5px rgba(255,255,255,0.12);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      padding: 14px; position: relative; transform: rotate(-1.5deg);
     }}
-    .tape {{
-      position: absolute; top: -14px; width: 108px; height: 28px;
-      background: rgba(253, 224, 71, 0.88); border: 2px solid #18223c; border-radius: 6px;
-    }}
-    .left-sketch-card img {{ width: 255px; height: 255px; object-fit: contain; }}
-    .card-cap {{ font-size: 20px; font-weight: 800; color: #18223c; margin-top: 4px; }}
+    .seal .s-en1 {{ font-size: 40px; font-weight: 900; color: #ffffff; line-height: 0.95; margin-top: 6px; }}
+    .seal .s-en2 {{ font-size: 35px; font-weight: 900; color: #fbbf24; letter-spacing: 0.06em; line-height: 1.02; }}
 
-    .center-copy {{
-      width: 770px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
-      padding-left: 18px;
+    /* Center Copy Block */
+    .mid-col {{
+      flex: 1; padding: 0 34px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
     }}
-    .brand-row {{ display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }}
-    .brand-badge {{
-      background: #18223c; color: #f4c95d; font-size: 23px; font-weight: 900;
-      padding: 7px 20px; border-radius: 999px; letter-spacing: 0.03em;
-    }}
-    .brand-ko {{ font-size: 26px; font-weight: 800; color: #1d4ed8; }}
-    .headline {{
-      font-size: 56px; font-weight: 900; color: #0f172a; line-height: 1.16;
-      letter-spacing: -0.03em;
-    }}
-    .headline .hl {{
-      background: linear-gradient(transparent 56%, #fef08a 56%);
-      padding: 0 6px;
-    }}
-    .subline {{
-      margin-top: 14px; font-size: 25px; font-weight: 700; color: #334155;
-      letter-spacing: -0.015em;
-    }}
-    .cta-row {{
-      margin-top: 20px; display: flex; align-items: center; gap: 14px;
-    }}
-    .url-pill {{
-      background: #1d4ed8; color: #ffffff; border: 3.5px solid #0f172a;
-      border-radius: 999px; padding: 9px 26px; font-size: 24px; font-weight: 900;
-      box-shadow: 4px 4px 0 #0f172a;
+    .pill-row {{ display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }}
+    .kicker-pill {{
+      background: rgba(37, 99, 235, 0.28); color: #93c5fd;
+      border: 2px solid #3b82f6; border-radius: 999px;
+      padding: 6px 18px; font-size: 20px; font-weight: 800;
     }}
     .free-pill {{
-      background: #fef9c3; color: #854d0e; border: 3px solid #eab308;
-      border-radius: 999px; padding: 8px 20px; font-size: 21px; font-weight: 800;
+      background: rgba(245, 158, 11, 0.20); color: #fde047;
+      border: 2px solid #f59e0b; border-radius: 999px;
+      padding: 6px 16px; font-size: 19px; font-weight: 800;
+    }}
+    .main-title {{
+      font-size: 54px; font-weight: 900; color: #ffffff;
+      letter-spacing: -0.03em; line-height: 1.12;
+    }}
+    .main-title span {{ color: #fbbf24; }}
+    .sub-desc {{
+      margin-top: 12px; font-size: 23px; font-weight: 700; color: #cbd5e1;
+      letter-spacing: -0.015em;
+    }}
+    .cta-btn {{
+      margin-top: 22px; background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+      color: #0b132b; border-radius: 999px; padding: 12px 30px;
+      font-size: 24px; font-weight: 900; letter-spacing: -0.01em;
+      box-shadow: 0 8px 20px rgba(245, 158, 11, 0.32);
     }}
 
-    .right-sketch-card {{
-      width: 320px; height: 346px; background: #ffffff;
-      border: 4.5px solid #18223c; border-radius: 26px;
-      box-shadow: 8px 8px 0 #f59e0b;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      padding: 14px; position: relative; transform: rotate(1.4deg);
+    /* Right Live Profit & Startup Simulator Preview Widget */
+    .sim-widget {{
+      width: 468px; height: 334px; flex-shrink: 0;
+      background: rgba(15, 23, 42, 0.88);
+      border: 2.5px solid rgba(148, 163, 184, 0.35);
+      border-radius: 24px; padding: 20px 22px;
+      display: flex; flex-direction: column; justify-content: space-between;
     }}
-    .right-sketch-card img {{ width: 262px; height: 262px; object-fit: contain; }}
+    .w-head {{
+      background: #1e293b; border-radius: 12px; padding: 9px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 19px; font-weight: 800; color: #fde047;
+    }}
+    .w-head span {{ color: #93c5fd; font-size: 17px; }}
+    .metric-block {{ display: flex; flex-direction: column; gap: 6px; }}
+    .m-top {{ display: flex; justify-content: space-between; font-size: 19px; font-weight: 800; }}
+    .m-lbl {{ color: #e2e8f0; }}
+    .m-val-good {{ color: #34d399; font-weight: 900; }}
+    .m-val-warn {{ color: #fb7185; font-weight: 900; }}
+    .bar-track {{ width: 100%; height: 15px; background: #1e293b; border-radius: 999px; overflow: hidden; }}
+    .bar-good {{ width: 78%; height: 100%; background: linear-gradient(90deg, #3b82f6, #34d399); border-radius: 999px; }}
+    .bar-warn {{ width: 42%; height: 100%; background: linear-gradient(90deg, #f43f5e, #fb923c); border-radius: 999px; }}
+    .w-bottom-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }}
+    .mini-box {{
+      border-radius: 14px; padding: 11px 14px;
+      background: rgba(30, 41, 59, 0.78);
+      border: 1.8px solid rgba(59, 130, 246, 0.45);
+    }}
+    .mini-box.gold {{ border-color: rgba(245, 158, 11, 0.55); }}
+    .mb-k {{ font-size: 16px; font-weight: 700; color: #94a3b8; white-space: nowrap; }}
+    .mb-v {{ margin-top: 4px; font-size: 20px; font-weight: 900; color: #ffffff; white-space: nowrap; letter-spacing: -0.02em; }}
+    .mini-box.gold .mb-v {{ color: #fde047; }}
     </style></head><body>
-      <div class="tv-top-note">BOOZA THINK · PEN SKETCH BUSINESS LAB</div>
-      <div class="desktop-band"></div>
-      <div class="safe-zone">
-        <div class="left-sketch-card">
-          <div class="tape"></div>
-          <img src="data:image/jpeg;base64,{steps_b64}" alt="단계별 스케치" />
-          <div class="card-cap">1 · 2 · 3 단계별 창업 순서</div>
+      <div class="exec-card">
+        <div class="seal">
+          {_profit_emblem_svg(120, 86, dark_mode=True)}
+          <div class="s-en1">BOOZA</div>
+          <div class="s-en2">THINK</div>
         </div>
-        <div class="center-copy">
-          <div class="brand-row">
-            <span class="brand-badge">BOOZA THINK</span>
-            <span class="brand-ko">부자생각 · 펜으로 그리는 쉬운 창업</span>
+
+        <div class="mid-col">
+          <div class="pill-row">
+            <span class="kicker-pill">창업 · 자영업 · 온라인 셀러 실전 데이터</span>
+            <span class="free-pill">올해 12.31까지 무료 개방</span>
           </div>
-          <div class="headline">막연했던 내 가게 생각,<br><span class="hl">순서대로 그려보면 참 쉽습니다</span></div>
-          <div class="subline">사업자 신청 · 통장 · 상권 · 대출 · 세금까지 한눈에 선명해지는 실전 계산기</div>
-          <div class="cta-row">
-            <span class="url-pill">boozathink.com</span>
-            <span class="free-pill">올해 12.31까지 전 업종 무료 개방</span>
-          </div>
+          <div class="main-title"><span>부자생각</span> 창업·손익 연구소</div>
+          <div class="sub-desc">30개 업종 창업비용 · 배달·셀러 마진 · 정책자금 · 세금 3초 계산기</div>
+          <div class="cta-btn">무료 3초 실전 시뮬레이터 ▶ boozathink.com</div>
         </div>
-        <div class="right-sketch-card">
-          <div class="tape"></div>
-          <img src="data:image/jpeg;base64,{shop_b64}" alt="완성된 내 가게" />
-          <div class="card-cap">선명하게 완성되는 내 가게</div>
+
+        <div class="sim-widget">
+          <div class="w-head">
+            <div>실전 창업 · 순수익 3초 판독</div>
+            <span>30개 업종 기준</span>
+          </div>
+          <div class="metric-block">
+            <div class="m-top">
+              <span class="m-lbl">순서·수수료 설계 완료 매장</span>
+              <span class="m-val-good">월 순익 +642만 (22.5%)</span>
+            </div>
+            <div class="bar-track"><div class="bar-good"></div></div>
+          </div>
+          <div class="metric-block">
+            <div class="m-top">
+              <span class="m-lbl">수수료·부가세 누락 매장</span>
+              <span class="m-val-warn">월 순익 +185만 (6.4%)</span>
+            </div>
+            <div class="bar-track"><div class="bar-warn"></div></div>
+          </div>
+          <div class="w-bottom-grid">
+            <div class="mini-box">
+              <div class="mb-k">결제 전 사업자·통장 세팅</div>
+              <div class="mb-v">+480만 부가세 환급</div>
+            </div>
+            <div class="mini-box gold">
+              <div class="mb-k">기존대출·신용 맞춤 진단</div>
+              <div class="mb-v">연 3.5% 정책자금</div>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="tv-bot-note">boozathink.com — 예비 사장님과 소상공인을 위한 실전 손익 · 자금 · 세금 연구소</div>
     </body></html>"""
 
 
-def write_channel_setup_guide(out_txt: Path) -> None:
-    guide = """[부자생각 (BoozaThink) 유튜브 채널 핸들 변경 & 브랜딩 세팅 복사용 시트]
-================================================================================
-
-1. 어디서 '@BoozaThnk' -> '@BoozaThink'로 바꾸나요? (30초 완료)
---------------------------------------------------------------------------------
-[PC 크롬 브라우저 기준 — 가장 정확함]
-  ① 유튜브(https://www.youtube.com) 우측 상단 동그란 프로필 클릭 -> [계정 전환] 클릭
-  ② 6개 채널 목록 중 반드시 [부자생각 (@BoozaThnk)]을 클릭해 채널 전환!
-     (※ 주의: 현재 Korea Think에 체크(✓)가 되어 있으면 먼저 부자생각으로 전환해야 합니다)
-  ③ 다시 우측 상단 프로필 클릭 -> [YouTube 스튜디오] 클릭 (또는 https://studio.youtube.com 접속)
-  ④ 왼쪽 메뉴 아래쪽 [맞춤설정] (요술봉 모양 아이콘) 클릭
-  ⑤ 한 화면에 순서대로 나오는 항목에 바로 적용:
-     - [사진]: 같은 폴더의 `BoozaThink_Profile_Logo_Dark_800x800.png` 업로드
-              (밝은 노트 느낌을 원하시면 `BoozaThink_Profile_Logo_Sketch_800x800.png` 선택)
-     - [배너 이미지]: 같은 폴더의 `BoozaThink_Channel_Banner_2560x1440.png` 업로드
-     - [이름]: `부자생각 BoozaThink` (또는 `BoozaThink` / `부자생각` 중 선호하시는 표기)
-     - [핸들]: 기존 `@BoozaThnk`를 지우고 `@BoozaThink` 입력!
-              (만약 이미 사용 중이라고 뜨면 SA Think(@SAThinkcom)와 통일해 `@BoozaThinkcom` 입력)
-  ⑥ 우측 상단 파란색 [게시] 버튼을 누르면 즉시 반영됩니다! (기존 구독자 14명 100% 그대로 유지)
-
-[스마트폰 유튜브 앱 기준]
-  ① 우측 하단 [내 페이지(나)] -> 상단 [계정 전환] -> [부자생각 (@BoozaThnk)] 선택
-  ② [채널 보기] 터치 -> 오른쪽 [연필 아이콘(채널 수정)] 터치
-  ③ [이름]과 [핸들(@BoozaThink)] 수정 후 저장!
-
-================================================================================
-
-2. [설명(채널 소개글)] 칸에 그대로 복사해서 붙여넣을 문구
---------------------------------------------------------------------------------
-막연했던 내 가게 생각, 펜으로 하나씩 그려보면 참 쉽습니다.
-
-부자생각(BoozaThink)은 처음 창업을 준비하는 분부터 매일 매장을 운영하는 사장님, 온라인 셀러분들까지
-몰라서 손해 보는 돈이 없도록 순서대로 쉽게 풀어드리는 실전 창업·손익 연구소입니다.
-
-• 계약 전 실수 막는 사업자등록 · 전용 통장 · 인테리어 · 부가세 순서
-• 30개 업종별 초기 창업비용 · 배달 수수료 · 진짜 남는 순수익 계산
-• 내 기존 대출 조건에 맞는 정책자금 · 보증서 · 저금리 대환 점검
-• 실제 지도 위 반경 경쟁점 · 상권 입지 점검
-
-올해 12월 31일까지 모든 업종 시뮬레이터와 결과표 저장을 무료로 열어두었습니다.
-지금 내 가게 숫자를 미리 넣어보고 선명한 계획을 그려보세요!
-
-공식 웹사이트: https://boozathink.com
-
-================================================================================
-
-3. [링크] 섹션 추가 추천 (최대 4개)
---------------------------------------------------------------------------------
-1) 제목: 부자생각 무료 창업·순수익 계산기
-   URL : https://boozathink.com/calculators/startup-master?utm_source=youtube&utm_medium=channel_profile
-
-2) 제목: 창업 준비부터 첫 1년 전체 순서표
-   URL : https://boozathink.com/start-guide?utm_source=youtube&utm_medium=channel_profile
-
-3) 제목: 내 조건 정책자금·대출 가능 여부 점검
-   URL : https://boozathink.com/funding?utm_source=youtube&utm_medium=channel_profile
-
-4) 제목: 필요한 계산기 직접 신청·투표하기
-   URL : https://boozathink.com/requests?utm_source=youtube&utm_medium=channel_profile
-"""
-    out_txt.write_text(guide, encoding="utf-8")
-
-
 def build_watermark_dark_gold_html() -> str:
-    """
-    400x400 RGBA transparent-corner YouTube Video Watermark (Option 1 — Recommended).
-    Designed to remain ultra-legible even when YouTube shrinks it to ~40x40 CSS px in the player corner!
-    """
+    """400x400 RGBA Executive Navy & Gold Subscribe Watermark (Zero pen nib — Profit Bars + 부자생각)."""
     return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><style>
     {FONT_CSS}
     body {{
@@ -376,15 +326,14 @@ def build_watermark_dark_gold_html() -> str:
     }}
     .badge {{
       width: 376px; height: 376px; border-radius: 84px;
-      background: linear-gradient(145deg, #162447 0%, #0b132b 100%);
-      border: 12px solid #f4c95d;
+      background: linear-gradient(145deg, #162a58 0%, #0b132b 100%);
+      border: 12px solid #f59e0b;
       box-shadow: 0 10px 24px rgba(0,0,0,0.42);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       padding: 16px;
     }}
-    .pen-svg {{ width: 126px; height: 118px; margin-bottom: 4px; }}
     .ko {{
-      font-size: 74px; font-weight: 900; color: #ffffff;
+      margin-top: 6px; font-size: 74px; font-weight: 900; color: #ffffff;
       letter-spacing: -0.04em; line-height: 1.04;
     }}
     .sub-pill {{
@@ -394,15 +343,7 @@ def build_watermark_dark_gold_html() -> str:
     }}
     </style></head><body>
       <div class="badge">
-        <svg class="pen-svg" viewBox="0 0 140 130" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M22 96 L42 56 L98 56 L116 96 Z" fill="rgba(244,201,93,0.22)" stroke="#F4C95D" stroke-width="8" stroke-linejoin="round"/>
-          <path d="M34 96 V120 H104 V96" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
-          <g transform="translate(104, 14) rotate(36)">
-            <path d="M0 0 L22 48 L11 64 L-11 64 L-22 48 Z" fill="#F4C95D" stroke="#FFFFFF" stroke-width="5" stroke-linejoin="round"/>
-            <line x1="0" y1="4" x2="0" y2="34" stroke="#0B132B" stroke-width="5" stroke-linecap="round"/>
-            <circle cx="0" cy="38" r="6" fill="#0B132B"/>
-          </g>
-        </svg>
+        {_profit_emblem_svg(152, 108, dark_mode=True)}
         <div class="ko">부자생각</div>
         <div class="sub-pill">구독 +</div>
       </div>
@@ -410,10 +351,7 @@ def build_watermark_dark_gold_html() -> str:
 
 
 def build_watermark_transparent_stamp_html() -> str:
-    """
-    400x400 RGBA pure transparent TV-bug style watermark (Option 2 — Minimalist Clean).
-    Strong white outer stroke/halo so it pops over both light sketchbook paper and dark backgrounds.
-    """
+    """400x400 RGBA Pure Transparent Broadcast Corner Stamp (BOOZA THINK + 부자생각)."""
     return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><style>
     {FONT_CSS}
     body {{
@@ -422,11 +360,10 @@ def build_watermark_transparent_stamp_html() -> str:
     }}
     .wrap {{
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      filter: drop-shadow(0 4px 10px rgba(15,23,42,0.45));
+      filter: drop-shadow(0 4px 10px rgba(15,23,42,0.48));
     }}
-    .pen-svg {{ width: 150px; height: 136px; margin-bottom: 4px; }}
     .en1 {{
-      font-size: 76px; font-weight: 900; color: #0f172a; line-height: 0.94;
+      margin-top: 4px; font-size: 76px; font-weight: 900; color: #0f172a; line-height: 0.94;
       letter-spacing: -0.02em;
       -webkit-text-stroke: 10px #ffffff; paint-order: stroke fill;
     }}
@@ -436,20 +373,13 @@ def build_watermark_transparent_stamp_html() -> str:
       -webkit-text-stroke: 10px #ffffff; paint-order: stroke fill;
     }}
     .ko-tag {{
-      margin-top: 10px; background: #0f172a; color: #fde047;
+      margin-top: 10px; background: #0b132b; color: #fbbf24;
       border: 5px solid #ffffff; border-radius: 999px;
-      padding: 6px 26px; font-size: 36px; font-weight: 900;
+      padding: 6px 28px; font-size: 36px; font-weight: 900;
     }}
     </style></head><body>
       <div class="wrap">
-        <svg class="pen-svg" viewBox="0 0 150 136" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <g transform="translate(86, 12) rotate(36)">
-            <path d="M0 0 L34 74 L17 98 L-17 98 L-34 74 Z" fill="#F4C95D" stroke="#FFFFFF" stroke-width="14" stroke-linejoin="round"/>
-            <path d="M0 0 L34 74 L17 98 L-17 98 L-34 74 Z" fill="#F4C95D" stroke="#0F172A" stroke-width="6" stroke-linejoin="round"/>
-            <line x1="0" y1="6" x2="0" y2="50" stroke="#0F172A" stroke-width="6.5" stroke-linecap="round"/>
-            <circle cx="0" cy="56" r="8" fill="#0F172A"/>
-          </g>
-        </svg>
+        {_profit_emblem_svg(154, 108, dark_mode=False)}
         <div class="en1">BOOZA</div>
         <div class="en2">THINK</div>
         <div class="ko-tag">부자생각</div>
@@ -457,10 +387,8 @@ def build_watermark_transparent_stamp_html() -> str:
     </body></html>"""
 
 
-def build_watermark_sketch_subscribe_html() -> str:
-    """
-    400x400 RGBA Sketchbook Note Watermark (Option 3 — Warm Sketchbook Card + Red Subscribe Pill).
-    """
+def build_watermark_cobalt_white_html() -> str:
+    """400x400 RGBA Fintech White & Royal Cobalt Subscribe Badge (Matches boozathink.com)."""
     return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><style>
     {FONT_CSS}
     body {{
@@ -468,59 +396,105 @@ def build_watermark_sketch_subscribe_html() -> str:
       display: flex; align-items: center; justify-content: center;
     }}
     .card {{
-      width: 372px; height: 372px; border-radius: 76px;
-      background-color: #fcfbf7;
-      background-image:
-        linear-gradient(#e2e8f0 2px, transparent 2px),
-        linear-gradient(90deg, #e2e8f0 2px, transparent 2px);
-      background-size: 32px 32px;
-      border: 12px solid #18223c;
+      width: 374px; height: 374px; border-radius: 80px;
+      background: #ffffff;
+      border: 12px solid #1e3a8a;
       box-shadow: 0 10px 24px rgba(15,23,42,0.32);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       padding: 14px;
     }}
-    .pen-svg {{ width: 120px; height: 112px; margin-bottom: 4px; }}
     .ko {{
-      font-size: 72px; font-weight: 900; color: #0f172a;
+      margin-top: 6px; font-size: 72px; font-weight: 900; color: #0f172a;
       letter-spacing: -0.04em; line-height: 1.04;
-      background: linear-gradient(transparent 58%, #fef08a 58%);
-      padding: 0 8px;
     }}
     .sub-btn {{
-      margin-top: 14px; background: #1d4ed8; color: #ffffff;
+      margin-top: 14px; background: #2563eb; color: #ffffff;
       border: 4px solid #0f172a; border-radius: 999px;
       padding: 8px 34px; font-size: 38px; font-weight: 900; line-height: 1.05;
     }}
     </style></head><body>
       <div class="card">
-        <svg class="pen-svg" viewBox="0 0 140 130" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M22 96 L42 56 L98 56 L116 96 Z" fill="#FEF08A" stroke="#18223C" stroke-width="8" stroke-linejoin="round"/>
-          <path d="M34 96 V120 H104 V96" fill="#FFFFFF" stroke="#18223C" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
-          <g transform="translate(104, 14) rotate(36)">
-            <path d="M0 0 L22 48 L11 64 L-11 64 L-22 48 Z" fill="#2563EB" stroke="#18223C" stroke-width="5.5" stroke-linejoin="round"/>
-            <line x1="0" y1="4" x2="0" y2="34" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
-            <circle cx="0" cy="38" r="6" fill="#FEF08A"/>
-          </g>
-        </svg>
+        {_profit_emblem_svg(148, 104, dark_mode=False)}
         <div class="ko">부자생각</div>
         <div class="sub-btn">구독하기</div>
       </div>
     </body></html>"""
 
 
+def write_channel_setup_guide(out_txt: Path) -> None:
+    guide = """[부자생각 (BoozaThink) 유튜브 채널 핸들 변경 & 공식 브랜딩 세팅 시트 (v2.0)]
+================================================================================
+
+1. 유튜브 스튜디오 [맞춤설정] 업로드 파일 안내
+--------------------------------------------------------------------------------
+  - [사진 (프로필 로고)]:
+      추천 1) `BoozaThink_Profile_Logo_Dark_800x800.png` (네이비·골드 THINK 패밀리 시그니처)
+      추천 2) `BoozaThink_Profile_Logo_White_800x800.png` (화이트·코발트블루 모던형)
+  - [배너 이미지]:
+      `BoozaThink_Channel_Banner_2560x1440.png` (창업·순수익·정책자금 실전 시뮬레이터 대시보드형)
+  - [동영상 워터마크] (표시 시간: '전체 동영상' 선택 권장):
+      추천 1) `BoozaThink_Video_Watermark_DarkGold_400x400.png`
+      추천 2) `BoozaThink_Video_Watermark_Transparent_Stamp_400x400.png`
+      추천 3) `BoozaThink_Video_Watermark_CobaltWhite_400x400.png`
+  - [이름]: `부자생각 BoozaThink` (또는 `BoozaThink` / `부자생각`)
+  - [핸들]: `@BoozaThink` (만약 선점되어 있다면 `@BoozaThinkcom`)
+
+================================================================================
+
+2. [설명(채널 소개글)] 칸에 그대로 복사해서 붙여넣을 문구
+--------------------------------------------------------------------------------
+창업과 장사, 순서와 숫자부터 알면 참 쉽습니다.
+
+부자생각(BoozaThink)은 예비창업자, 매장 사장님, 온라인 셀러분들이
+몰라서 손해 보는 돈이 없도록 초기 비용·순수익·대출·세금을 데이터로 명쾌하게 풀어드리는 실전 창업·손익 연구소입니다.
+
+• 계약 전 실수 막는 사업자등록 · 전용 통장 · 인테리어 · 부가세 환급 순서
+• 30개 업종별 초기 창업비용 · 배달/플랫폼 수수료 · 진짜 남는 월 순수익 계산
+• 내 기존 대출·신용 조건에 맞는 정책자금 · 보증서 · 저금리 대환 점검
+• 실제 지도 위 반경 경쟁점 · 상권 입지 손익분기 판독
+
+올해 12월 31일까지 모든 업종 시뮬레이터와 결과 비교·저장을 무료로 열어두었습니다.
+시작하기 전에 내 가게 숫자를 3초 만에 먼저 확인해 보세요!
+
+공식 웹사이트: https://boozathink.com
+
+================================================================================
+
+3. [링크] 섹션 추가 추천 (최대 4개)
+--------------------------------------------------------------------------------
+1) 제목: 무료 3초 창업·순수익 시뮬레이터
+   URL : https://boozathink.com/calculators/startup-master?utm_source=youtube&utm_medium=channel_profile
+
+2) 제목: 창업 준비부터 첫 1년 전체 순서표
+   URL : https://boozathink.com/start-guide?utm_source=youtube&utm_medium=channel_profile
+
+3) 제목: 내 조건 정책자금·대출 한도 점검
+   URL : https://boozathink.com/funding?utm_source=youtube&utm_medium=channel_profile
+
+4) 제목: 필요한 계산기 신청 · 투표하기
+   URL : https://boozathink.com/requests?utm_source=youtube&utm_medium=channel_profile
+"""
+    out_txt.write_text(guide, encoding="utf-8")
+
+
 def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     MANUAL_BOX.mkdir(parents=True, exist_ok=True)
 
-    shop_b64 = base64.b64encode((ASSETS_DIR / "ep01_s3_bright_storefront.jpg").read_bytes()).decode("ascii")
-    steps_b64 = base64.b64encode((ASSETS_DIR / "ep01_s2_easy_steps.jpg").read_bytes()).decode("ascii")
+    # Remove old v1 sketch-named files from output & Desktop box so there is zero confusion!
+    for folder in (OUT_DIR, MANUAL_BOX):
+        for old_f in (
+            "BoozaThink_Profile_Logo_Sketch_800x800.png",
+            "BoozaThink_Video_Watermark_Sketch_Subscribe_400x400.png",
+        ):
+            (folder / old_f).unlink(missing_ok=True)
 
     logo_dark_path = OUT_DIR / "BoozaThink_Profile_Logo_Dark_800x800.png"
-    logo_sketch_path = OUT_DIR / "BoozaThink_Profile_Logo_Sketch_800x800.png"
+    logo_white_path = OUT_DIR / "BoozaThink_Profile_Logo_White_800x800.png"
     banner_path = OUT_DIR / "BoozaThink_Channel_Banner_2560x1440.png"
     wm_dark_path = OUT_DIR / "BoozaThink_Video_Watermark_DarkGold_400x400.png"
     wm_stamp_path = OUT_DIR / "BoozaThink_Video_Watermark_Transparent_Stamp_400x400.png"
-    wm_sketch_path = OUT_DIR / "BoozaThink_Video_Watermark_Sketch_Subscribe_400x400.png"
+    wm_cobalt_path = OUT_DIR / "BoozaThink_Video_Watermark_CobaltWhite_400x400.png"
     guide_path = OUT_DIR / "BoozaThink_유튜브_채널세팅_복사용_가이드.txt"
 
     with sync_playwright() as p:
@@ -530,12 +504,12 @@ def main() -> None:
         pg_logo.set_content(build_logo_dark_html(), wait_until="networkidle")
         pg_logo.screenshot(path=str(logo_dark_path), type="png")
 
-        pg_logo.set_content(build_logo_sketch_html(), wait_until="networkidle")
-        pg_logo.screenshot(path=str(logo_sketch_path), type="png")
+        pg_logo.set_content(build_logo_white_html(), wait_until="networkidle")
+        pg_logo.screenshot(path=str(logo_white_path), type="png")
         pg_logo.close()
 
         pg_ban = browser.new_page(viewport={"width": 2560, "height": 1440}, device_scale_factor=1)
-        pg_ban.set_content(build_channel_banner_html(shop_b64, steps_b64), wait_until="networkidle")
+        pg_ban.set_content(build_channel_banner_html(), wait_until="networkidle")
         pg_ban.screenshot(path=str(banner_path), type="png")
         pg_ban.close()
 
@@ -546,8 +520,8 @@ def main() -> None:
         pg_wm.set_content(build_watermark_transparent_stamp_html(), wait_until="networkidle")
         pg_wm.screenshot(path=str(wm_stamp_path), type="png", omit_background=True)
 
-        pg_wm.set_content(build_watermark_sketch_subscribe_html(), wait_until="networkidle")
-        pg_wm.screenshot(path=str(wm_sketch_path), type="png", omit_background=True)
+        pg_wm.set_content(build_watermark_cobalt_white_html(), wait_until="networkidle")
+        pg_wm.screenshot(path=str(wm_cobalt_path), type="png", omit_background=True)
         pg_wm.close()
 
         browser.close()
@@ -556,15 +530,15 @@ def main() -> None:
 
     for src in (
         logo_dark_path,
-        logo_sketch_path,
+        logo_white_path,
         banner_path,
         wm_dark_path,
         wm_stamp_path,
-        wm_sketch_path,
+        wm_cobalt_path,
         guide_path,
     ):
         shutil.copy2(src, MANUAL_BOX / src.name)
-        print(f"[OK] {src.name} ({src.stat().st_size:,} bytes) -> staged to Desktop box")
+        print(f"[OK v2] {src.name} ({src.stat().st_size:,} bytes) -> staged to Desktop box")
 
 
 if __name__ == "__main__":

@@ -34,7 +34,7 @@ CARDS = [
         "slot": "0820_morning",
         "filename": "card01_0820_morning.png",
         "asset": "ep01_s1_vague_thought.jpg",
-        "kicker": "출근길 1분 창업 스케치 · 막연한 생각 정리",
+        "kicker": "출근길 1분 창업 점검 · 실수 없는 출발",
         "headline": "내 사업 해보고 싶은데,<br><span class='hl'>뭐부터 할지 막막할 때</span>",
         "quote": "“돈 모아서 상가부터 보러 다니면 될까요?”",
         "points": [
@@ -45,18 +45,18 @@ CARDS = [
         "target_url": "https://boozathink.com/calculators/startup-master",
         "x_caption": (
             "출근길에 문득 ‘언젠가 내 가게 해보고 싶다’는 생각이 든다면 상가부터 보러 다니지 마세요.\n\n"
-            "• 30개 업종별 초기 비용·원가율 먼저 그려보기\n"
-            "• 배달·세금 뺀 진짜 남는 순수익 확인하기\n"
+            "• 30개 업종별 초기 비용·원가율 먼저 확인하기\n"
+            "• 배달·세금 뺀 진짜 남는 순수익 계산하기\n"
             "• 올해 12.31까지 전 업종 시뮬레이터 무료 개방:\n"
             "https://boozathink.com/calculators/startup-master?utm_source=x&utm_medium=slot_0820"
         ),
         "threads_caption": (
             "언젠가 내 가게, 내 브랜드를 해보고 싶은데 어디서부터 손대야 할지 막막하셨나요?\n\n"
-            "창업이 어렵게 느껴지는 건 능력이 부족해서가 아니라 ‘전체 순서 지도’를 한눈에 본 적이 없기 때문입니다.\n\n"
+            "창업이 어렵게 느껴지는 건 능력이 부족해서가 아니라 ‘전체 순서와 기준 숫자’를 한눈에 본 적이 없기 때문입니다.\n\n"
             "1) 내가 생각한 업종의 평균 초기 비용과 적정 월세선 확인\n"
             "2) 재료비·수수료·세금을 다 빼고 통장에 진짜 남는 돈 계산\n"
             "3) 비수기가 와도 몇 달을 버틸 수 있는지 안전선 점검\n\n"
-            "올해 12월 31일까지만 모든 업종 계산과 결과 이미지 저장을 무료로 열어두었으니 출근길 1분만 투자해 내 가게를 먼저 그려보세요:\n"
+            "올해 12월 31일까지만 모든 업종 계산과 결과 이미지 저장을 무료로 열어두었으니 출근길 1분만 투자해 내 가게 숫자를 먼저 확인해 보세요:\n"
             "https://boozathink.com/calculators/startup-master?utm_source=threads&utm_medium=slot_0820"
         ),
     },
@@ -126,7 +126,7 @@ CARDS = [
         "filename": "card04_2230_night.png",
         "asset": "ep01_s3_bright_storefront.jpg",
         "kicker": "마감 후 심야 설계 · 내 자본금에 맞는 안전한 출발",
-        "headline": "내 돈과 기존 대출 조건으로<br><span class='hl'>무리 없이 여는 내 가게 그림</span>",
+        "headline": "내 돈과 기존 대출 조건으로<br><span class='hl'>무리 없이 여는 내 가게 계산</span>",
         "quote": "“기존에 받아둔 대출이 조금 있는데 창업자금이 얼마나 나올까요?”",
         "points": [
             ("기존 대출 종류별 한도 영향 반영", "정책자금·은행신용·주담대·카드론 보유 여부에 따른 추가 한도 추산"),
@@ -251,7 +251,7 @@ def build_card_html(c: dict, img_b64: str) -> str:
       <div class="footer-cta">
         <div class="f-left">
           <div class="f-free">올해 12월 31일까지만 전 업종 무료 개방</div>
-          <div class="f-msg">검색창에 ‘부자생각’ — 내 가게 숫자를 직접 그려보세요</div>
+          <div class="f-msg">검색창에 ‘부자생각’ — 내 가게 순수익을 3초 만에 확인하세요</div>
         </div>
         <div class="f-url">boozathink.com</div>
       </div>

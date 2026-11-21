@@ -262,14 +262,14 @@ def upload_ep01(privacy: str = "public", force_api_upload: bool = False) -> str:
     if not mp4_path.exists():
         raise FileNotFoundError(f"1호 쇼츠 영상이 아직 생성되지 않았습니다: {mp4_path}")
 
-    title = "내 가게 창업, 순서만 알면 참 쉽습니다 — 계약 전 꼭 먼저 그릴 3가지 #부자생각 #Shorts"
+    title = "내 가게 창업, 순서만 알면 참 쉽습니다 — 계약 전 꼭 먼저 챙길 3가지 #부자생각 #Shorts"
     description = (
-        "막연했던 내 가게 생각, 종이 위에 순서대로 그려보면 생각보다 훨씬 쉽고 선명해집니다.\n\n"
+        "막막해 보이던 내 가게 준비도 순서와 숫자부터 알면 훨씬 쉽고 명확해집니다.\n\n"
         "1) 인테리어 결제 전 사업자등록·사업용 통장 먼저 만들어 부가세 환급 챙기기\n"
         "2) 임대차 계약서 도장 찍기 전 정화조·전기 용량과 정책자금 신청 순서 확인하기\n"
         "3) 30개 업종별 초기 비용과 배달·세금 뺀 진짜 순수익 먼저 계산해 보기\n\n"
         "올해 12월 31일까지만 모든 업종 계산기와 결과표 이미지 저장을 무료로 열어두었습니다.\n"
-        "내 업종과 자본금을 넣고 1분 만에 내 가게 그림을 완성해 보세요.\n\n"
+        "내 업종과 자본금을 넣고 3초 만에 실제 순수익과 안전 자금선을 확인해 보세요.\n\n"
         "무료 창업·순수익 시뮬레이터: https://boozathink.com/calculators/startup-master?utm_source=yt_shorts&utm_medium=ep01\n"
         "창업 준비부터 첫 1년 전체 순서표: https://boozathink.com/start-guide?utm_source=yt_shorts&utm_medium=ep01\n\n"
         "#부자생각 #BoozaThink #초보창업 #소자본창업 #자영업 #개인사업자 #창업순서 #창업비용계산기 #Shorts"
