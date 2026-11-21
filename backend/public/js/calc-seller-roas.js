@@ -86,6 +86,14 @@
 
       return {
         benchPayload: r.beRoas ? { calculator: 'seller-roas', industry: 'online', break_even_roas: r.beRoas } : null,
+        compare: {
+          defaultTitle: r.marketName.split(' ')[0] + ' (판매가 ' + E.won(r.price) + ')',
+          metrics: [
+            { label: '광고 후 개당 순이익', val: Math.round(r.postAd), unit: '원', higherIsBetter: true },
+            { label: '광고 전 순마진', val: Math.round(r.preAd), unit: '원', higherIsBetter: true },
+            { label: '손익분기 ROAS', val: r.beRoas ? Math.round(r.beRoas) : null, unit: '%', higherIsBetter: false }
+          ]
+        },
         receipt: {
           filename: 'boozathink-seller-roas-receipt.png',
           subtitle: '셀러 마진 & ROAS 판독 · ' + r.marketName,

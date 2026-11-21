@@ -284,6 +284,235 @@
     }, 'image/png');
   }
 
+  function sharedRowMeta(cols, rIdx) {
+    var labels = cols.map(function (c) { return (c.rows && c.rows[rIdx] && c.rows[rIdx][0]) || ''; }).filter(Boolean);
+    if (!labels.length) return { label: '항목 ' + (rIdx + 1), differs: false };
+    var first = labels[0];
+    var allSame = labels.every(function (l) { return l === first; });
+    if (allSame) return { label: first, differs: false };
+    return { label: first.replace(/\s*\([^)]*\)\s*$/, ''), differs: true };
+  }
+
+  function cellForCompare(cols, c, rIdx, meta) {
+    var row = (c.rows && c.rows[rIdx]) || [];
+    var val = row[1] || '-';
+    if (!meta.differs || !row[0]) return val;
+    var m = /\(([^)]+)\)\s*$/.exec(row[0]);
+    return m ? (val + ' (' + m[1] + ')') : val;
+  }
+
+  /* ───── Multi-Candidate (2~3+ Options) Side-by-Side Comparison PNG & A4 Print Exporter ───── */
+  function downloadComparisonPNG(spec) {
+    // spec: { slug, pageTitle, verdictText, cols: [{ tag, title, val, heroSub, rows, isWinner }], heroLabel }
+    var cols = spec.cols || [];
+    if (cols.length < 2) return;
+    var scale = 2;
+    var labelColW = 210;
+    var colW = cols.length <= 2 ? 290 : (cols.length === 3 ? 250 : 220);
+    var padX = 28;
+    var W = padX * 2 + labelColW + cols.length * colW;
+    var maxRows = 0;
+    cols.forEach(function (c) { if (c.rows && c.rows.length > maxRows) maxRows = c.rows.length; });
+    var rowH = 38;
+    var H = 228 + (maxRows + 1) * rowH + 84;
+
+    var canvas = document.createElement('canvas');
+    canvas.width = W * scale;
+    canvas.height = H * scale;
+    var ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+
+    var fontSans = "'Pretendard Variable', Pretendard, -apple-system, 'Malgun Gothic', sans-serif";
+
+    // Cool ice-blue background
+    ctx.fillStyle = '#e8f0fc';
+    ctx.fillRect(0, 0, W, H);
+
+    // Main architect report card
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#93c5fd';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(16, 16, W - 32, H - 32, 20);
+    ctx.fill();
+    ctx.stroke();
+
+    // Royal Cobalt Header Banner
+    var grad = ctx.createLinearGradient(16, 16, W - 16, 108);
+    grad.addColorStop(0, '#172554');
+    grad.addColorStop(1, '#2563eb');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(16, 16, W - 32, 92, [20, 20, 0, 0]);
+    ctx.fill();
+
+    ctx.fillStyle = '#6ee7b7';
+    ctx.font = '800 12px ' + fontSans;
+    ctx.textAlign = 'left';
+    ctx.fillText('BOOZA THINK · 부자생각 의사결정 비교 판정표', padX + 8, 46);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '800 20px ' + fontSans;
+    ctx.fillText(spec.pageTitle || '후보 조건 나란히 비교 리포트', padX + 8, 76, W - 220);
+
+    var todayStr = new Date().toISOString().slice(0, 10);
+    ctx.fillStyle = '#dbeafe';
+    ctx.font = '600 12px ' + fontSans;
+    ctx.textAlign = 'right';
+    ctx.fillText('출력일 ' + todayStr + ' · boozathink.com', W - padX - 8, 46);
+
+    // Winner Verdict Box
+    ctx.fillStyle = '#ecfdf5';
+    ctx.strokeStyle = '#10b981';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(padX, 122, W - padX * 2, 46, 12);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#065f46';
+    ctx.font = '800 13.5px ' + fontSans;
+    ctx.textAlign = 'left';
+    ctx.fillText(spec.verdictText || '저장된 후보 조건 정밀 비교 결과입니다.', padX + 16, 150, W - padX * 2 - 32);
+
+    // Table Header
+    var tableY = 182;
+    ctx.fillStyle = '#f1f5f9';
+    ctx.fillRect(padX, tableY, W - padX * 2, 46);
+
+    ctx.fillStyle = '#334155';
+    ctx.font = '800 13px ' + fontSans;
+    ctx.fillText('비교 항목', padX + 14, tableY + 28);
+
+    cols.forEach(function (c, i) {
+      var cx = padX + labelColW + i * colW;
+      if (c.isWinner) {
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.08)';
+        ctx.fillRect(cx, tableY, colW, 46 + (maxRows + 1) * rowH);
+      }
+      ctx.fillStyle = c.isWinner ? '#059669' : '#1d4ed8';
+      ctx.font = '800 11.5px ' + fontSans;
+      ctx.fillText((c.isWinner ? '★ 추천 · ' : '') + c.tag, cx + 12, tableY + 18, colW - 20);
+      ctx.fillStyle = '#0f172a';
+      ctx.font = '800 13.5px ' + fontSans;
+      ctx.fillText(c.title, cx + 12, tableY + 37, colW - 20);
+    });
+
+    // Hero Metric Row
+    var curY = tableY + 46;
+    ctx.fillStyle = 'rgba(37, 99, 235, 0.06)';
+    ctx.fillRect(padX, curY, W - padX * 2, rowH + 6);
+    ctx.fillStyle = '#1e3a8a';
+    ctx.font = '800 13px ' + fontSans;
+    ctx.fillText(spec.heroLabel || '핵심 진단 결과', padX + 14, curY + 26, labelColW - 20);
+
+    cols.forEach(function (c, i) {
+      var cx = padX + labelColW + i * colW;
+      ctx.fillStyle = c.isWinner ? '#047857' : '#1d4ed8';
+      ctx.font = '800 15px ' + fontSans;
+      ctx.fillText(c.val || '-', cx + 12, curY + 26, colW - 20);
+    });
+    curY += rowH + 6;
+
+    // Detail Rows
+    for (var rIdx = 0; rIdx < maxRows; rIdx++) {
+      if (rIdx % 2 === 1) {
+        ctx.fillStyle = 'rgba(241, 245, 249, 0.55)';
+        ctx.fillRect(padX, curY, W - padX * 2, rowH);
+      }
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padX, curY);
+      ctx.lineTo(W - padX, curY);
+      ctx.stroke();
+
+      var refRow = (cols[0].rows && cols[0].rows[rIdx]) || [];
+      var rMeta = sharedRowMeta(cols, rIdx);
+      var isBold = Boolean(refRow[2]);
+      ctx.fillStyle = isBold ? '#0f172a' : '#475569';
+      ctx.font = (isBold ? '800 13px ' : '600 12.5px ') + fontSans;
+      ctx.fillText(rMeta.label, padX + 14, curY + 24, labelColW - 20);
+
+      cols.forEach(function (c, i) {
+        var cx = padX + labelColW + i * colW;
+        var cellTxt = cellForCompare(cols, c, rIdx, rMeta);
+        ctx.fillStyle = isBold ? (c.isWinner ? '#047857' : '#1e3a8a') : '#1e293b';
+        ctx.font = (isBold ? '800 13.5px ' : '600 13px ') + fontSans;
+        ctx.fillText(cellTxt, cx + 12, curY + 24, colW - 20);
+      });
+      curY += rowH;
+    }
+
+    // Bottom Border & Footer
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.beginPath();
+    ctx.moveTo(padX, curY);
+    ctx.lineTo(W - padX, curY);
+    ctx.stroke();
+
+    ctx.fillStyle = '#64748b';
+    ctx.font = '600 11.5px ' + fontSans;
+    ctx.textAlign = 'left';
+    ctx.fillText('※ 부자생각(boozathink.com) 정밀 시뮬레이터 비교 판정표 · 세무·대출 최종 실행 전 계약서 및 전문가 확인 권장', padX, curY + 28);
+
+    canvas.toBlob(function (blob) {
+      if (!blob) return;
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'boozathink-compare-' + (spec.slug || 'report') + '.png';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+    }, 'image/png');
+  }
+
+  function printComparisonReport(spec) {
+    var cols = spec.cols || [];
+    if (cols.length < 2) return;
+    var sheet = document.getElementById('bt-print-compare-sheet');
+    if (!sheet) {
+      sheet = document.createElement('section');
+      sheet.id = 'bt-print-compare-sheet';
+      sheet.className = 'bt-print-sheet';
+      document.body.appendChild(sheet);
+    }
+    var maxRows = 0;
+    cols.forEach(function (c) { if (c.rows && c.rows.length > maxRows) maxRows = c.rows.length; });
+    var todayStr = new Date().toISOString().slice(0, 10);
+
+    var ths = '<th>비교 항목</th>' + cols.map(function (c) {
+      return '<th class="' + (c.isWinner ? 'win-col' : '') + '"><div>' + esc((c.isWinner ? '★ 추천 · ' : '') + c.tag) + '</div><strong>' + esc(c.title) + '</strong></th>';
+    }).join('');
+
+    var trs = '<tr class="hero-tr"><th>' + esc(spec.heroLabel || '핵심 진단 결과') + '</th>' + cols.map(function (c) {
+      return '<td class="' + (c.isWinner ? 'win-col' : '') + '"><strong>' + esc(c.val) + '</strong>' + (c.heroSub ? '<div class="sub">' + esc(c.heroSub) + '</div>' : '') + '</td>';
+    }).join('') + '</tr>';
+
+    for (var i = 0; i < maxRows; i++) {
+      var ref = (cols[0].rows && cols[0].rows[i]) || [];
+      var pMeta = sharedRowMeta(cols, i);
+      var bCls = ref[2] ? ' class="bold-tr"' : '';
+      trs += '<tr' + bCls + '><th>' + esc(pMeta.label) + '</th>' + cols.map(function (c) {
+        var v = cellForCompare(cols, c, i, pMeta);
+        return '<td class="' + (c.isWinner ? 'win-col' : '') + '">' + esc(v) + '</td>';
+      }).join('') + '</tr>';
+    }
+
+    sheet.innerHTML =
+      '<div class="ps-head"><div><span class="ps-kicker">BOOZA THINK · 부자생각 창업·손익 연구소</span><h1>' + esc(spec.pageTitle || '후보 조건 비교 판정표') + '</h1></div><div class="ps-date">출력일: ' + todayStr + '<br>https://boozathink.com</div></div>' +
+      '<div class="ps-verdict">' + esc(spec.verdictText || '') + '</div>' +
+      '<table class="ps-table"><thead><tr>' + ths + '</tr></thead><tbody>' + trs + '</tbody></table>' +
+      '<p class="ps-foot">※ 본 비교표는 부자생각(boozathink.com) 실전 시뮬레이터로 산출된 의사결정 참고 자료입니다. 실제 계약·세무·대출 실행 전 현장 조건을 최종 확인하시기 바랍니다.</p>';
+
+    document.body.classList.add('bt-printing-compare');
+    setTimeout(function () {
+      window.print();
+      setTimeout(function () { document.body.classList.remove('bt-printing-compare'); }, 400);
+    }, 60);
+  }
+
   /* ───── Controller Factory ───── */
   function mount(config) {
     // config: { slug, defaults, render(state, helpers) -> { benchPayload, receipt } }
@@ -445,10 +674,13 @@
       showToast: showToast, state: state, recompute: function (k) { recompute(k, null, false); }
     };
 
+    var refreshWorkbench = function () {};
+
     function runRenderWithServerData(srvData, fromInit) {
       lastResult = config.render(state, helpers, srvData) || {};
       if (!fromInit) syncUrl();
       if (lastResult.benchPayload) scheduleBench(lastResult.benchPayload);
+      refreshWorkbench();
     }
 
     function recompute(changedKey, sourceEl, fromInit) {
@@ -571,152 +803,449 @@
       });
     }
 
-    // 5. 브라우저 임시 조건 비교 보관함 (최대 5개 저장 · 1클릭 불러오기) + 원하는 계산기 신청 안내
+    // 5. 사장님 의사결정 워크벤치 — 후보 A·B·C 저장 · 불러와 다시 설정 비교 · 비교 판정표 PNG/A4 뽑기
     var actBox = rootEl.querySelector('.calc-actions');
-    var TRAY_KEY = 'bt-tray-' + config.slug;
-    function loadTray() {
+    var calcOutEl = rootEl.querySelector('.calc-out');
+    var heroCardEl = calcOutEl && calcOutEl.querySelector('.result-hero');
+    var TRAY_KEY = 'bt-cmp-v2-' + config.slug;
+    var baselineIdx = 0;
+    var editingSlotIdx = -1;
+
+    function loadSlots() {
       try {
         var arr = JSON.parse(localStorage.getItem(TRAY_KEY) || '[]');
-        return Array.isArray(arr) ? arr : [];
+        return Array.isArray(arr) ? arr.slice(0, 5) : [];
       } catch (e) { return []; }
     }
-    function saveTray(arr) {
+    function saveSlots(arr) {
       try { localStorage.setItem(TRAY_KEY, JSON.stringify(arr.slice(0, 5))); } catch (e) {}
     }
 
-    if (actBox && !actBox._trayWired) {
-      actBox._trayWired = true;
-      var saveBtn = document.createElement('button');
-      saveBtn.type = 'button';
-      saveBtn.className = 'btn';
-      saveBtn.setAttribute('data-action', 'save-tray');
-      saveBtn.textContent = '현재 조건 비교함에 담기';
-      if (resetBtn) actBox.insertBefore(saveBtn, resetBtn);
-      else actBox.appendChild(saveBtn);
+    function stateSignature(obj) {
+      var keys = Object.keys(initialDefaults).sort();
+      return keys.map(function (k) { return k + '=' + String(obj && obj[k] != null ? obj[k] : initialDefaults[k]); }).join('&');
+    }
 
-      var trayWrap = document.createElement('div');
-      trayWrap.className = 'saved-tray';
-      trayWrap.setAttribute('data-saved-tray', '');
-      actBox.insertAdjacentElement('afterend', trayWrap);
+    function fmtCmpVal(val, unit) {
+      if (val == null || !Number.isFinite(Number(val))) return '-';
+      if (unit === '원') return E.won(val);
+      if (unit === '만원') return E.manwon(val);
+      if (unit === '%') return E.pct(val, 1);
+      return E.fmt(val, 1) + unit;
+    }
 
-      var reqNudge = document.createElement('p');
-      reqNudge.className = 'req-nudge';
-      reqNudge.innerHTML = '찾으시는 업종이나 계산 방식이 없나요? <a href="/requests">필요한 계산기 신청 · 투표하기 →</a>';
-      trayWrap.insertAdjacentElement('afterend', reqNudge);
+    function fmtDeltaBadge(mNow, mBase) {
+      if (!mNow || !mBase || mNow.val == null || mBase.val == null) return '';
+      var diff = Number(mNow.val) - Number(mBase.val);
+      if (Math.abs(diff) < 0.05) {
+        return '<span class="wb-delta same">' + esc(mNow.label) + ': 변동 없음</span>';
+      }
+      var good = mNow.higherIsBetter ? (diff > 0) : (diff < 0);
+      var sign = diff > 0 ? '+' : '−';
+      var absVal = Math.abs(diff);
+      var dTxt = mNow.unit === '원'
+        ? (sign + E.fmt(Math.round(absVal)) + '원')
+        : (mNow.unit === '만원'
+          ? (sign + E.fmt(Math.round(absVal)) + '만원')
+          : (sign + E.fmt(absVal, 1) + mNow.unit));
+      var arrow = diff > 0 ? '▲' : '▼';
+      var judge = good ? (mNow.higherIsBetter ? '증가(유리)' : '절감·단축(유리)') : (mNow.higherIsBetter ? '감소(불리)' : '증가(부담)');
+      return '<span class="wb-delta ' + (good ? 'good' : 'bad') + '"><strong>' + esc(mNow.label) + '</strong> ' +
+        esc(fmtCmpVal(mBase.val, mBase.unit)) + ' → <strong>' + esc(fmtCmpVal(mNow.val, mNow.unit)) + '</strong> (' + esc(dTxt) + ' ' + arrow + ' ' + judge + ')</span>';
+    }
 
-      function buildCompareMatrixHtml(list) {
-        var rich = list.filter(function (it) { return Array.isArray(it.rows) && it.rows.length > 0; });
-        if (rich.length < 2) {
-          return '<p class="tray-hint">다른 조건(예: 다른 평수·월세·메뉴가)으로 바꾼 뒤 한 번 더 <strong>[현재 조건 비교함에 담기]</strong>를 누르시면 아래에 <strong>후보 A vs B 나란히 정밀 비교표</strong>가 자동으로 펼쳐집니다.</p>';
+    function buildCurrentSnapshot(customTitle) {
+      var rec = (lastResult && lastResult.receipt) || {};
+      var cmp = (lastResult && lastResult.compare) || {};
+      var fallbackTitle = cmp.defaultTitle || (rec.subtitle || config.slug).replace(/^.*진단\s*·\s*/, '').slice(0, 28);
+      return {
+        title: (customTitle && customTitle.trim()) ? customTitle.trim().slice(0, 30) : fallbackTitle,
+        heroLabel: rec.heroLabel || '핵심 진단 결과',
+        val: rec.heroValue || '-',
+        heroSub: rec.heroSub || '',
+        rows: Array.isArray(rec.rows) ? rec.rows.slice(0, 10) : [],
+        compare: cmp,
+        snap: Object.assign({}, state),
+        sig: stateSignature(state),
+        q: buildQueryString(),
+        t: Date.now()
+      };
+    }
+
+    function computeComparisonBundle(slots, curSnap) {
+      var cols = slots.map(function (it, i) {
+        return {
+          idx: i,
+          isSaved: true,
+          tag: String.fromCharCode(65 + i) + '안',
+          title: it.title,
+          val: it.val,
+          heroSub: it.heroSub,
+          rows: it.rows || [],
+          compare: it.compare || {},
+          sig: it.sig || stateSignature(it.snap || {})
+        };
+      });
+
+      var matchesAnySaved = cols.some(function (c) { return c.sig === curSnap.sig; });
+      if (cols.length >= 1 && !matchesAnySaved && curSnap.rows.length > 0 && cols.length < 4) {
+        cols.push({
+          idx: -1,
+          isSaved: false,
+          tag: '지금 설정한 조건',
+          title: curSnap.title + ' (미저장)',
+          val: curSnap.val,
+          heroSub: curSnap.heroSub,
+          rows: curSnap.rows,
+          compare: curSnap.compare || {},
+          sig: curSnap.sig
+        });
+      }
+
+      if (cols.length < 2) return { cols: cols, verdictText: '', heroLabel: curSnap.heroLabel };
+
+      // Determine #1 Winner based on primary metric
+      var bestIdx = -1;
+      var secondIdx = -1;
+      cols.forEach(function (c, idx) {
+        var m0 = c.compare && c.compare.metrics && c.compare.metrics[0];
+        if (!m0 || m0.val == null || !Number.isFinite(Number(m0.val))) return;
+        if (bestIdx === -1) { bestIdx = idx; return; }
+        var b0 = cols[bestIdx].compare.metrics[0];
+        var better = m0.higherIsBetter ? (Number(m0.val) > Number(b0.val)) : (Number(m0.val) < Number(b0.val));
+        if (better) {
+          secondIdx = bestIdx;
+          bestIdx = idx;
+        } else if (secondIdx === -1) {
+          secondIdx = idx;
+        } else {
+          var s0 = cols[secondIdx].compare.metrics[0];
+          var better2 = m0.higherIsBetter ? (Number(m0.val) > Number(s0.val)) : (Number(m0.val) < Number(s0.val));
+          if (better2) secondIdx = idx;
         }
-        var cols = rich.slice(0, 4);
-        var maxRows = 0;
-        cols.forEach(function (c) { if (c.rows.length > maxRows) maxRows = c.rows.length; });
+      });
 
-        var headCells = '<th>비교 항목</th>' + cols.map(function (c, i) {
-          return '<th><span class="cmp-badge">후보 ' + String.fromCharCode(65 + i) + '</span><br>' + esc(c.title) + '</th>';
-        }).join('');
+      var verdictText = '';
+      if (bestIdx >= 0) {
+        cols[bestIdx].isWinner = true;
+        var winCol = cols[bestIdx];
+        var wm = winCol.compare.metrics[0];
+        if (secondIdx >= 0 && cols[secondIdx].compare && cols[secondIdx].compare.metrics && cols[secondIdx].compare.metrics[0]) {
+          var rm = cols[secondIdx].compare.metrics[0];
+          var gap = Math.abs(Number(wm.val) - Number(rm.val));
+          if (gap < 0.05) {
+            verdictText = '판정 요약: [' + winCol.tag + ' · ' + winCol.title + ']과 [' + cols[secondIdx].tag + ']의 ' + wm.label + '이 동일합니다. 초기 투자금·고정비 부담이 적은 쪽을 선택하세요.';
+          } else {
+            var gapTxt = fmtCmpVal(gap, wm.unit);
+            verdictText = '최종 유리 판정: [' + winCol.tag + ' · ' + winCol.title + ']이 2순위(' + cols[secondIdx].tag + ')보다 ' + wm.label + ' 기준 ' + gapTxt + (wm.higherIsBetter ? ' 더 높게' : ' 더 유리하게') + ' 나타났습니다.';
+          }
+        } else {
+          verdictText = '최종 유리 판정: 현재 비교 후보 중 [' + winCol.tag + ' · ' + winCol.title + '] 조건이 가장 유리합니다.';
+        }
+      }
 
-        var heroRow = '<tr class="cmp-hero-row"><th>' + esc(cols[0].heroLabel || '핵심 진단 결과') + '</th>' +
-          cols.map(function (c) {
-            return '<td><strong class="tnum">' + esc(c.val) + '</strong>' +
+      var h1El = document.querySelector('.page-head h1');
+      return {
+        slug: config.slug,
+        pageTitle: h1El ? h1El.textContent.trim() : '후보 조건 비교 판정표',
+        heroLabel: (cols[0] && cols[0].heroLabel) || curSnap.heroLabel || '핵심 진단 결과',
+        verdictText: verdictText,
+        cols: cols
+      };
+    }
+
+    if (calcOutEl && !calcOutEl._wbWired) {
+      calcOutEl._wbWired = true;
+
+      var wbCard = document.createElement('div');
+      wbCard.className = 'card wb-card';
+      wbCard.setAttribute('data-compare-workbench', '');
+      wbCard.innerHTML =
+        '<div class="wb-head">' +
+          '<div><span class="pill wb-pill">2~3안 후보 비교 · 뽑아보기</span><h2 class="card-h" style="margin:6px 0 2px">고민 중인 후보 조건 저장 &amp; 불러와서 다시 비교</h2>' +
+          '<p class="wb-desc">후보 A·B·C안을 저장해 두거나, 저장한 안을 <strong>[불러와서 수정·비교]</strong>로 불러와 숫자를 바꿔보시면 전·후 차이가 실시간 계산되며 한 장의 비교표(이미지·인쇄)로 뽑으실 수 있습니다.</p></div>' +
+        '</div>' +
+        '<div class="wb-save-bar">' +
+          '<input type="text" class="wb-name-input" data-wb-name maxlength="30" placeholder="후보 이름 입력 (예: 역세권 15평, 배달전문 8평 — 비워두면 자동 이름)">' +
+          '<button type="button" class="btn btn-primary" data-wb-save>+ 현재 조건 A안으로 저장</button>' +
+        '</div>' +
+        '<div class="wb-body" data-wb-body></div>';
+
+      if (heroCardEl) heroCardEl.insertAdjacentElement('afterend', wbCard);
+      else calcOutEl.insertBefore(wbCard, calcOutEl.firstChild);
+
+      var nameInp = wbCard.querySelector('[data-wb-name]');
+      var saveMainBtn = wbCard.querySelector('[data-wb-save]');
+      var wbBody = wbCard.querySelector('[data-wb-body]');
+
+      if (actBox) {
+        var jumpBtn = document.createElement('button');
+        jumpBtn.type = 'button';
+        jumpBtn.className = 'btn';
+        jumpBtn.textContent = '후보 저장 · 2~3안 비교표 뽑기 ↑';
+        jumpBtn.addEventListener('click', function () {
+          wbCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          if (nameInp) nameInp.focus();
+        });
+        if (resetBtn) actBox.insertBefore(jumpBtn, resetBtn);
+        else actBox.appendChild(jumpBtn);
+
+        var reqNudge = document.createElement('p');
+        reqNudge.className = 'req-nudge';
+        reqNudge.innerHTML = '찾으시는 업종이나 계산 방식이 없나요? <a href="/requests">필요한 계산기 신청 · 투표하기 →</a>';
+        actBox.insertAdjacentElement('afterend', reqNudge);
+      }
+
+      function addCurrentAsCandidate(customLabel) {
+        var slots = loadSlots();
+        if (slots.length >= 5) {
+          showToast('후보는 최대 5개(A~E안)까지 저장할 수 있습니다. 기존 안을 삭제하거나 덮어써 주세요.');
+          return;
+        }
+        var snapObj = buildCurrentSnapshot(customLabel != null ? customLabel : (nameInp ? nameInp.value : ''));
+        slots.push(snapObj);
+        baselineIdx = slots.length - 1;
+        saveSlots(slots);
+        if (nameInp) nameInp.value = '';
+        if (root.BTTrack) root.BTTrack('save_scenario', { calculator: config.slug, count: slots.length });
+        var tag = String.fromCharCode(64 + slots.length) + '안';
+        refreshWorkbench();
+        showToast('‘' + tag + ' · ' + snapObj.title + '’이 저장되었습니다! 이제 다른 조건으로 바꿔 실시간 비교해 보세요.');
+      }
+
+      saveMainBtn.addEventListener('click', function () {
+        addCurrentAsCandidate();
+      });
+      nameInp.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          addCurrentAsCandidate();
+        }
+      });
+
+      refreshWorkbench = function () {
+        if (!lastResult || !lastResult.receipt) return;
+        var slots = loadSlots();
+        if (baselineIdx >= slots.length) baselineIdx = Math.max(0, slots.length - 1);
+        var curSnap = buildCurrentSnapshot('');
+        var nextLetter = String.fromCharCode(65 + Math.min(4, slots.length));
+        saveMainBtn.textContent = slots.length >= 5 ? '최대 5개 저장됨' : ('+ 현재 조건 ' + nextLetter + '안으로 저장');
+        if (nameInp && document.activeElement !== nameInp && !nameInp.value) {
+          nameInp.placeholder = '별칭 입력 (비워두면 ‘' + curSnap.title + '’ 자동 저장)';
+        }
+
+        if (!slots.length) {
+          wbBody.innerHTML = '<div class="wb-empty">아직 저장된 후보가 없습니다. 위 <strong>[+ 현재 조건 A안으로 저장]</strong>을 눌러 첫 번째 기준안을 먼저 만들어 보세요.</div>';
+          return;
+        }
+
+        // 1) Saved Candidate Cards (A안, B안, C안...)
+        var slotsHtml = '<div class="wb-slots">' + slots.map(function (it, idx) {
+          var tag = String.fromCharCode(65 + idx) + '안';
+          var isBase = idx === baselineIdx;
+          var isSameNow = (it.sig || stateSignature(it.snap || {})) === curSnap.sig;
+          if (editingSlotIdx === idx) {
+            return '<div class="wb-slot' + (isBase ? ' active-base' : '') + '">' +
+              '<div class="wb-slot-top"><span class="cmp-badge">' + tag + ' 이름 변경</span></div>' +
+              '<div class="wb-edit-row">' +
+                '<input type="text" class="wb-inline-inp" data-wb-edit-inp="' + idx + '" value="' + esc(it.title) + '" maxlength="30">' +
+                '<button type="button" class="btn-xs" data-wb-edit-ok="' + idx + '">확인</button>' +
+              '</div></div>';
+          }
+          return '<div class="wb-slot' + (isBase ? ' active-base' : '') + '">' +
+            '<div class="wb-slot-top">' +
+              '<span class="cmp-badge">' + tag + (isBase ? ' · 현재 기준안' : '') + (isSameNow ? ' (현재 화면과 동일)' : '') + '</span>' +
+              '<button type="button" class="saved-del" title="후보 삭제" aria-label="후보 삭제" data-wb-del="' + idx + '">×</button>' +
+            '</div>' +
+            '<div class="wb-slot-title">' + esc(it.title) + '</div>' +
+            '<div class="wb-slot-val tnum">' + esc(it.val) + '</div>' +
+            '<div class="wb-slot-btns">' +
+              '<button type="button" class="btn-xs wb-btn-load" data-wb-load="' + idx + '">불러와서 수정·비교</button>' +
+              '<button type="button" class="btn-xs" data-wb-overwrite="' + idx + '">현재값 덮어쓰기</button>' +
+              '<button type="button" class="btn-xs" data-wb-edit="' + idx + '">이름변경</button>' +
+            '</div>' +
+          '</div>';
+        }).join('') + '</div>';
+
+        // 2) Live Baseline <-> Current Tweaked Condition Delta Strip
+        var baseSlot = slots[baselineIdx] || slots[0];
+        var baseTag = String.fromCharCode(65 + baselineIdx) + '안';
+        var baseSig = baseSlot.sig || stateSignature(baseSlot.snap || {});
+        var liveDeltaHtml = '';
+        if (baseSig !== curSnap.sig && baseSlot.compare && curSnap.compare) {
+          var mBaseArr = baseSlot.compare.metrics || [];
+          var mCurArr = curSnap.compare.metrics || [];
+          var badges = mCurArr.map(function (mc, mi) { return fmtDeltaBadge(mc, mBaseArr[mi]); }).filter(Boolean).join('');
+          liveDeltaHtml = '<div class="wb-live-delta">' +
+            '<div class="wb-live-head">' +
+              '<strong>저장한 기준 [' + baseTag + ' · ' + esc(baseSlot.title) + '] ↔ 지금 다시 설정한 조건 실시간 비교</strong>' +
+              '<div class="wb-live-actions">' +
+                (slots.length < 5 ? '<button type="button" class="btn-xs wb-btn-save-new" data-wb-save-quick>+ 지금 조건을 ' + nextLetter + '안으로 추가 저장</button>' : '') +
+                '<button type="button" class="btn-xs" data-wb-revert="' + baselineIdx + '">원래 ' + baseTag + ' 값으로 되돌리기</button>' +
+              '</div>' +
+            '</div>' +
+            '<div class="wb-delta-list tnum">' + badges + '</div>' +
+          '</div>';
+        } else {
+          liveDeltaHtml = '<p class="tray-hint">이제 왼쪽 입력칸에서 다른 평수·월세·가격·업종으로 조금씩 바꿔보세요! 저장해 둔 <strong>[' + baseTag + ' · ' + esc(baseSlot.title) + ']</strong> 대비 무엇이 얼마나 유리해지는지 실시간으로 비교됩니다.</p>';
+        }
+
+        // 3) 2~3+ Options Side-by-Side Comparison Matrix + Export Buttons
+        var bundle = computeComparisonBundle(slots, curSnap);
+        var matrixHtml = '';
+        if (bundle.cols.length >= 2) {
+          var cols = bundle.cols;
+          var maxRows = 0;
+          cols.forEach(function (c) { if (c.rows.length > maxRows) maxRows = c.rows.length; });
+
+          var ths = '<th>비교 항목</th>' + cols.map(function (c) {
+            return '<th class="' + (c.isWinner ? 'wb-win-col' : '') + '">' +
+              '<span class="cmp-badge' + (c.isWinner ? ' win' : '') + (c.isSaved ? '' : ' draft') + '">' +
+              (c.isWinner ? '★ 추천 1순위 · ' : '') + esc(c.tag) + '</span><br>' + esc(c.title) + '</th>';
+          }).join('');
+
+          var heroTr = '<tr class="cmp-hero-row"><th>' + esc(bundle.heroLabel) + '</th>' + cols.map(function (c) {
+            return '<td class="' + (c.isWinner ? 'wb-win-col' : '') + '"><strong class="tnum">' + esc(c.val) + '</strong>' +
               (c.heroSub ? '<span class="cmp-sub">' + esc(c.heroSub) + '</span>' : '') + '</td>';
           }).join('') + '</tr>';
 
-        var bodyRows = '';
-        for (var rIdx = 0; rIdx < maxRows; rIdx++) {
-          var rowLabel = (cols[0].rows[rIdx] && cols[0].rows[rIdx][0]) ? cols[0].rows[rIdx][0] : ('항목 ' + (rIdx + 1));
-          var isBold = cols[0].rows[rIdx] && cols[0].rows[rIdx][2];
-          bodyRows += '<tr' + (isBold ? ' class="cmp-bold-row"' : '') + '><th>' + esc(rowLabel) + '</th>' +
-            cols.map(function (c) {
-              var cell = c.rows[rIdx] ? c.rows[rIdx][1] : '-';
-              return '<td class="tnum">' + esc(cell) + '</td>';
-            }).join('') + '</tr>';
-        }
-
-        return '<div class="tray-compare-wrap">' +
-          '<div class="tray-compare-title"><strong>후보 조건 A vs B 나란히 정밀 비교표</strong><span>이름 옆 ✎ 버튼으로 상가·메뉴 별칭을 메모해 두실 수 있습니다</span></div>' +
-          '<div class="table-scroll"><table class="rate-board tray-compare-table"><thead><tr>' + headCells + '</tr></thead><tbody>' +
-          heroRow + bodyRows + '</tbody></table></div></div>';
-      }
-
-      function renderTray() {
-        var list = loadTray();
-        if (!list.length) {
-          trayWrap.innerHTML = '';
-          trayWrap.hidden = true;
-          return;
-        }
-        trayWrap.hidden = false;
-        trayWrap.innerHTML = '<div class="saved-tray-head"><strong>내가 담아둔 비교 조건 (' + list.length + '/5)</strong><span>클릭하면 해당 조건으로 즉시 바뀝니다</span></div>' +
-          '<div class="saved-tray-list">' + list.map(function (it, idx) {
-            var badge = String.fromCharCode(65 + idx);
-            return '<div class="saved-chip">' +
-              '<button type="button" class="saved-load" data-load-idx="' + idx + '"><strong>' + badge + '. ' + esc(it.title) + '</strong> <span class="tnum">' + esc(it.val) + '</span></button>' +
-              '<button type="button" class="saved-ren" title="별칭 수정" aria-label="후보 별칭 수정" data-ren-idx="' + idx + '">✎</button>' +
-              '<button type="button" class="saved-del" title="삭제" aria-label="보관 조건 삭제" data-del-idx="' + idx + '">×</button>' +
-            '</div>';
-          }).join('') + '</div>' + buildCompareMatrixHtml(list);
-      }
-
-      saveBtn.addEventListener('click', function () {
-        var rec = (lastResult && lastResult.receipt) || {};
-        var title = (rec.subtitle || config.slug).replace(/^창업 풀코스 손익 진단 · /, '').replace(/^배달앱 1주문 손익 진단 · /, '').slice(0, 26);
-        var val = rec.heroValue || '';
-        var qStr = buildQueryString();
-        var list = loadTray();
-        list.unshift({
-          title: title,
-          heroLabel: rec.heroLabel || '핵심 진단 결과',
-          val: val,
-          heroSub: rec.heroSub || '',
-          rows: Array.isArray(rec.rows) ? rec.rows.slice(0, 8) : [],
-          q: qStr,
-          t: Date.now()
-        });
-        saveTray(list.slice(0, 5));
-        renderTray();
-        if (root.BTTrack) root.BTTrack('save_scenario', { calculator: config.slug });
-        showToast(list.length >= 2 ? '후보 조건이 추가되어 아래 A vs B 비교표가 갱신되었습니다!' : '첫 번째 후보 조건을 담았습니다. 다른 조건으로 한 번 더 담아 나란히 비교해 보세요!');
-      });
-
-      trayWrap.addEventListener('click', function (e) {
-        var ld = e.target.closest('[data-load-idx]');
-        if (ld) {
-          var list = loadTray();
-          var item = list[parseInt(ld.getAttribute('data-load-idx'), 10)];
-          if (!item) return;
-          var nextUrl = window.location.pathname + (item.q ? '?' + item.q : '');
-          window.history.replaceState(null, '', nextUrl);
-          Object.assign(state, initialDefaults);
-          applyQueryToState();
-          recompute(null, null, false);
-          showToast('‘' + item.title + '’ 조건을 불러왔습니다.');
-          return;
-        }
-        var rn = e.target.closest('[data-ren-idx]');
-        if (rn) {
-          var rList = loadTray();
-          var rIdx = parseInt(rn.getAttribute('data-ren-idx'), 10);
-          if (!rList[rIdx]) return;
-          var nextName = window.prompt('비교표에 표시할 후보 별칭을 입력해 주세요 (예: 역세권 1층 15평, 골목 배달전문 8평)', rList[rIdx].title);
-          if (nextName && nextName.trim()) {
-            rList[rIdx].title = nextName.trim().slice(0, 28);
-            saveTray(rList);
-            renderTray();
+          var bodyTrs = '';
+          for (var rIdx = 0; rIdx < maxRows; rIdx++) {
+            var refRow = (cols[0].rows && cols[0].rows[rIdx]) || [];
+            var mMeta = sharedRowMeta(cols, rIdx);
+            var isBold = Boolean(refRow[2]);
+            bodyTrs += '<tr' + (isBold ? ' class="cmp-bold-row"' : '') + '><th>' + esc(mMeta.label) + '</th>' +
+              cols.map(function (c) {
+                var cell = cellForCompare(cols, c, rIdx, mMeta);
+                return '<td class="tnum' + (c.isWinner ? ' wb-win-col' : '') + '">' + esc(cell) + '</td>';
+              }).join('') + '</tr>';
           }
+
+          matrixHtml = '<div class="tray-compare-wrap">' +
+            (bundle.verdictText ? '<div class="wb-verdict-box">' + esc(bundle.verdictText) + '</div>' : '') +
+            '<div class="wb-export-bar">' +
+              '<strong>' + cols.length + '가지 후보 나란히 정밀 비교표</strong>' +
+              '<div class="wb-export-btns">' +
+                '<button type="button" class="btn btn-primary btn-sm" data-wb-export-png>비교 판정표 이미지 뽑기 (PNG)</button>' +
+                '<button type="button" class="btn btn-sm" data-wb-export-print>A4 인쇄 / PDF로 뽑기</button>' +
+                '<button type="button" class="btn btn-ghost btn-sm" data-wb-clear-all>전체 비우기</button>' +
+              '</div>' +
+            '</div>' +
+            '<div class="table-scroll"><table class="rate-board tray-compare-table"><thead><tr>' + ths + '</tr></thead><tbody>' +
+            heroTr + bodyTrs + '</tbody></table></div>' +
+          '</div>';
+        }
+
+        wbBody.innerHTML = slotsHtml + liveDeltaHtml + matrixHtml;
+      };
+
+      wbBody.addEventListener('click', function (e) {
+        var loadBtn = e.target.closest('[data-wb-load]');
+        var revertBtn = e.target.closest('[data-wb-revert]');
+        if (loadBtn || revertBtn) {
+          var idx = parseInt((loadBtn || revertBtn).getAttribute(loadBtn ? 'data-wb-load' : 'data-wb-revert'), 10);
+          var slots = loadSlots();
+          var target = slots[idx];
+          if (!target) return;
+          baselineIdx = idx;
+          if (target.snap) {
+            Object.assign(state, initialDefaults, target.snap);
+          } else {
+            var nextUrl = window.location.pathname + (target.q ? '?' + target.q : '');
+            window.history.replaceState(null, '', nextUrl);
+            Object.assign(state, initialDefaults);
+            applyQueryToState();
+          }
+          recompute('__restore__', null, false);
+          showToast('‘' + String.fromCharCode(65 + idx) + '안 · ' + target.title + '’을 불러왔습니다. 이제 조건을 바꿔 실시간 비교해 보세요!');
           return;
         }
-        var dl = e.target.closest('[data-del-idx]');
-        if (dl) {
-          var list2 = loadTray();
-          list2.splice(parseInt(dl.getAttribute('data-del-idx'), 10), 1);
-          saveTray(list2);
-          renderTray();
+
+        var quickSave = e.target.closest('[data-wb-save-quick]');
+        if (quickSave) {
+          addCurrentAsCandidate();
+          return;
+        }
+
+        var owBtn = e.target.closest('[data-wb-overwrite]');
+        if (owBtn) {
+          var oIdx = parseInt(owBtn.getAttribute('data-wb-overwrite'), 10);
+          var oSlots = loadSlots();
+          if (!oSlots[oIdx]) return;
+          var updated = buildCurrentSnapshot(oSlots[oIdx].title);
+          oSlots[oIdx] = updated;
+          baselineIdx = oIdx;
+          saveSlots(oSlots);
+          refreshWorkbench();
+          showToast('‘' + String.fromCharCode(65 + oIdx) + '안 · ' + updated.title + '’ 조건을 현재 화면 숫자로 업데이트했습니다.');
+          return;
+        }
+
+        var edBtn = e.target.closest('[data-wb-edit]');
+        if (edBtn) {
+          editingSlotIdx = parseInt(edBtn.getAttribute('data-wb-edit'), 10);
+          refreshWorkbench();
+          var inp = wbBody.querySelector('[data-wb-edit-inp="' + editingSlotIdx + '"]');
+          if (inp) { inp.focus(); inp.select(); }
+          return;
+        }
+
+        var okBtn = e.target.closest('[data-wb-edit-ok]');
+        if (okBtn) {
+          var eIdx = parseInt(okBtn.getAttribute('data-wb-edit-ok'), 10);
+          var inpEl = wbBody.querySelector('[data-wb-edit-inp="' + eIdx + '"]');
+          var eSlots = loadSlots();
+          if (eSlots[eIdx] && inpEl && inpEl.value.trim()) {
+            eSlots[eIdx].title = inpEl.value.trim().slice(0, 30);
+            saveSlots(eSlots);
+          }
+          editingSlotIdx = -1;
+          refreshWorkbench();
+          return;
+        }
+
+        var delBtn = e.target.closest('[data-wb-del]');
+        if (delBtn) {
+          var dIdx = parseInt(delBtn.getAttribute('data-wb-del'), 10);
+          var dSlots = loadSlots();
+          dSlots.splice(dIdx, 1);
+          if (baselineIdx >= dSlots.length) baselineIdx = Math.max(0, dSlots.length - 1);
+          saveSlots(dSlots);
+          refreshWorkbench();
+          return;
+        }
+
+        if (e.target.closest('[data-wb-export-png]')) {
+          var bPng = computeComparisonBundle(loadSlots(), buildCurrentSnapshot(''));
+          if (root.BTTrack) root.BTTrack('download_compare_png', { calculator: config.slug, cols: bPng.cols.length });
+          downloadComparisonPNG(bPng);
+          showToast('후보 비교 판정표 PNG 이미지를 저장했습니다!');
+          return;
+        }
+
+        if (e.target.closest('[data-wb-export-print]')) {
+          var bPrt = computeComparisonBundle(loadSlots(), buildCurrentSnapshot(''));
+          if (root.BTTrack) root.BTTrack('print_compare_pdf', { calculator: config.slug, cols: bPrt.cols.length });
+          printComparisonReport(bPrt);
+          return;
+        }
+
+        if (e.target.closest('[data-wb-clear-all]')) {
+          saveSlots([]);
+          baselineIdx = 0;
+          refreshWorkbench();
+          showToast('저장된 비교 후보를 모두 비웠습니다.');
         }
       });
 
-      renderTray();
+      wbBody.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && e.target.hasAttribute('data-wb-edit-inp')) {
+          e.preventDefault();
+          var eIdx = parseInt(e.target.getAttribute('data-wb-edit-inp'), 10);
+          var ok = wbBody.querySelector('[data-wb-edit-ok="' + eIdx + '"]');
+          if (ok) ok.click();
+        }
+      });
     }
 
     readDomIntoState();
@@ -724,5 +1253,5 @@
     recompute(null, null, true);
   }
 
-  root.BTCalc = { mount: mount, downloadReceipt: downloadReceipt };
+  root.BTCalc = { mount: mount, downloadReceipt: downloadReceipt, downloadComparisonPNG: downloadComparisonPNG };
 })(typeof self !== 'undefined' ? self : this);

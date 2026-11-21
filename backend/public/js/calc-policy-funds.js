@@ -54,6 +54,14 @@
 
       return {
         benchPayload: { calculator: 'policy-funds', industry: s.ind || 'food', monthly_saving_krw: Math.round(r.monthlyBenefit), matched_programs: r.matches.length },
+        compare: {
+          defaultTitle: '대환 ' + s.hiloan + '만(' + s.hirate + '%) · 기기 ' + s.devcost + '만',
+          metrics: [
+            { label: '연간 이자 절감액', val: Math.round(r.refinance.annual), unit: '원', higherIsBetter: true },
+            { label: '스마트상점 국비지원', val: r.smart.subsidy, unit: '만원', higherIsBetter: true },
+            { label: '매칭 지원사업 수', val: r.matches.length, unit: '건', higherIsBetter: true }
+          ]
+        },
         receipt: {
           filename: 'boozathink-policy-funds-receipt.png',
           subtitle: '정책자금·대환대출·보조금 매칭 진단서',

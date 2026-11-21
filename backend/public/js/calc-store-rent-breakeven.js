@@ -79,6 +79,14 @@
 
       return {
         benchPayload: r.expMonthlySales > 0 ? { calculator: 'store-rent-breakeven', industry: s.biz || 'food', rent_ratio_pct: r.rentRatioPct } : null,
+        compare: {
+          defaultTitle: r.regionName.split(' ')[0] + ' (보증 ' + r.deposit + '만 · 월세 ' + r.rent + '만)',
+          metrics: [
+            { label: '예상 월 영업순이익', val: Math.round(r.expMonthlyProfit), unit: '원', higherIsBetter: true },
+            { label: '일 손익분기 주문', val: r.bepDailyOrders, unit: '건', higherIsBetter: false },
+            { label: '권리·시설 회수기간', val: r.paybackMonths != null ? Number(r.paybackMonths.toFixed(1)) : null, unit: '개월', higherIsBetter: false }
+          ]
+        },
         receipt: {
           filename: 'boozathink-store-lease-bep-receipt.png',
           subtitle: '상가 환산보증금 & 손익분기 진단서',

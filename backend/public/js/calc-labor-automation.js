@@ -63,6 +63,14 @@
 
       return {
         benchPayload: r.payback != null ? { calculator: 'labor-automation', industry: s.biz || 'food', payback_months: r.payback } : null,
+        compare: {
+          defaultTitle: '알바 ' + s.staff + '명(' + s.hours + 'h→' + s.cut + 'h) · 기기 ' + r.devices + '대',
+          metrics: [
+            { label: '3년 누적 순효과', val: Math.round(r.save36), unit: '원', higherIsBetter: true },
+            { label: '월 순절감액', val: Math.round(r.netMonthly), unit: '원', higherIsBetter: true },
+            { label: '원금회수 기간', val: r.payback != null ? Number(r.payback.toFixed(1)) : null, unit: '개월', higherIsBetter: false }
+          ]
+        },
         receipt: {
           filename: 'boozathink-labor-payback-receipt.png',
           subtitle: '인건비 절벽 & 무인화 진단 (' + r.year + '년 고시 기준)',

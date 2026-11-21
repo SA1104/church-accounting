@@ -47,6 +47,14 @@
             has_card_loan: r.exCard > 0 ? 1 : 0
           }
         },
+        compare: {
+          defaultTitle: '매출 ' + r.sales + '만 · ' + (r.collateral === 'none' ? '무담보' : '담보보유'),
+          metrics: [
+            { label: '추정 추가 조달 한도', val: r.netAdditionalLimit, unit: '만원', higherIsBetter: true },
+            { label: '정책·보증서 여력', val: r.policyCap, unit: '만원', higherIsBetter: true },
+            { label: '대환 연 이자절감', val: Math.round(r.refiAnnualSave), unit: '원', higherIsBetter: true }
+          ]
+        },
         receipt: {
           filename: 'boozathink-loan-strategy-receipt.png',
           subtitle: '사업자 자금조달 & 저금리 순서 진단서',

@@ -118,6 +118,14 @@
 
       return {
         benchPayload: { calculator: 'delivery-margin', industry: spec.benchInd || 'food', net_margin_pct: r.margin },
+        compare: {
+          defaultTitle: spec.name + ' (' + E.won(r.price) + ' · ' + r.planName.split(' ')[0] + ')',
+          metrics: [
+            { label: '월 실제 순수익', val: Math.round(r.monthlyNet), unit: '원', higherIsBetter: true },
+            { label: '1주문 순수익', val: Math.round(r.net), unit: '원', higherIsBetter: true },
+            { label: '순마진율', val: Number(r.margin.toFixed(1)), unit: '%', higherIsBetter: true }
+          ]
+        },
         receipt: {
           filename: 'boozathink-delivery-receipt.png',
           subtitle: '배달앱 1주문 손익 진단 · ' + spec.name + ' · ' + r.planName,

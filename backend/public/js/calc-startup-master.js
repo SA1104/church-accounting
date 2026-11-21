@@ -115,6 +115,19 @@
       return Object.assign({}, s, { menuItems: menuItemsRef, delivmode: 'detail' });
     },
     onBeforeCalc: function (s, changedKey, h) {
+      if (changedKey === '__restore__') {
+        return E.fetchProfileDefaults(s.profile, s.region, s.intmode).then(function (bundle) {
+          if (bundle && bundle.defaults) {
+            curProfBundle = bundle;
+            var dfR = bundle.defaults;
+            var modeR = s.intmode === 'self' ? 0.78 : (s.intmode === 'takeover' ? 0.42 : 1.0);
+            baseInteriorPerPyeong = dfR.pyeong > 0 ? (dfR.interior / (dfR.pyeong * modeR)) : 220;
+            syncProfileHeaderDom(h.rootEl, bundle.profile, s.profile);
+          }
+          menuItemsRef = parseMenu(s.menudata, curProfBundle.defaults.menuItems);
+          menuDomNeedsRebuild = true;
+        });
+      }
       if (changedKey === 'profile') {
         return E.fetchProfileDefaults(s.profile, s.region, s.intmode).then(function (bundle) {
           if (!bundle || !bundle.defaults) return;
@@ -537,6 +550,14 @@
             channel_mix: chMix,
             sweat_tier: r.resilience.sweatTier
           }
+        },
+        compare: {
+          defaultTitle: r.profile.name + ' (' + r.pyeong + '평·월세 ' + r.rent + '만)',
+          metrics: [
+            { label: '월평균 실수령', val: Math.round(r.avgMonthlyCashFlow), unit: '원', higherIsBetter: true },
+            { label: '안전 총창업자금', val: r.fieldTraps ? r.fieldTraps.trueSafeCapitalManwon : r.totalStartup, unit: '만원', higherIsBetter: false },
+            { label: '원금 회수기간', val: r.paybackMonths != null ? Number(r.paybackMonths.toFixed(1)) : null, unit: '개월', higherIsBetter: false }
+          ]
         },
         receipt: {
           filename: 'boozathink-startup-master-receipt.png',

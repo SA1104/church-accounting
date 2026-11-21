@@ -45,6 +45,14 @@
 
       return {
         benchPayload: { calculator: 'vat-income-tax', industry: s.ind || 'food', eff_tax_rate: r.effTaxRate },
+        compare: {
+          defaultTitle: regLabel.split(' ')[0] + ' (매출 ' + s.sales + '만 · 노란우산 ' + s.umb + '만)',
+          metrics: [
+            { label: '월 세후 실수령', val: Math.round(r.cashNetMonthly), unit: '원', higherIsBetter: true },
+            { label: '연간 세후 순수익', val: Math.round(r.cashNetAnnual), unit: '원', higherIsBetter: true },
+            { label: '총 세금부담률', val: Number(r.effTaxRate.toFixed(1)), unit: '%', higherIsBetter: false }
+          ]
+        },
         receipt: {
           filename: 'boozathink-tax-takehome-receipt.png',
           subtitle: '개인사업자 세무·실수령 진단 · ' + regLabel,
