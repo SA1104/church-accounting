@@ -100,8 +100,8 @@ SCENES = [
         "headline": "막막했던 내 가게 준비,<br><span class='hl'>순서와 숫자를 알면 참 쉽습니다</span>",
         "bubble": "“얼마 들고 한 달에 얼마 남는지 미리 다 계산해 보고 여니까 정말 든든해요!”",
         "note_badge": "올해 12.31까지 무료 개방",
-        "note_badge_bg": "#fef08a",
-        "note_badge_fg": "#854d0e",
+        "note_badge_bg": "#d1fae5",
+        "note_badge_fg": "#065f46",
         "note_title": "boozathink.com · 30개 업종 창업·순수익 계산기",
         "note_body": "검색창에 ‘부자생각’ 또는 boozathink.com — 내 가게 순수익을 3초 만에 확인하세요!",
         "sub_first": ("막막해 보이던 내 가게 준비도,", "순서와 숫자부터 알면 참 쉽습니다"),
@@ -112,42 +112,48 @@ SCENES = [
 
 
 # ---------------------------------------------------------------------------
-# 1. Sketchbook Grid Paper & Sleek Navy-Gold Fountain Pen Cursor
+# 1. Cool Ice-Blue Architect Spiral Pad & Cobalt-Silver Drafting Pen Cursor
 # ---------------------------------------------------------------------------
 def make_sketchbook_paper(w: int, h: int) -> Image.Image:
-    rng = np.random.default_rng(202611)
-    grain = rng.normal(0.0, 2.2, size=(h, w, 1)).astype(np.float32)
-    base = np.full((h, w, 3), [252.0, 250.0, 244.0], dtype=np.float32) + grain
+    base = np.zeros((h, w, 3), dtype=np.float32)
+    ys = np.linspace(0.0, 1.0, h, dtype=np.float32)[:, None]
+    base[:, :, 0] = 231.0 - 9.0 * ys
+    base[:, :, 1] = 240.0 - 6.0 * ys
+    base[:, :, 2] = 252.0 - 2.0 * ys
     img = Image.fromarray(np.clip(base, 0, 255).astype(np.uint8))
     dr = ImageDraw.Draw(img)
-    for x in range(36, w - 24, 42):
-        dr.line([(x, 36), (x, h - 36)], fill=(231, 237, 246), width=1)
-    for y in range(36, h - 24, 42):
-        dr.line([(36, y), (w - 36, y)], fill=(231, 237, 246), width=1)
-    # Subtle red notebook left margin line
-    dr.line([(68, 36), (68, h - 36)], fill=(251, 207, 214), width=2)
-    # Sketchbook white card area in the middle where the drawing unfolds (x: 90..990, y: 490..1370)
-    dr.rounded_rectangle([84, 484, 996, 1376], radius=36, fill=(255, 255, 255), outline=(24, 34, 60), width=5)
-    # Yellow masking tape at top of sketch card
-    dr.rounded_rectangle([460, 466, 620, 502], radius=8, fill=(254, 240, 138), outline=(24, 34, 60), width=3)
+    # Outer vertical architect pad sheet
+    dr.rounded_rectangle([34, 42, w - 34, h - 38], radius=38, fill=(248, 251, 255), outline=(147, 197, 253), width=3)
+    # Top spiral binder rings (100% distinct from SA Think!)
+    for rx in range(118, w - 110, 92):
+        dr.ellipse([rx - 12, 34, rx + 12, 56], fill=(219, 234, 254), outline=(59, 130, 246), width=2)
+        dr.rounded_rectangle([rx - 5, 16, rx + 5, 48], radius=4, fill=(148, 163, 184), outline=(51, 65, 85), width=2)
+    # Blueprint dot matrix
+    for x in range(64, w - 56, 36):
+        for y in range(74, h - 56, 36):
+            dr.ellipse([x - 1, y - 1, x + 1, y + 1], fill=(191, 214, 245))
+    # Pure white Cobalt-bordered drawing card (x: 90..990, y: 490..1370)
+    dr.rounded_rectangle([92, 492, 1004, 1384], radius=36, fill=(214, 229, 250))
+    dr.rounded_rectangle([84, 484, 996, 1376], radius=36, fill=(255, 255, 255), outline=(37, 99, 235), width=5)
+    # Mint-Cobalt top index clip
+    dr.rounded_rectangle([420, 464, 660, 502], radius=999, fill=(209, 250, 229), outline=(5, 150, 105), width=3)
     return img
 
 
 def create_fountain_pen_cursor() -> Image.Image:
-    """190x190 RGBA fountain pen sprite whose nib tip is anchored at (16, 168)."""
+    """190x190 RGBA cobalt-silver architect drafting pen sprite anchored at (16, 168)."""
     img = Image.new("RGBA", (190, 190), (0, 0, 0, 0))
     dr = ImageDraw.Draw(img)
-    # Soft drop shadow
-    dr.polygon([(20, 172), (52, 154), (176, 36), (150, 14), (32, 134)], fill=(15, 23, 42, 40))
-    # Royal navy pen barrel
-    dr.polygon([(38, 124), (152, 10), (180, 38), (66, 152)], fill=(20, 34, 68, 255), outline=(10, 16, 34, 255))
-    # Gold trim ring
-    dr.line([(42, 120), (70, 148)], fill=(244, 201, 93, 255), width=7)
-    dr.line([(134, 28), (162, 56)], fill=(244, 201, 93, 255), width=5)
-    # Golden fountain pen nib tapering to (16, 168)
-    dr.polygon([(16, 168), (38, 124), (66, 152)], fill=(244, 201, 93, 255), outline=(15, 23, 42, 255))
-    dr.line([(16, 168), (44, 140)], fill=(15, 23, 42, 255), width=3)
-    dr.ellipse([40, 136, 48, 144], fill=(15, 23, 42, 255))
+    dr.polygon([(20, 172), (52, 154), (176, 36), (150, 14), (32, 134)], fill=(23, 37, 84, 42))
+    # Royal cobalt pen barrel
+    dr.polygon([(38, 124), (152, 10), (180, 38), (66, 152)], fill=(37, 99, 235, 255), outline=(23, 37, 84, 255))
+    # Mint & platinum trim rings
+    dr.line([(42, 120), (70, 148)], fill=(16, 185, 129, 255), width=7)
+    dr.line([(134, 28), (162, 56)], fill=(226, 232, 240, 255), width=5)
+    # Platinum drafting nib tapering to (16, 168)
+    dr.polygon([(16, 168), (38, 124), (66, 152)], fill=(226, 232, 240, 255), outline=(23, 37, 84, 255))
+    dr.line([(16, 168), (44, 140)], fill=(30, 58, 138, 255), width=3)
+    dr.ellipse([40, 136, 48, 144], fill=(37, 99, 235, 255))
     return img
 
 
@@ -258,62 +264,65 @@ def build_overlay_html(sc: dict, sub_pair: tuple[str, str], show_note: bool) -> 
       display: flex; align-items: center; justify-content: space-between;
     }}
     .step-pill {{
-      background: #18223c; color: #f4c95d; font-size: 24px; font-weight: 800;
+      background: #2563eb; color: #ffffff; font-size: 24px; font-weight: 800;
       padding: 9px 22px; border-radius: 999px; letter-spacing: -0.01em;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.22);
     }}
     .wm {{
-      font-size: 25px; font-weight: 900; color: #1d4ed8; letter-spacing: 0.02em;
+      font-size: 25px; font-weight: 900; color: #1e3a8a; letter-spacing: 0.02em;
+      background: #ffffff; border: 2.5px solid #93c5fd; padding: 7px 18px; border-radius: 999px;
     }}
     .headline {{
-      position: absolute; top: 148px; left: 84px; right: 84px;
+      position: absolute; top: 154px; left: 84px; right: 84px;
       font-size: 56px; font-weight: 900; color: #0f172a; line-height: 1.18;
       letter-spacing: -0.03em;
     }}
     .headline .hl {{
-      background: linear-gradient(transparent 56%, #fef08a 56%);
+      background: linear-gradient(transparent 56%, #a7f3d0 56%);
+      color: #1e3a8a;
       padding: 0 6px;
     }}
     .speech-bubble {{
-      position: absolute; top: 320px; left: 84px; right: 84px;
-      background: #ffffff; border: 4px solid #18223c; border-radius: 26px;
-      padding: 22px 30px; font-size: 30px; font-weight: 800; color: #1e293b;
-      line-height: 1.35; box-shadow: 6px 6px 0 #cbd5e1;
+      position: absolute; top: 324px; left: 84px; right: 84px;
+      background: #ffffff; border: 3.5px solid #2563eb; border-radius: 26px;
+      padding: 22px 30px; font-size: 30px; font-weight: 800; color: #172554;
+      line-height: 1.35; box-shadow: 6px 6px 0 #bfdbfe;
     }}
     .speech-bubble::after {{
       content: ''; position: absolute; bottom: -20px; left: 110px;
       border-width: 20px 18px 0; border-style: solid;
-      border-color: #18223c transparent transparent;
+      border-color: #2563eb transparent transparent;
     }}
     .note-card {{
       position: absolute; top: 1412px; left: 84px; right: 84px;
-      background: #ffffff; border: 4.5px solid #18223c; border-radius: 28px;
-      padding: 24px 30px; box-shadow: 8px 8px 0 #1d4ed8;
+      background: #ffffff; border: 4px solid #2563eb; border-radius: 28px;
+      padding: 24px 30px; box-shadow: 8px 8px 0 #93c5fd;
       opacity: {note_opacity}; transform: translateY({note_shift});
     }}
     .note-badge {{
       display: inline-block; background: {sc['note_badge_bg']}; color: {sc['note_badge_fg']};
       font-size: 22px; font-weight: 900; padding: 6px 18px; border-radius: 999px;
-      border: 2.5px solid #18223c; margin-bottom: 10px;
+      border: 2.5px solid #2563eb; margin-bottom: 10px;
     }}
     .note-title {{
-      font-size: 31px; font-weight: 900; color: #0f172a; line-height: 1.25;
+      font-size: 31px; font-weight: 900; color: #172554; line-height: 1.25;
       letter-spacing: -0.02em;
     }}
     .note-body {{
-      margin-top: 8px; font-size: 25px; font-weight: 700; color: #475569; line-height: 1.35;
+      margin-top: 8px; font-size: 25px; font-weight: 700; color: #334155; line-height: 1.35;
     }}
     .sub-box {{
-      position: absolute; bottom: 130px; left: 64px; right: 64px;
+      position: absolute; bottom: 118px; left: 64px; right: 64px;
       display: flex; flex-direction: column; align-items: center; gap: 8px;
     }}
     .sub-inner {{
-      background: rgba(15, 23, 42, 0.90); color: #ffffff;
-      padding: 18px 32px; border-radius: 22px; text-align: center;
-      font-size: 35px; font-weight: 800; line-height: 1.34;
-      border: 3px solid rgba(244, 201, 93, 0.85);
-      box-shadow: 0 10px 26px rgba(15, 23, 42, 0.28);
+      background: rgba(255, 255, 255, 0.96); color: #0f172a;
+      padding: 18px 32px; border-radius: 24px; text-align: center;
+      font-size: 34px; font-weight: 900; line-height: 1.34;
+      border: 3.5px solid #2563eb;
+      box-shadow: 0 12px 28px rgba(30, 58, 138, 0.16);
     }}
-    .sub-inner .l2 {{ color: #fde047; }}
+    .sub-inner .l2 {{ color: #059669; }}
     </style></head><body>
       <div class="top-bar">
         <span class="step-pill">{sc['step_tag']}</span>

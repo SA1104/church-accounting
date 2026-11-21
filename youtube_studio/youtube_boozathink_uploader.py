@@ -213,6 +213,7 @@ def upload_shorts_package(
     tags: list[str],
     privacy: str = "public",
     force_api_upload: bool = False,
+    subfolder: str = "01_쇼츠_릴스_업로드_대기함",
 ) -> str:
     from googleapiclient.http import MediaFileUpload
 
@@ -223,6 +224,7 @@ def upload_shorts_package(
         description=description,
         pinned_comment=pinned_comment,
         tags=tags,
+        subfolder=subfolder,
     )
     if not force_api_upload:
         print(
@@ -334,6 +336,7 @@ def upload_intro(privacy: str = "public", force_api_upload: bool = False) -> tup
         tags=["부자생각", "BoozaThink", "창업시뮬레이터", "자영업순수익", "배달마진", "스마트스토어", "정책자금", "손익계산기"],
         privacy=privacy,
         force_api_upload=force_api_upload,
+        subfolder="01_공식_채널소개_영상팩",
     )
     r9 = upload_shorts_package(
         mp4_path=mp4_9,
@@ -348,6 +351,7 @@ def upload_intro(privacy: str = "public", force_api_upload: bool = False) -> tup
         tags=["부자생각", "BoozaThink", "창업계산기", "자영업", "온라인셀러", "Shorts"],
         privacy=privacy,
         force_api_upload=force_api_upload,
+        subfolder="01_공식_채널소개_영상팩",
     )
     return r16, r9
 

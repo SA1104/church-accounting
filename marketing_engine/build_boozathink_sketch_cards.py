@@ -169,91 +169,94 @@ def build_card_html(c: dict, img_b64: str) -> str:
     * {{ box-sizing: border-box; margin: 0; padding: 0; }}
     body {{
       width: 1080px; height: 1350px; overflow: hidden; position: relative;
-      background-color: #fcfbf7;
-      background-image:
-        linear-gradient(#e6edf7 1.8px, transparent 1.8px),
-        linear-gradient(90deg, #e6edf7 1.8px, transparent 1.8px);
-      background-size: 40px 40px;
+      background-color: #e8f1fc;
+      background-image: radial-gradient(#bfd3ee 1.8px, transparent 1.8px);
+      background-size: 28px 28px;
       font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
-      padding: 54px 64px;
-      display: flex; flex-direction: column; justify-content: space-between;
+      padding: 46px 46px;
+    }}
+    .pad {{
+      width: 100%; height: 100%; background: #ffffff; border: 3.5px solid #93c5fd;
+      border-radius: 36px; box-shadow: 0 18px 40px rgba(30, 58, 138, 0.12);
+      padding: 46px 48px; display: flex; flex-direction: column; justify-content: space-between;
+      position: relative;
     }}
     .top-row {{ display: flex; align-items: center; justify-content: space-between; }}
     .kicker {{
-      background: #18223c; color: #f4c95d; font-size: 22px; font-weight: 800;
+      background: #eff6ff; color: #1d4ed8; border: 2px solid #93c5fd; font-size: 21px; font-weight: 800;
       padding: 8px 20px; border-radius: 999px;
     }}
-    .brand {{ font-size: 24px; font-weight: 900; color: #1d4ed8; }}
+    .brand {{ font-size: 23px; font-weight: 900; color: #2563eb; }}
     .headline {{
-      margin-top: 18px; font-size: 52px; font-weight: 900; color: #0f172a;
+      margin-top: 18px; font-size: 49px; font-weight: 900; color: #0f172a;
       line-height: 1.18; letter-spacing: -0.03em;
     }}
-    .headline .hl {{ background: linear-gradient(transparent 56%, #fef08a 56%); padding: 0 6px; }}
+    .headline .hl {{ background: linear-gradient(transparent 58%, #bbf7d0 58%); padding: 0 6px; color: #065f46; }}
     .mid-grid {{
-      margin-top: 22px; display: flex; gap: 26px; align-items: stretch; height: 470px;
+      margin-top: 18px; display: flex; gap: 24px; align-items: stretch; height: 500px;
     }}
     .sketch-box {{
-      width: 440px; background: #ffffff; border: 4.5px solid #18223c; border-radius: 28px;
-      box-shadow: 8px 8px 0 #1d4ed8; padding: 18px;
-      display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+      width: 416px; background: #f8fbff; border: 3px solid #93c5fd; border-radius: 26px;
+      padding: 18px; display: flex; flex-direction: column; align-items: center; justify-content: space-between;
     }}
-    .sketch-box img {{ width: 360px; height: 360px; object-fit: contain; }}
+    .sketch-box img {{ width: 356px; height: 356px; object-fit: contain; mix-blend-mode: multiply; }}
     .quote {{
-      font-size: 20px; font-weight: 800; color: #334155; text-align: center;
-      background: #f1f5f9; border-radius: 14px; padding: 10px 14px; width: 100%;
+      font-size: 19.5px; font-weight: 800; color: #1e3a8a; text-align: center;
+      background: #eff6ff; border-radius: 14px; padding: 11px 14px; width: 100%;
     }}
     .points-box {{
       flex: 1; display: flex; flex-direction: column; justify-content: space-between;
     }}
     .pt-row {{
-      background: #ffffff; border: 3.5px solid #18223c; border-radius: 22px;
-      padding: 18px 20px; display: flex; gap: 16px; align-items: flex-start;
-      box-shadow: 5px 5px 0 #cbd5e1;
+      background: #ffffff; border: 2.5px solid #dbeafe; border-left: 8px solid #2563eb; border-radius: 18px;
+      padding: 18px 20px; display: flex; gap: 14px; align-items: flex-start;
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.06);
     }}
     .pt-num {{
-      width: 38px; height: 38px; border-radius: 50%; background: #1d4ed8; color: #ffffff;
-      font-size: 21px; font-weight: 900; display: flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; border-radius: 50%; background: #2563eb; color: #ffffff;
+      font-size: 20px; font-weight: 900; display: flex; align-items: center; justify-content: center;
       flex-shrink: 0; margin-top: 2px;
     }}
-    .pt-t {{ font-size: 24px; font-weight: 900; color: #0f172a; }}
-    .pt-d {{ margin-top: 5px; font-size: 19px; font-weight: 700; color: #475569; line-height: 1.35; }}
+    .pt-t {{ font-size: 23px; font-weight: 900; color: #0f172a; }}
+    .pt-d {{ margin-top: 5px; font-size: 18.5px; font-weight: 700; color: #475569; line-height: 1.35; }}
     .footer-cta {{
-      margin-top: 22px; background: #18223c; color: #ffffff; border-radius: 26px;
-      padding: 24px 30px; display: flex; align-items: center; justify-content: space-between;
-      border: 3.5px solid #0f172a;
+      margin-top: 18px; background: linear-gradient(95deg, #1e3a8a 0%, #2563eb 100%); color: #ffffff; border-radius: 24px;
+      padding: 22px 28px; display: flex; align-items: center; justify-content: space-between;
     }}
     .f-left .f-free {{
-      display: inline-block; background: #fef08a; color: #854d0e; font-size: 19px; font-weight: 900;
+      display: inline-block; background: #10b981; color: #ffffff; font-size: 18px; font-weight: 900;
       padding: 4px 14px; border-radius: 999px; margin-bottom: 6px;
     }}
-    .f-left .f-msg {{ font-size: 24px; font-weight: 800; color: #f8fafc; }}
+    .f-left .f-msg {{ font-size: 22.5px; font-weight: 800; color: #f8fafc; }}
     .f-url {{
-      background: #2563eb; color: #ffffff; font-size: 25px; font-weight: 900;
-      padding: 12px 26px; border-radius: 999px; border: 2.5px solid #93c5fd;
+      background: #ffffff; color: #1d4ed8; font-size: 24px; font-weight: 900;
+      padding: 11px 24px; border-radius: 999px;
     }}
     </style></head><body>
-      <div>
-        <div class="top-row">
-          <span class="kicker">{c['kicker']}</span>
-          <span class="brand">BOOZA THINK · 부자생각</span>
+      <div class="pad">
+        <div>
+          <div class="top-row">
+            <span class="kicker">{c['kicker']}</span>
+            <span class="brand">BOOZA THINK · 부자생각</span>
+          </div>
+          <div class="headline">{c['headline']}</div>
         </div>
-        <div class="headline">{c['headline']}</div>
-      </div>
-      <div class="mid-grid">
-        <div class="sketch-box">
-          <img src="data:image/jpeg;base64,{img_b64}" alt="스케치" />
-          <div class="quote">{c['quote']}</div>
+        <div class="mid-grid">
+          <div class="sketch-box">
+            <img src="data:image/jpeg;base64,{img_b64}" alt="일러스트" />
+            <div class="quote">{c['quote']}</div>
+          </div>
+          <div class="points-box">
+            {rows_html}
+          </div>
         </div>
-        <div class="points-box">
-          {rows_html}
+        <div class="footer-cta">
+          <div class="f-left">
+            <div class="f-free">올해 12월 31일까지만 전 업종 무료 개방</div>
+            <div class="f-msg">검색창에 ‘부자생각’ — 내 가게 순수익을 3초 만에 확인하세요</div>
+          </div>
+          <div class="f-url">boozathink.com</div>
         </div>
-      </div>
-      <div class="footer-cta">
-        <div class="f-left">
-          <div class="f-free">올해 12월 31일까지만 전 업종 무료 개방</div>
-          <div class="f-msg">검색창에 ‘부자생각’ — 내 가게 순수익을 3초 만에 확인하세요</div>
-        </div>
-        <div class="f-url">boozathink.com</div>
       </div>
     </body></html>"""
 
