@@ -10,6 +10,7 @@
  */
 const crypto = require('crypto');
 const { SEED_TOOL_IDEAS } = require('../data/tool-requests-seed');
+const { STARTUP_PROFILES } = require('../data/startup-profiles');
 let Pool = null;
 try { ({ Pool } = require('pg')); } catch (e) { Pool = null; }
 
@@ -357,18 +358,40 @@ function seedSample(calc) {
   return out;
 }
 
-function summarize(calc, values, value) {
+function percentile(sortedVals, q) {
+  if (!sortedVals.length) return 0;
+  const pos = (sortedVals.length - 1) * q;
+  const lo = Math.floor(pos);
+  const hi = Math.ceil(pos);
+  if (lo === hi) return sortedVals[lo];
+  return sortedVals[lo] + (sortedVals[hi] - sortedVals[lo]) * (pos - lo);
+}
+
+function summarize(calc, values, value, profileLabel) {
   const m = METRICS[calc];
-  const vals = values.filter((v) => Number.isFinite(v));
+  const vals = values.filter((v) => Number.isFinite(v)).sort((a, b) => a - b);
   const n = vals.length;
   const avg = n ? vals.reduce((a, b) => a + b, 0) / n : m.seed.mean;
+  const med = n ? percentile(vals, 0.50) : m.seed.mean;
+  const top20 = n ? percentile(vals, m.higherIsBetter ? 0.80 : 0.20) : (m.higherIsBetter ? m.seed.mean + m.seed.sd * 0.84 : Math.max(0, m.seed.mean - m.seed.sd * 0.84));
   let better = null;
   if (Number.isFinite(value) && n) {
     const worseOrEqual = vals.filter((v) => (m.higherIsBetter ? v <= value : v >= value)).length;
     const pctBetterThan = worseOrEqual / n;
     better = Math.max(1, Math.min(99, Math.round((1 - pctBetterThan) * 100)));
   }
-  return { metric: m.col, label: m.label, unit: m.unit, higherIsBetter: m.higherIsBetter, average: Math.round(avg * 10) / 10, topPercent: better, sampleSize: n };
+  return {
+    metric: m.col,
+    label: m.label,
+    unit: m.unit,
+    higherIsBetter: m.higherIsBetter,
+    average: Math.round(avg * 10) / 10,
+    median: Math.round(med * 10) / 10,
+    top20Cut: Math.round(top20 * 10) / 10,
+    topPercent: better,
+    sampleSize: n,
+    profileLabel: profileLabel || null
+  };
 }
 
 async function record(body) {
@@ -377,6 +400,9 @@ async function record(body) {
   const m = METRICS[row.calculator];
   const value = row[m.col];
   const groupInd = row.industry;
+  const profSlug = (row.meta && row.meta.profile) || null;
+  const profObj = profSlug ? STARTUP_PROFILES.find((p) => p.id === profSlug) : null;
+  const profLabel = profObj ? profObj.name : null;
 
   if (state.connected && driver === 'pg') {
     try {
@@ -386,15 +412,16 @@ async function record(body) {
         [row.calculator, row.industry, row.net_margin_pct, row.break_even_roas, row.payback_months, row.monthly_saving_krw, row.matched_programs, row.eff_tax_rate, row.rent_ratio_pct, JSON.stringify(row.meta || {})]
       );
       const q = await pool.query(
-        `SELECT ${m.col}::float8 AS v FROM public.biz_simulator_runs
+        `SELECT ${m.col}::float8 AS v, meta->>'profile' AS prof FROM public.biz_simulator_runs
          WHERE calculator = $1 AND ($2 = 'etc' OR industry = $2) AND ${m.col} IS NOT NULL
          ORDER BY created_at DESC LIMIT 5000`,
         [row.calculator, groupInd]
       );
-      let vals = q.rows.map((r) => Number(r.v));
+      let profVals = profSlug ? q.rows.filter((r) => r.prof === profSlug).map((r) => Number(r.v)) : [];
+      let vals = profVals.length >= 20 ? profVals : q.rows.map((r) => Number(r.v));
       const real = vals.length;
       if (real < 30) vals = vals.concat(seedSample(row.calculator));
-      return { ok: true, storage: 'supabase-pg', realSamples: real, ...summarize(row.calculator, vals, value) };
+      return { ok: true, storage: 'supabase-pg', realSamples: real, ...summarize(row.calculator, vals, value, profLabel) };
     } catch (e) {
       state.lastError = e.message;
     }
@@ -406,13 +433,14 @@ async function record(body) {
         [row.calculator, row.industry, JSON.stringify(row.meta || {})]
       );
       const qRows = await rpcExecSql(
-        `SELECT ${m.col}::float8 AS v FROM public.biz_simulator_runs WHERE calculator = ? AND (? = 'etc' OR industry = ?) AND ${m.col} IS NOT NULL ORDER BY created_at DESC LIMIT 5000`,
+        `SELECT ${m.col}::float8 AS v, meta->>'profile' AS prof FROM public.biz_simulator_runs WHERE calculator = ? AND (? = 'etc' OR industry = ?) AND ${m.col} IS NOT NULL ORDER BY created_at DESC LIMIT 5000`,
         [row.calculator, groupInd, groupInd]
       );
-      let vals = qRows.map((r) => Number(r.v));
+      const profVals = profSlug ? qRows.filter((r) => r.prof === profSlug).map((r) => Number(r.v)) : [];
+      let vals = profVals.length >= 20 ? profVals : qRows.map((r) => Number(r.v));
       const real = vals.length;
       if (real < 30) vals = vals.concat(seedSample(row.calculator));
-      return { ok: true, storage: 'supabase-rpc', realSamples: real, ...summarize(row.calculator, vals, value) };
+      return { ok: true, storage: 'supabase-rpc', realSamples: real, ...summarize(row.calculator, vals, value, profLabel) };
     } catch (e) {
       state.lastError = e.message;
     }
@@ -425,7 +453,7 @@ async function record(body) {
     if (memRunMetas.length > 3000) memRunMetas.shift();
   }
   const vals = mem.concat(mem.length < 30 ? seedSample(row.calculator) : []);
-  return { ok: true, storage: 'memory', realSamples: mem.length, ...summarize(row.calculator, vals, value) };
+  return { ok: true, storage: 'memory', realSamples: mem.length, ...summarize(row.calculator, vals, value, profLabel) };
 }
 
 /* ───────── 자체 방문·체류시간·유입채널·UTM·바이럴 이벤트 수집 ───────── */

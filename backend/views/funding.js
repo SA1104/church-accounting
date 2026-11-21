@@ -1,5 +1,5 @@
 'use strict';
-const E = require('../public/js/calc-engine.js');
+const E = require('../lib/calc-engine.js');
 const rates = require('../lib/rates');
 const facts = require('../data/facts');
 const { esc, breadcrumbHtml, breadcrumbLd, faqHtml, faqLd, abs, SITE, freeOpenBanner } = require('./layout');
@@ -391,7 +391,8 @@ function fundingView(q) {
     }).catch(function(){btn.disabled=false;st.textContent='일시적인 통신 오류가 발생했습니다.';});
   });
 })();
-</script>`;
+</script>
+<script>window.__BT_BOOT__=${JSON.stringify({ slug: 'loan-diagnose', data: { r } }).replace(/</g, '\\u003c')};</script>`;
 
   return { body, jsonld: [breadcrumbLd(crumbs), faqLd(faq)] };
 }

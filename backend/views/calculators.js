@@ -1,5 +1,6 @@
 'use strict';
-const E = require('../public/js/calc-engine.js');
+const E = require('../lib/calc-engine.js');
+const simGuard = require('../lib/sim-guard');
 const { esc, CALCULATORS, breadcrumbHtml, breadcrumbLd, faqHtml, faqLd, abs, SITE, freeOpenBanner } = require('./layout');
 const { icon } = require('./icons');
 const facts = require('../data/facts');
@@ -51,8 +52,9 @@ function benchBox() {
   return `<div class="card bench" data-bench aria-live="polite"><div class="bench-head"><span class="pill">같은 업종 사장님 평균과 비교</span><span class="bench-src" data-bench-src>실시간 익명 비교</span></div><p class="bench-text" data-bench-text>계산이 끝나면 같은 업종 사장님들의 평균 수치와 비교해 드립니다.</p></div>`;
 }
 
-function pageShell(calc, q, formHtml, outHtml, guideHtml, faq, related, footnote) {
+function pageShell(calc, q, formHtml, outHtml, guideHtml, faq, related, footnote, bootData) {
   const crumbs = [{ name: '홈', path: '/' }, { name: '부분별 손익 계산기', path: '/calculators' }, { name: calc.short, path: '/calculators/' + calc.slug }];
+  const bootScript = bootData ? `<script>window.__BT_BOOT__=${JSON.stringify({ slug: calc.slug, data: bootData }).replace(/</g, '\\u003c')};</script>` : '';
   const body = `
 <div class="container">
   ${breadcrumbHtml(crumbs)}
@@ -81,7 +83,8 @@ function pageShell(calc, q, formHtml, outHtml, guideHtml, faq, related, footnote
   ${faqHtml(faq)}
   <aside class="trust-box"><h2>데이터 기준 각주 & 면책 고지</h2><p>공식 참조 출처: 소상공인시장진흥공단, 공정거래위원회, 국세청, 고용노동부(현행 2026년 및 2027.1.1 시행 확정 최저임금 고시 포함), 4대사회보험 정보연계센터, 법제처(상가건물 임대차보호법 시행령). 검증 기준일: <strong>${facts.VERIFIED_AT}</strong>. 본 계산기는 공개된 법령·고시 요율에 기초한 참고용 추정치이며, 실제 정산액·세액·대출 조건은 개별 계약서와 공고문, 세무·노무 전문가 상담으로 최종 확인하시기 바랍니다. (<a href="/terms-of-service">이용약관</a> · <a href="/privacy-policy">개인정보처리방침</a>)</p></aside>
 </div>
-<script>window.__FX__=${JSON.stringify(require('../lib/fx').publicRates())};</script>`;
+<script>window.__FX__=${JSON.stringify(require('../lib/fx').publicRates())};</script>
+${bootScript}`;
   const jsonld = [
     {
       '@context': 'https://schema.org', '@type': 'WebApplication', name: calc.name, url: abs('/calculators/' + calc.slug),
@@ -174,7 +177,7 @@ ${facts.DELIVERY_PLANS.filter((p) => p.id !== 'custom').map((p) => `<tr><td>${es
     { q: '순마진율은 몇 %가 적정한가요?', a: '임대료·인건비를 빼기 전 1주문 순마진율이 최소 20~28%는 확보되어야 월 고정비와 사장님 인건비가 남는 경우가 많습니다.' },
     { q: '입력한 매출 정보가 저장되나요?', a: '아니요. 개별 입력 수치는 브라우저 안에서만 연산되며 서버에 저장되지 않습니다.' }
   ];
-  return pageShell(calc, q, form, out, guide, faq, ctx.byCategory['delivery-store-profit'] || [], `※ 배달플랫폼 상생협의체 상생요금제 기준 반영 (검증일 ${facts.VERIFIED_AT})`);
+  return pageShell(calc, q, form, out, guide, faq, ctx.byCategory['delivery-store-profit'] || [], `※ 배달플랫폼 상생협의체 상생요금제 기준 반영 (검증일 ${facts.VERIFIED_AT})`, simGuard.buildDeliveryEval(s));
 }
 
 /* ───────────────────────── 2. 셀러 ROAS ───────────────────────── */
@@ -254,7 +257,7 @@ ${facts.MARKETS.map((m) => `<tr><td>${esc(m.name)}</td><td>${E.MARKETS[m.id] ? E
     { q: '로켓그로스 보관료는 어떻게 반영하나요?', a: '평균 재고 체류일수에 따른 개당 추정 보관료를 입출고·배송비 입력란에 합산해 넣으시면 정확합니다.' },
     { q: '환율은 어떻게 적용되나요?', a: '환율 버스 또는 서버 기준 환율이 자동 적용되며, 실제 송금 환율과 차이가 있을 경우 원화(KRW) 탭에서 확정 원가를 직접 입력하실 수 있습니다.' }
   ];
-  return pageShell(calc, q, form, out, guide, faq, ctx.byCategory['ecommerce-seller-lab'] || [], `※ 네이버 스마트스토어 판매수수료 개편 및 쿠팡 카테고리 표준 요율 반영 (검증일 ${facts.VERIFIED_AT})`);
+  return pageShell(calc, q, form, out, guide, faq, ctx.byCategory['ecommerce-seller-lab'] || [], `※ 네이버 스마트스토어 판매수수료 개편 및 쿠팡 카테고리 표준 요율 반영 (검증일 ${facts.VERIFIED_AT})`, simGuard.buildSellerEval(s));
 }
 
 /* ───────────────────────── 3. 정책자금 ───────────────────────── */
@@ -325,7 +328,7 @@ ${range('srate', '국비 지원율', 50, 80, 5, s.srate, '%', '일반 50~70%, �
     { q: '스마트상점 보조금은 먼저 설치한 뒤 청구해도 되나요?', a: '안 됩니다. 반드시 공고 신청 → 선정 → 전자협약 체결 이후에 기기를 도입해야 국비가 지원됩니다.' },
     { q: '매칭 적합도 %는 무엇을 의미하나요?', a: '입력 조건이 각 사업의 대표 지원 요건과 부합하는 정도를 나타낸 우선순위 참고 지표입니다.' }
   ];
-  return pageShell(calc, q, form, out, guide, faq, ctx.byCategory['policy-funds-grants'] || [], `※ 중소벤처기업부 · 소상공인시장진흥공단 최신 공고 기준 반영 (검증일 ${facts.VERIFIED_AT})`);
+  return pageShell(calc, q, form, out, guide, faq, ctx.byCategory['policy-funds-grants'] || [], `※ 중소벤처기업부 · 소상공인시장진흥공단 최신 공고 기준 반영 (검증일 ${facts.VERIFIED_AT})`, simGuard.buildPolicyEval(s));
 }
 
 /* ───────────────────────── 4. 인건비 & 무인화 ───────────────────────── */
@@ -389,7 +392,7 @@ ${[10, 14.5, 15, 20, 30, 40].map((h) => {
     { q: '주 15시간 미만 알바는 4대보험이 전혀 없나요?', a: '월 60시간 미만 초단시간 근로자는 국민연금·건강보험·고용보험이 원칙적으로 제외되지만 산재보험은 전 근로자에게 의무 적용됩니다.' },
     { q: '테이블오더 구매 시 보조금을 받을 수 있나요?', a: '스마트상점 기술보급사업 공고 기간에 사전 신청·선정되면 공급가의 50~70%(최대 500만원) 국비 지원을 받을 수 있습니다.' }
   ];
-  return pageShell(calc, q, form, out, guide, faq, ctx.byCategory['labor-tax-franchise'] || [], `※ 최신 고용노동부 최저임금 고시 및 4대보험 요율 기준 (현행 2026년 · 차기 2027.1.1 시행 확정분 병행 지원)`);
+  return pageShell(calc, q, form, out, guide, faq, ctx.byCategory['labor-tax-franchise'] || [], `※ 최신 고용노동부 최저임금 고시 및 4대보험 요율 기준 (현행 2026년 · 차기 2027.1.1 시행 확정분 병행 지원)`, { r });
 }
 
 /* ───────────────────────── 5. 부가세·종소세·실수령 ───────────────────────── */
@@ -471,7 +474,7 @@ ${range('umb', '노란우산공제 월 납입액', 0, 150, 5, s.umb, '만원', '
     { q: '인건비는 왜 부가세 공제가 안 되나요?', a: '급여에는 부가가치세가 포함되어 있지 않아 부가세 매입세액공제 대상은 아니지만, 원천세 신고 시 종합소득세 필요경비로 전액 차감됩니다.' },
     { q: '면세농산물 의제매입세액공제도 있나요?', a: '일반과세 음식점이 농·축·수산물 원재료를 계산서·카드로 매입하면 한도 내에서 8/108(또는 9/109)을 추가 공제받을 수 있습니다.' }
   ];
-  return pageShell(calc, q, form, out, guide, faq, ctx.byCategory['labor-tax-franchise'] || [], `※ 국세청 현행 부가가치세법(간이 기준 1억 400만원) 및 소득세법 과세표준 구간 반영 (검증일 ${facts.VERIFIED_AT})`);
+  return pageShell(calc, q, form, out, guide, faq, ctx.byCategory['labor-tax-franchise'] || [], `※ 국세청 현행 부가가치세법(간이 기준 1억 400만원) 및 소득세법 과세표준 구간 반영 (검증일 ${facts.VERIFIED_AT})`, { r });
 }
 
 /* ───────────────────────── 6. 상가 월세·환산보증금·BEP ───────────────────────── */
@@ -552,7 +555,7 @@ ${range('sunk', '권리금+인테리어+설비 (보증금 제외)', 0, 50000, 20
     { q: '환산보증금을 초과하면 10년 계약갱신요구권도 없나요?', a: '아닙니다. 상가건물 임대차보호법 제2조 제3항에 따라 기준 초과 상가도 10년 계약갱신요구권과 권리금 회수기회 보호는 동일하게 적용됩니다.' },
     { q: '보증금은 왜 원금회수 계산에서 제외하나요?', a: '보증금은 계약 만료 시 반환받는 자산이고, 권리금·인테리어·설비비는 영업이익으로 건져야 하는 매몰 비용이기 때문입니다.' }
   ];
-  return pageShell(calc, q, form, out, guide, faq, ctx.byCategory['delivery-store-profit'] || [], `※ 법제처 현행 상가건물 임대차보호법 시행령 기준액 반영 (검증일 ${facts.VERIFIED_AT})`);
+  return pageShell(calc, q, form, out, guide, faq, ctx.byCategory['delivery-store-profit'] || [], `※ 법제처 현행 상가건물 임대차보호법 시행령 기준액 반영 (검증일 ${facts.VERIFIED_AT})`, { r });
 }
 
 function index() {

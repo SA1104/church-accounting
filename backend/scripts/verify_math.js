@@ -2,7 +2,7 @@
 /**
  * BoozaThink 6대 시뮬레이터 & 16종 미니 계산기 수학·세법·노무 정밀 검산 테스트 (verify_math.js)
  */
-const E = require('../public/js/calc-engine.js');
+const E = require('../lib/calc-engine.js');
 
 let passed = 0;
 let failed = 0;
@@ -189,6 +189,21 @@ equal(sm.resilience.shockSalesDown20KRW < sm.avgMonthlyCashFlow, true, '매출 -
 equal(sm.resilience.minEmergencyReserveManwon >= 1000, true, `오프라인 매장 최소 비상 예비자금(${sm.resilience.minEmergencyReserveManwon}만원) 산출 검증`);
 const smIllusion = E.startupMaster({ profile: 'takeout-coffee', orders: 95, own: 6000 }, STARTUP_PROFILES);
 equal(['illusion', 'deficit'].includes(smIllusion.resilience.sweatTier), true, '저수익 구간 사장님 본인 인건비 착시(내 몸값 미달) 정확 감지');
+
+console.log('\n=== 8. 현장 숨은 지출(fieldTraps) & 서버 블랙박스(sim-guard) 격리 검산 ===');
+equal(sm.fieldTraps.vatEarlyRefundAtRiskManwon, Math.round((sm.interior + sm.equip + sm.kioskSelf) * 0.10), '결제 전 일반과세 미등록 시 놓치는 부가세 10% 조기환급액 산출');
+equal(sm.fieldTraps.trueSafeCapitalManwon > sm.totalStartup, true, `현장 숨은비용+초기버팀목 반영 안전총자본금(${sm.fieldTraps.trueSafeCapitalManwon}만) > 명목창업비(${sm.totalStartup}만)`);
+
+const simGuard = require('../lib/sim-guard');
+const tok = simGuard.issueSimToken();
+equal(simGuard.verifySimToken(tok), true, '유효 서명 시뮬레이션 토큰 검증 통과');
+equal(simGuard.verifySimToken('1700000000.deadbeefdeadbeefdead'), false, '위조·만료 시뮬레이션 토큰 차단');
+const evStartup = simGuard.evaluateSimulatorPayload({ slug: 'startup-master', state: { profile: 'takeout-coffee', own: 6000 } });
+equal(evStartup.ok && evStartup.r.profile.seasonality === undefined && evStartup.r.profile.interiorPerPyeong === undefined, true, '서버 응답에서 내부 12개월 계절배열·평당원가 계수 원천 비노출 검증');
+const evPolicy = simGuard.evaluateSimulatorPayload({ slug: 'policy-funds', state: { ind: 'food', region: 'seoul', age: 'lt3', hiloan: 3000, hirate: 9.5 } });
+equal(evPolicy.ok && Array.isArray(evPolicy.matchedCards) && evPolicy.matchedCards.length > 0, true, '정책자금 매칭 결과 서버 단독 생성 검증');
+const evMini = simGuard.evaluateSimulatorPayload({ slug: 'mini', type: 'delivery-net', vals: { price: 20000, fee: 7.8, dfee: 3400, cost: 7000 } });
+equal(evMini.ok && Array.isArray(evMini.rows) && evMini.rows.length === 4, true, '인라인 미니계산기 서버 블랙박스 연산 검증');
 
 console.log(`\n========================================`);
 console.log(` MATH AUDIT: ${passed} PASSED, ${failed} FAILED`);

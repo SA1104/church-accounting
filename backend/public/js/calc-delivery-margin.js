@@ -43,7 +43,7 @@
       var noteEl = h.rootEl.querySelector('[data-plan-note]');
       if (noteEl && PLAN_NOTES[s.plan]) noteEl.textContent = PLAN_NOTES[s.plan];
     },
-    render: function (s, h) {
+    render: function (s, h, srv) {
       var applyBtn = h.rootEl.querySelector('[data-apply-biz]');
       if (applyBtn && !applyBtn._wired) {
         applyBtn._wired = true;
@@ -62,7 +62,8 @@
         });
       }
 
-      var r = E.delivery(s);
+      if (!srv || !srv.r) return {};
+      var r = srv.r;
       var spec = (E.DELIVERY_BIZ_SPECS && E.DELIVERY_BIZ_SPECS[s.biz]) || E.DELIVERY_BIZ_SPECS.food;
       var curCogsPct = r.price > 0 ? (r.cost / r.price) * 100 : 0;
       var cogsStatus = curCogsPct > spec.cogsRange[1]
@@ -103,8 +104,8 @@
         (r.goalOrders ? E.fmt(r.goalOrders) + '건' : '-') + '</strong> 주문이 필요합니다.'
       );
 
-      var pDisc = Math.min(2000, Math.round(r.price * 0.1));
-      var pRes = E.delivery(Object.assign({}, s, { price: r.price - pDisc, fee: Math.min(s.fee, 6.8), dfee: 0, promo: 0 }));
+      var pDisc = srv.pDisc != null ? srv.pDisc : Math.min(2000, Math.round(r.price * 0.1));
+      var pRes = srv.pRes || r;
       var diff = Math.round(pRes.net - r.net);
       h.setHtml('pickupCompare',
         '포장(픽업) 고객에게 <strong class="tnum">' + E.won(pDisc) +

@@ -1,5 +1,6 @@
 'use strict';
-const E = require('../public/js/calc-engine.js');
+const E = require('../lib/calc-engine.js');
+const simGuard = require('../lib/sim-guard');
 const { STARTUP_PROFILES, STARTUP_GROUPS } = require('../data/startup-profiles');
 const { esc, CALCULATORS, breadcrumbHtml, breadcrumbLd, faqHtml, faqLd, abs, SITE, freeOpenBanner } = require('./layout');
 const { icon } = require('./icons');
@@ -360,6 +361,20 @@ function startupMasterView(q) {
 </div>
 
 <div class="card">
+  <h2 class="card-h">견적서에는 안 적혀 있는 ‘현장 숨은 지출 · 부가세 환급 누수’ 자동 판독</h2>
+  <p class="note" style="margin:4px 0 12px">단순 계산기에는 빠지는 <strong>전기 증설·정화조/배기·초도 발주비·오픈 초기 3개월 워밍업 자금</strong>까지 업종·평수에 맞춰 더한 현실 안전선입니다.</p>
+  <div class="kpi-grid tnum">
+    <div><span>결제 전 사업자 미등록 시 놓치는 부가세 환급</span><strong style="color:var(--danger)">${o('vatRefundOut', manwon(r.fieldTraps.vatEarlyRefundAtRiskManwon))}</strong></div>
+    <div><span>전기 승압 · 배기덕트 · 급배수 별도 예상비</span><strong>${o('elecPlumbOut', manwon(r.fieldTraps.elecUpgradeManwon + r.fieldTraps.plumbingExhaustManwon))}</strong></div>
+    <div><span>오픈 전 초도 식자재 · 포장재 · 비품 발주</span><strong>${o('initInvOut', manwon(r.fieldTraps.initialInventoryManwon))}</strong></div>
+    <div><span>오픈 초기 3개월 자리 잡기 버팀목 현금</span><strong>${o('rampBufOut', manwon(r.fieldTraps.rampUpDeficitBufferManwon))}</strong></div>
+  </div>
+  <div class="rec-box" style="margin-top:10px">
+    명목 창업비(${o('nomCapOut', manwon(r.totalStartup))})에 현장 별도 지출과 초기 버팀목을 모두 합친 <strong>실패 없는 진짜 안전 총자본금은 <span class="tnum" data-out="trueSafeCapOut">${manwon(r.fieldTraps.trueSafeCapitalManwon)}</span></strong>입니다. (임대 만기 원상복구 예비 기준: <span class="tnum" data-out="restoreOut">${manwon(r.fieldTraps.restorationReserveManwon)}</span>)
+  </div>
+</div>
+
+<div class="card">
   <h2 class="card-h">한 달 매출에서 원가·배달비·월세·세금·대출금이 빠지고 남는 순서</h2>
   <div class="chart" data-chart="waterfall" role="img" aria-label="창업 월평균 매출 공제 차트"></div>
   <table class="mini-table tnum" data-table="breakdown"><tbody>${r.monthlyBreakdown.map((b) => `<tr><th>${esc(b.label)}</th><td>${won(b.value)}</td><td>${pct(r.annualSalesKRW > 0 ? b.value / (r.annualSalesKRW / 12) * 100 : 0)}</td></tr>`).join('')}</tbody></table>
@@ -451,7 +466,24 @@ function startupMasterView(q) {
 
   ${faqHtml(faq)}
 </div>
-<script>window.__STARTUP_PROFILES__=${JSON.stringify(STARTUP_PROFILES).replace(/</g, '\\u003c')};</script>`;
+<script>window.__BT_BOOT__=${JSON.stringify({
+    slug: 'startup-master',
+    initProfile: simGuard.getSingleStartupProfileDefaults(profId, regionKey, s.intmode),
+    data: {
+      r: Object.assign({}, r, {
+        profile: {
+          id: prof.id,
+          name: prof.name,
+          group: prof.group,
+          pyeong: prof.pyeong,
+          cogsPct: prof.cogsPct,
+          seasonNote: prof.seasonNote,
+          benchMargin: prof.benchMargin,
+          tips: prof.tips || []
+        }
+      })
+    }
+  }).replace(/</g, '\\u003c')};</script>`;
 
   const jsonld = [
     {

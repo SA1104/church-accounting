@@ -4,18 +4,13 @@
   var E = window.BTEngine, C = window.BTCalc;
   if (!E || !C) return;
 
-  var PROGS = window.__PROGRAMS__ || [];
-
-  function renderProgramCards(r, esc) {
-    return r.matches.map(function (m, i) {
-      var p = PROGS.find(function (x) { return x.id === m.id; });
-      if (!p) return '';
-      var name = m.id === 'kodit-regional' ? p.name.replace('지역신용보증재단', r.regionGuarantee) : p.name;
+  function renderProgramCards(cards, esc) {
+    return (cards || []).map(function (p, i) {
       var docs = (p.docs || []).map(function (d) {
         return '<li><label><input type="checkbox"> ' + esc(d) + '</label></li>';
       }).join('');
-      return '<li class="prog"><div class="prog-head"><span class="prog-rank">' + (i + 1) + '</span><h3>' + esc(name) + '</h3><span class="fit" title="조건 적합도">' + m.fit + '%</span></div>' +
-        '<p class="prog-why">' + esc(m.why) + '</p>' +
+      return '<li class="prog"><div class="prog-head"><span class="prog-rank">' + (i + 1) + '</span><h3>' + esc(p.name) + '</h3><span class="fit" title="조건 적합도">' + p.fit + '%</span></div>' +
+        '<p class="prog-why">' + esc(p.why) + '</p>' +
         '<dl class="prog-dl"><div><dt>지원 한도</dt><dd>' + esc(p.limit) + '</dd></div><div><dt>금리·조건</dt><dd>' + esc(p.rate) + '</dd></div><div><dt>기간</dt><dd>' + esc(p.term) + '</dd></div><div><dt>신청처</dt><dd>' + esc(p.where) + '</dd></div></dl>' +
         '<details class="docs"><summary>필요 서류 체크리스트 (' + (p.docs ? p.docs.length : 0) + ')</summary><ul class="checklist">' + docs + '</ul></details></li>';
     }).join('');
@@ -24,8 +19,10 @@
   C.mount({
     slug: 'policy-funds',
     defaults: { ind: 'food', region: 'seoul', age: 'lt3', sales: 15000, emp: 'lt5', hiloan: 3000, hirate: 9.5, kiosk: 1, devcost: 600, srate: 70 },
-    render: function (s, h) {
-      var r = E.policy(s);
+    render: function (s, h, srv) {
+      if (!srv || !srv.r) return {};
+      var r = srv.r;
+      var cards = srv.matchedCards || [];
       h.setOut('count', r.matches.length + '건');
       h.setOut('sohoText', r.soho ? '소상공인 요건 충족 (상시근로자 5인 미만·제조 10인 미만)' : '소상공인 요건 초과 → 중소기업 자금 위주 검토');
       h.setOut('annual', E.won(r.refinance.annual));
@@ -49,11 +46,10 @@
         { label: '첫해 절감액', value: r.refinance.annual, color: '#3182f6' }
       ]));
 
-      if (PROGS.length) h.setHtml('programs', renderProgramCards(r, h.esc));
+      if (cards.length) h.setHtml('programs', renderProgramCards(cards, h.esc));
 
-      var topNames = r.matches.slice(0, 3).map(function (m, idx) {
-        var p = PROGS.find(function (x) { return x.id === m.id; });
-        return (idx + 1) + '순위: ' + (p ? p.name.split('(')[0].trim() : m.id);
+      var topNames = cards.slice(0, 3).map(function (p, idx) {
+        return (idx + 1) + '순위: ' + p.name.split('(')[0].trim();
       });
 
       return {

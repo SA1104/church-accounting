@@ -51,8 +51,9 @@
         s.varpct = BIZ_PRESETS[s.biz].varpct;
       }
     },
-    render: function (s, h) {
-      var r = E.storeLease(s);
+    render: function (s, h, srv) {
+      if (!srv || !srv.r) return {};
+      var r = srv.r;
       h.setHeroStatus(r.status);
       h.setOut('bepDailyOrders', '하루 ' + E.fmt(r.bepDailyOrders) + '건');
       h.setOut('bepDailySales', E.won(r.bepDailySales));

@@ -57,8 +57,10 @@
       var noteEl = h.rootEl.querySelector('[data-plan-note]');
       if (noteEl && MARKET_NOTES[s.market]) noteEl.textContent = MARKET_NOTES[s.market];
     },
-    render: function (s, h) {
-      var r = E.seller(s, fx);
+    render: function (s, h, srv) {
+      if (!srv || !srv.r) return {};
+      var r = srv.r;
+      var curFx = srv.fx || fx;
       h.setHeroStatus(r.status);
       h.setOut('beRoas', r.beRoas ? E.pct(r.beRoas, 0) : '적자 구조');
       h.setOut('status', STATUS_TEXT[r.status]);
@@ -73,8 +75,8 @@
       h.setBreakdown(r.price, r.breakdown);
       h.setChart('waterfall', h.waterfallSvg(r.price, r.breakdown));
 
-      var bPack = Math.round(s.pack * (s.market === 'cp-rg' ? 1.7 : 1.15));
-      var bRes = E.seller(Object.assign({}, s, { unit: s.unit * 2, ship: s.ship * 2, price: Math.round(s.price * 2 * 0.95), pack: bPack }), fx);
+      var bPack = srv.bPack != null ? srv.bPack : Math.round(s.pack * (s.market === 'cp-rg' ? 1.7 : 1.15));
+      var bRes = srv.bRes || r;
       h.setHtml('bundleCompare',
         '상세페이지 기본 옵션을 <strong>2개 묶음(5% 할인 · ' + E.won(bRes.price) + ')</strong>으로 유도하면 포장·택배비가 1회분(' + E.won(bPack) + ')만 지출되어 주문당 광고 전 순마진이 <strong class="tnum">' +
         E.won(r.preAd) + ' → ' + E.won(bRes.preAd) + '</strong>으로 뛰고, 손익분기 ROAS 커트라인은 <strong class="tnum">' +
@@ -102,7 +104,7 @@
           ],
           noteLines: [
             STATUS_TEXT[r.status],
-            '환율 기준: 1 CNY=' + E.fmt(fx.CNY, 1) + '원 / 1 USD=' + E.fmt(fx.USD, 1) + '원'
+            '환율 기준: 1 CNY=' + E.fmt(curFx.CNY, 1) + '원 / 1 USD=' + E.fmt(curFx.USD, 1) + '원'
           ]
         }
       };

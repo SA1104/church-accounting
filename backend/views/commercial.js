@@ -1,7 +1,7 @@
 'use strict';
 const { ZONE_ARCHETYPES, DATA_PIPELINE_SPEC } = require('../data/commercial-architecture');
 const { STARTUP_PROFILES, STARTUP_GROUPS } = require('../data/startup-profiles');
-const E = require('../public/js/calc-engine.js');
+const E = require('../lib/calc-engine.js');
 const { esc, breadcrumbHtml, breadcrumbLd, faqHtml, faqLd, freeOpenBanner } = require('./layout');
 const { icon } = require('./icons');
 

@@ -397,8 +397,17 @@
 
     var lastResult = null;
     var benchTimer = null;
+    var evalTimer = null;
+    var evalSeq = 0;
 
     var IND_LABEL = { food: '외식업', cafe: '카페·디저트', retail: '도소매·셀러', online: '이커머스 셀러', mfg: '제조·소공인', service: '개인서비스', etc: '전체 업종' };
+
+    function fmtMetric(val, unit) {
+      if (val == null || !Number.isFinite(Number(val))) return '-';
+      if (unit === '원') return E.won(val);
+      if (unit === '만원') return E.manwon(val);
+      return E.fmt(val, 1) + unit;
+    }
 
     function scheduleBench(payload) {
       if (!payload || !benchTextEl) return;
@@ -410,14 +419,21 @@
           body: JSON.stringify(payload)
         }).then(function (r) { return r.json(); }).then(function (d) {
           if (!d || !d.ok) return;
-          var indName = IND_LABEL[payload.industry] || '동종업계';
-          var avgTxt = d.unit === '원' ? E.won(d.average) : E.fmt(d.average, 1) + d.unit;
+          var indName = d.profileLabel || IND_LABEL[payload.industry] || '동종업계';
+          var medTxt = fmtMetric(d.median != null ? d.median : d.average, d.unit);
+          var top20Txt = fmtMetric(d.top20Cut, d.unit);
+          var gaugeHtml = '';
           if (d.topPercent != null) {
-            benchTextEl.innerHTML = '현재 <strong>' + esc(indName) + '</strong> 사장님 시뮬레이션 평균 ' + esc(d.label) + '(<strong class="tnum">' + esc(avgTxt) + '</strong>) 대비 <strong class="tnum">상위 ' + d.topPercent + '%</strong>입니다.';
+            var pos = Math.max(4, Math.min(96, 100 - d.topPercent));
+            gaugeHtml = '<div class="bench-gauge-wrap">' +
+              '<div class="bench-gauge-bar"><div class="bench-gauge-fill" style="width:' + pos + '%"></div><span class="bench-gauge-dot" style="left:' + pos + '%">내 위치</span></div>' +
+              '<div class="bench-gauge-meta tnum"><span>하위권</span><span>사장님 중앙값 ' + esc(medTxt) + '</span><span>상위 20% 기준 ' + esc(top20Txt) + '</span></div>' +
+            '</div>';
+            benchTextEl.innerHTML = '현재 <strong>' + esc(indName) + '</strong> 사장님들의 실제 계산 분포(중앙값 <strong class="tnum">' + esc(medTxt) + '</strong>) 중 내 조건은 <strong class="tnum" style="color:var(--brand)">상위 ' + d.topPercent + '%</strong> 구간입니다.' + gaugeHtml;
           } else {
-            benchTextEl.innerHTML = '현재 <strong>' + esc(indName) + '</strong> 시뮬레이션 평균 ' + esc(d.label) + '은 <strong class="tnum">' + esc(avgTxt) + '</strong>입니다.';
+            benchTextEl.innerHTML = '현재 <strong>' + esc(indName) + '</strong> 사장님 시뮬레이션 중앙값 ' + esc(d.label) + '은 <strong class="tnum">' + esc(medTxt) + '</strong> (상위 20% 우수선 <strong class="tnum">' + esc(top20Txt) + '</strong>)입니다.';
           }
-          if (benchSrcEl) benchSrcEl.textContent = '표본 ' + E.fmt(d.sampleSize) + '건 익명 집계';
+          if (benchSrcEl) benchSrcEl.textContent = '누적 표본 ' + E.fmt(d.sampleSize) + '건 분석';
         }).catch(function () {});
       }, 650);
     }
@@ -429,12 +445,43 @@
       showToast: showToast, state: state, recompute: function (k) { recompute(k, null, false); }
     };
 
-    function recompute(changedKey, sourceEl, fromInit) {
-      if (config.onBeforeCalc && changedKey) config.onBeforeCalc(state, changedKey, helpers);
-      writeStateToDom(sourceEl);
-      lastResult = config.render(state, helpers) || {};
+    function runRenderWithServerData(srvData, fromInit) {
+      lastResult = config.render(state, helpers, srvData) || {};
       if (!fromInit) syncUrl();
       if (lastResult.benchPayload) scheduleBench(lastResult.benchPayload);
+    }
+
+    function recompute(changedKey, sourceEl, fromInit) {
+      var seq = ++evalSeq;
+      var prep = (config.onBeforeCalc && changedKey) ? config.onBeforeCalc(state, changedKey, helpers) : null;
+
+      function proceedAfterPrep() {
+        if (seq !== evalSeq) return;
+        writeStateToDom(sourceEl);
+
+        if (fromInit && root.__BT_BOOT__ && root.__BT_BOOT__.slug === config.slug && root.__BT_BOOT__.data) {
+          var bootData = root.__BT_BOOT__.data;
+          root.__BT_BOOT__ = null;
+          runRenderWithServerData(bootData, true);
+          return;
+        }
+
+        if (evalTimer) clearTimeout(evalTimer);
+        var waitMs = fromInit ? 0 : 55;
+        evalTimer = setTimeout(function () {
+          var payloadState = config.buildEvalState ? config.buildEvalState(state) : state;
+          E.evalSim(config.slug, payloadState).then(function (res) {
+            if (seq !== evalSeq || !res || !res.ok) return;
+            runRenderWithServerData(res, fromInit);
+          }).catch(function () {});
+        }, waitMs);
+      }
+
+      if (prep && typeof prep.then === 'function') {
+        prep.then(proceedAfterPrep).catch(proceedAfterPrep);
+      } else {
+        proceedAfterPrep();
+      }
     }
 
     form.addEventListener('input', function (e) {
@@ -557,6 +604,42 @@
       reqNudge.innerHTML = '찾으시는 업종이나 계산 방식이 없나요? <a href="/requests">필요한 계산기 신청 · 투표하기 →</a>';
       trayWrap.insertAdjacentElement('afterend', reqNudge);
 
+      function buildCompareMatrixHtml(list) {
+        var rich = list.filter(function (it) { return Array.isArray(it.rows) && it.rows.length > 0; });
+        if (rich.length < 2) {
+          return '<p class="tray-hint">다른 조건(예: 다른 평수·월세·메뉴가)으로 바꾼 뒤 한 번 더 <strong>[현재 조건 비교함에 담기]</strong>를 누르시면 아래에 <strong>후보 A vs B 나란히 정밀 비교표</strong>가 자동으로 펼쳐집니다.</p>';
+        }
+        var cols = rich.slice(0, 4);
+        var maxRows = 0;
+        cols.forEach(function (c) { if (c.rows.length > maxRows) maxRows = c.rows.length; });
+
+        var headCells = '<th>비교 항목</th>' + cols.map(function (c, i) {
+          return '<th><span class="cmp-badge">후보 ' + String.fromCharCode(65 + i) + '</span><br>' + esc(c.title) + '</th>';
+        }).join('');
+
+        var heroRow = '<tr class="cmp-hero-row"><th>' + esc(cols[0].heroLabel || '핵심 진단 결과') + '</th>' +
+          cols.map(function (c) {
+            return '<td><strong class="tnum">' + esc(c.val) + '</strong>' +
+              (c.heroSub ? '<span class="cmp-sub">' + esc(c.heroSub) + '</span>' : '') + '</td>';
+          }).join('') + '</tr>';
+
+        var bodyRows = '';
+        for (var rIdx = 0; rIdx < maxRows; rIdx++) {
+          var rowLabel = (cols[0].rows[rIdx] && cols[0].rows[rIdx][0]) ? cols[0].rows[rIdx][0] : ('항목 ' + (rIdx + 1));
+          var isBold = cols[0].rows[rIdx] && cols[0].rows[rIdx][2];
+          bodyRows += '<tr' + (isBold ? ' class="cmp-bold-row"' : '') + '><th>' + esc(rowLabel) + '</th>' +
+            cols.map(function (c) {
+              var cell = c.rows[rIdx] ? c.rows[rIdx][1] : '-';
+              return '<td class="tnum">' + esc(cell) + '</td>';
+            }).join('') + '</tr>';
+        }
+
+        return '<div class="tray-compare-wrap">' +
+          '<div class="tray-compare-title"><strong>후보 조건 A vs B 나란히 정밀 비교표</strong><span>이름 옆 ✎ 버튼으로 상가·메뉴 별칭을 메모해 두실 수 있습니다</span></div>' +
+          '<div class="table-scroll"><table class="rate-board tray-compare-table"><thead><tr>' + headCells + '</tr></thead><tbody>' +
+          heroRow + bodyRows + '</tbody></table></div></div>';
+      }
+
       function renderTray() {
         var list = loadTray();
         if (!list.length) {
@@ -567,24 +650,34 @@
         trayWrap.hidden = false;
         trayWrap.innerHTML = '<div class="saved-tray-head"><strong>내가 담아둔 비교 조건 (' + list.length + '/5)</strong><span>클릭하면 해당 조건으로 즉시 바뀝니다</span></div>' +
           '<div class="saved-tray-list">' + list.map(function (it, idx) {
+            var badge = String.fromCharCode(65 + idx);
             return '<div class="saved-chip">' +
-              '<button type="button" class="saved-load" data-load-idx="' + idx + '"><strong>' + (idx + 1) + '. ' + esc(it.title) + '</strong> <span class="tnum">' + esc(it.val) + '</span></button>' +
+              '<button type="button" class="saved-load" data-load-idx="' + idx + '"><strong>' + badge + '. ' + esc(it.title) + '</strong> <span class="tnum">' + esc(it.val) + '</span></button>' +
+              '<button type="button" class="saved-ren" title="별칭 수정" aria-label="후보 별칭 수정" data-ren-idx="' + idx + '">✎</button>' +
               '<button type="button" class="saved-del" title="삭제" aria-label="보관 조건 삭제" data-del-idx="' + idx + '">×</button>' +
             '</div>';
-          }).join('') + '</div>';
+          }).join('') + '</div>' + buildCompareMatrixHtml(list);
       }
 
       saveBtn.addEventListener('click', function () {
         var rec = (lastResult && lastResult.receipt) || {};
-        var title = (rec.subtitle || config.slug).replace(/^창업 풀코스 손익 진단 · /, '').slice(0, 26);
+        var title = (rec.subtitle || config.slug).replace(/^창업 풀코스 손익 진단 · /, '').replace(/^배달앱 1주문 손익 진단 · /, '').slice(0, 26);
         var val = rec.heroValue || '';
         var qStr = buildQueryString();
         var list = loadTray();
-        list.unshift({ title: title, val: val, q: qStr, t: Date.now() });
+        list.unshift({
+          title: title,
+          heroLabel: rec.heroLabel || '핵심 진단 결과',
+          val: val,
+          heroSub: rec.heroSub || '',
+          rows: Array.isArray(rec.rows) ? rec.rows.slice(0, 8) : [],
+          q: qStr,
+          t: Date.now()
+        });
         saveTray(list.slice(0, 5));
         renderTray();
         if (root.BTTrack) root.BTTrack('save_scenario', { calculator: config.slug });
-        showToast('현재 조건을 비교함에 담아두었습니다 (최대 5개)');
+        showToast(list.length >= 2 ? '후보 조건이 추가되어 아래 A vs B 비교표가 갱신되었습니다!' : '첫 번째 후보 조건을 담았습니다. 다른 조건으로 한 번 더 담아 나란히 비교해 보세요!');
       });
 
       trayWrap.addEventListener('click', function (e) {
@@ -599,6 +692,19 @@
           applyQueryToState();
           recompute(null, null, false);
           showToast('‘' + item.title + '’ 조건을 불러왔습니다.');
+          return;
+        }
+        var rn = e.target.closest('[data-ren-idx]');
+        if (rn) {
+          var rList = loadTray();
+          var rIdx = parseInt(rn.getAttribute('data-ren-idx'), 10);
+          if (!rList[rIdx]) return;
+          var nextName = window.prompt('비교표에 표시할 후보 별칭을 입력해 주세요 (예: 역세권 1층 15평, 골목 배달전문 8평)', rList[rIdx].title);
+          if (nextName && nextName.trim()) {
+            rList[rIdx].title = nextName.trim().slice(0, 28);
+            saveTray(rList);
+            renderTray();
+          }
           return;
         }
         var dl = e.target.closest('[data-del-idx]');

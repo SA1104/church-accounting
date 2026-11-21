@@ -865,6 +865,51 @@
       sweatTier: sweatTier
     };
 
+    // 현장 실전 숨은 비용·함정 판독 (부가세 조기환급 누수 · 전기승압/정화조 · 초도물류 · 초기 3개월 자리잡기 버팀목)
+    var gName = prof.group || '';
+    var isEcom = gName.indexOf('이커머스') >= 0;
+    var isFood = gName.indexOf('외식') >= 0;
+    var isCafe = gName.indexOf('카페') >= 0;
+    var isBeauty = gName.indexOf('뷰티') >= 0;
+
+    var vatEarlyRefundAtRiskManwon = Math.round((interior + equip + kioskSelf) * 0.10);
+    var elecUpgradeManwon = isEcom
+      ? 0
+      : (isFood || isCafe
+        ? (intMode === 'takeover' ? 60 : Math.round(clamp(pyeong * 9 + (equip >= 2500 ? 120 : 60), 80, 480)))
+        : (intMode === 'takeover' ? 30 : Math.round(clamp(pyeong * 5 + 40, 50, 260))));
+    var plumbingExhaustManwon = isFood
+      ? (intMode === 'takeover' ? 80 : Math.round(clamp(pyeong * 12 + 140, 180, 650)))
+      : (isCafe
+        ? (intMode === 'takeover' ? 40 : Math.round(clamp(pyeong * 6 + 70, 90, 320)))
+        : (isBeauty ? (intMode === 'takeover' ? 40 : 120) : 0));
+    var initialInventoryManwon = Math.max(100, Math.round((baseMonthlySales * (cogsPct / 100)) / 10000 * 0.55));
+    var restorationReserveManwon = (isEcom && pyeong <= 6) ? 0 : Math.round(clamp(pyeong * 18, 150, 900));
+
+    var rampShortfallKRW = 0;
+    [0.60, 0.80, 0.92].forEach(function (rMult) {
+      var rSales = baseMonthlySales * rMult;
+      var rMargin = rSales * (1 - varPctTotal / 100) - monthlyFixedPlusDebtKRW;
+      if (rMargin < 0) rampShortfallKRW += Math.abs(rMargin);
+    });
+    var rampUpDeficitBufferManwon = Math.max(
+      Math.round((rent + maint) * 1.5),
+      Math.ceil(rampShortfallKRW / 10000)
+    );
+    var hiddenOutlayManwon = elecUpgradeManwon + plumbingExhaustManwon + initialInventoryManwon;
+    var trueSafeCapitalManwon = totalStartup + hiddenOutlayManwon + rampUpDeficitBufferManwon;
+
+    var fieldTraps = {
+      vatEarlyRefundAtRiskManwon: vatEarlyRefundAtRiskManwon,
+      elecUpgradeManwon: elecUpgradeManwon,
+      plumbingExhaustManwon: plumbingExhaustManwon,
+      initialInventoryManwon: initialInventoryManwon,
+      restorationReserveManwon: restorationReserveManwon,
+      rampUpDeficitBufferManwon: rampUpDeficitBufferManwon,
+      hiddenOutlayManwon: hiddenOutlayManwon,
+      trueSafeCapitalManwon: trueSafeCapitalManwon
+    };
+
     return {
       profile: prof, regionKey: regionKey, regionInfo: regionInfo, locRec: locRec,
       convertedDeposit: convertedDeposit, leaseCapObj: leaseCapObj, underLeaseCap: underLeaseCap,
@@ -875,7 +920,7 @@
       loanType: loanType, loanRate: loanRate, loanYears: loanYears, loanCheck: loanCheck,
       monthlyInterestKRW: monthlyInterestKRW, monthlyDebtServiceKRW: monthlyDebtServiceKRW,
       ticket: ticket, dailyOrders: dailyOrders, days: days, baseMonthlySales: baseMonthlySales,
-      menuItems: normalizedMenu, delivBreakdown: delivBreakdown, resilience: resilience,
+      menuItems: normalizedMenu, delivBreakdown: delivBreakdown, resilience: resilience, fieldTraps: fieldTraps,
       cogsPct: cogsPct, feePct: feePct, delivPct: delivPct, varPctTotal: varPctTotal,
       rent: rent, maint: maint, staffManwon: staffManwon, fixedMonthlyKRW: fixedMonthlyKRW,
       annualSalesKRW: annualSalesKRW, annualOpProfit: annualOpProfit,

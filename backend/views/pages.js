@@ -1,5 +1,5 @@
 'use strict';
-const E = require('../public/js/calc-engine.js');
+const E = require('../lib/calc-engine.js');
 const { esc, CALCULATORS, breadcrumbHtml, breadcrumbLd, faqHtml, faqLd, abs, SITE, freeOpenBanner } = require('./layout');
 const { icon } = require('./icons');
 const facts = require('../data/facts');

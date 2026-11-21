@@ -35,8 +35,9 @@
       var yNote = h.rootEl.querySelector('[data-year-note]');
       if (yNote && YEAR_NOTES[String(s.year)]) yNote.textContent = YEAR_NOTES[String(s.year)];
     },
-    render: function (s, h) {
-      var r = E.labor(s);
+    render: function (s, h, srv) {
+      if (!srv || !srv.r) return {};
+      var r = srv.r;
       h.setHeroStatus(r.payback != null && r.payback <= 12 ? 'safe' : (r.payback != null ? 'caution' : 'danger'));
       var pbTxt = r.payback == null ? '회수 불가' : (r.mode === 'rent' ? '즉시 (렌탈)' : E.fmt(r.payback, 1) + '개월');
       h.setOut('payback', pbTxt);

@@ -7,8 +7,9 @@
   C.mount({
     slug: 'vat-income-tax',
     defaults: { ind: 'food', regime: 'auto', sales: 9600, buy: 40, labor: 2400, cardpct: 85, deps: 1, umb: 25 },
-    render: function (s, h) {
-      var r = E.vatIncome(s);
+    render: function (s, h, srv) {
+      if (!srv || !srv.r) return {};
+      var r = srv.r;
       h.setHeroStatus(r.cashNetAnnual > 0 ? 'safe' : 'danger');
       var regLabel = r.effectiveRegime === 'simplified' ? (r.vatExempt ? '간이과세자 (부가세 납부면제)' : '간이과세자') : '일반과세자';
 

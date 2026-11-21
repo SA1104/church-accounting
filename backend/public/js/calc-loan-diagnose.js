@@ -11,13 +11,14 @@
       hasloan: '1', expolicy: 1500, exbank: 1500, exmort: 0, excard: 0,
       debtrate: 8.2, arrears: 0, emp: 'lt5'
     },
-    render: function (s, h) {
+    render: function (s, h, srv) {
       var exBox = h.rootEl.querySelector('[data-fd-exloan]');
       if (exBox) exBox.hidden = String(s.hasloan) === '0';
       var colBox = h.rootEl.querySelector('[data-fd-colval]');
       if (colBox) colBox.hidden = s.collateral === 'none';
 
-      var r = E.loanDiagnose(s);
+      if (!srv || !srv.r) return {};
+      var r = srv.r;
       h.setHeroStatus(r.grade);
       h.setOut('netLimit', E.manwon(r.netAdditionalLimit));
       h.setOut('gradeLabel', r.gradeLabel);

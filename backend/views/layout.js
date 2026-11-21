@@ -22,7 +22,7 @@ const CALCULATORS = [
   { slug: 'policy-funds', short: '정책자금 · 저금리 대환 매칭', name: '소상공인 정책자금 · 4.5% 대환대출 · 스마트상점 보조금 매칭기', iconKey: 'bank', desc: '업종·업력·매출 조건에 맞는 정책자금을 매칭하고 고금리 대환 이자 절감액과 보조금 자부담을 계산합니다.', category: 'policy-funds-grants' }
 ];
 
-const ASSET_V = '20261121a';
+const ASSET_V = '20261122a';
 
 function yearEndFreeInfo() {
   const kstNow = new Date(Date.now() + 9 * 3600 * 1000);
@@ -111,7 +111,7 @@ function gnb(categories, current) {
           <button class="dd-btn" aria-expanded="false" aria-haspopup="true" aria-controls="dd-bible" style="color:var(--text-2)">실전 가이드 <span aria-hidden="true">▾</span></button>
           <ul class="dd" id="dd-bible" role="menu">
             <li><a href="/calendar" role="menuitem"><span class="ico-box-sm">${icon('clock', 16)}</span><span><strong>12개월 세무·자금 달력</strong><small>매달 챙길 부가세·종소세·정책자금 일정</small></span></a></li>
-            <li><a href="/datasets" role="menuitem"><span class="ico-box-sm">${icon('layers', 16)}</span><span><strong>업종별 비용 · 세율 · 금리 공개 기준표</strong><small>30대 업종 평균 비용 및 법정 세율 표 다운로드</small></span></a></li>
+            <li><a href="/datasets" role="menuitem"><span class="ico-box-sm">${icon('layers', 16)}</span><span><strong>업종별 비용 · 세율 · 금리 공개 기준표</strong><small>법정 세율 · 최저임금 · 임대차 상한 공식 기준 열람</small></span></a></li>
             ${catItems}
             <li class="dd-all"><a href="/bible">실전 가이드 전체 보기 →</a></li>
           </ul>
@@ -197,6 +197,7 @@ function render(opts, categories) {
 ${opts.keywords ? `<meta name="keywords" content="${esc(opts.keywords.join(', '))}">` : ''}
 <link rel="canonical" href="${esc(canonical)}">
 <meta name="robots" content="${robotContent}">
+${opts.simToken ? `<meta name="bt-sim-token" content="${esc(opts.simToken)}">` : ''}
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
 <meta property="og:type" content="${opts.type || 'website'}">

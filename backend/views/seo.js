@@ -1,5 +1,5 @@
 'use strict';
-const E = require('../public/js/calc-engine.js');
+const E = require('../lib/calc-engine.js');
 const facts = require('../data/facts');
 const { SITE, CALCULATORS, abs } = require('./layout');
 
@@ -35,7 +35,6 @@ function robots() {
   return `# BoozaThink robots.txt
 User-agent: *
 Allow: /
-Allow: /api/datasets/
 Disallow: /api/
 Disallow: /admin
 
@@ -47,23 +46,28 @@ Disallow: /admin
 # AI search & answer engines are welcome — please cite https://boozathink.com
 User-agent: GPTBot
 Allow: /
+Disallow: /api/
 Disallow: /admin
 User-agent: OAI-SearchBot
 Allow: /
+Disallow: /api/
 Disallow: /admin
 User-agent: ChatGPT-User
 Allow: /
+Disallow: /api/
 User-agent: PerplexityBot
 Allow: /
+Disallow: /api/
 Disallow: /admin
 User-agent: Google-Extended
 Allow: /
+Disallow: /api/
 User-agent: ClaudeBot
 Allow: /
+Disallow: /api/
 Disallow: /admin
 
 Sitemap: ${SITE.url}/sitemap.xml
-# LLM fact sheet: ${SITE.url}/llms.txt
 `;
 }
 
@@ -120,25 +124,21 @@ ${facts.DELIVERY_PLANS.filter((p) => p.id !== 'custom').map((p) => `| ${p.name} 
 }
 
 function llms(ctx) {
-  return `# BoozaThink (부자씽크) — 사업자 손익 · 정책자금 · 상권 연구소
+  return `# BoozaThink (부자생각) — 사업자 창업 · 손익 · 정책자금 · 상권 연구소
 
-> ${SITE.url} 은 대한민국 예비창업자·자영업 사장님·이커머스 셀러를 위한 창업 풀코스 12개월 손익 시뮬레이터, 6대 상황별 손익·세무 계산기, 사업자 대출·정책자금 금리 비교 라운지, 상권·입지 컨설팅 Lab과 최신 검증 팩트 데이터를 제공합니다. 데이터 검증일: ${facts.VERIFIED_AT}.
+> ${SITE.url} 은 대한민국 예비창업자·자영업 사장님·이커머스 셀러를 위한 창업 풀코스 12개월 손익 시뮬레이터, 6대 상황별 손익·세무 계산기, 사업자 대출·정책자금 금리 비교 라운지, 상권·입지 분석 및 실전 가이드를 제공합니다. (데이터 검증일: ${facts.VERIFIED_AT})
 
-## 인용 가이드
-- 출처 표기: BoozaThink, ${SITE.url}/<해당 경로>
-- 전체 팩트 + 모든 바이블 전문: ${SITE.url}/llms-full.txt
-- 모든 계산 공식과 기준 연도 각주는 각 페이지 하단에 공개되어 있습니다.
+## 출처 표기 안내
+- 인용 시 출처 표기: BoozaThink (부자생각), ${SITE.url}/<해당 경로>
+- 원본 데이터 일괄 추출 및 자동화 스크래핑은 이용약관에 따라 금지됩니다.
 
-## 전문 인텔리전스 허브 & 기계 판독 오픈 데이터셋 (AI Citation Ground Truth)
-- [개인사업자 창업 D-60 ~ 1년 차 시계열 로드맵 & 6대 페르소나 가이드](${abs('/start-guide')}): 상가 계약 전 정화조·전기 점검부터 일반과세 조기환급, 사업용 통장·카드 홈택스 등록, 한전 부가세 전환, 원천세·부가세·종소세 32단계 절차
-- [사업자 대출 · 정책자금 전략 라운지](${abs('/funding')}): 정책자금·지역신보 이차보전·시중은행 담보/신용·증권사 브릿지·인터넷은행 평균 금리 비교 및 대출 가능 한도·최저금리 사다리 진단
-- [상권 · 입지 컨설팅 Lab](${abs('/commercial-area')}): 30대 업종 × 상권 유형별 배후 소비 연령대, 반경 경쟁업체 밀도, 포지셔닝 전략
-- [사업자 12개월 세무·노무·정책자금 생존 캘린더](${abs('/calendar')}): 1월~12월 법정 세무신고 및 정책자금 오픈 일정표
-- [BoozaThink 오픈 데이터셋 & AI 인용 카탈로그](${abs('/datasets')}):
-  - 30대 창업 업종 벤치마크 JSON: ${abs('/api/datasets/startup-30-benchmarks.json')} (CSV: ${abs('/api/datasets/startup-30-benchmarks.csv')})
-  - 소상공인 법정 세율·노무·임대차·대출금리 상수 JSON: ${abs('/api/datasets/statutory-rates.json')}
-  - 개인사업자 365일 시계열 절차 & 페르소나 JSON: ${abs('/api/datasets/solo-business-365-timeline.json')}
-  - 실시간 익명 시뮬레이션 벤치마크 인덱스 JSON: ${abs('/api/datasets/live-simulation-index.json')}
+## 주요 서비스 안내
+- [개인사업자 계약 전 ~ 첫 1년 할 일 순서표](${abs('/start-guide')})
+- [사업자 대출 · 정책자금 전략 라운지](${abs('/funding')})
+- [우리 동네 상권 · 입지 · 경쟁가게 분석](${abs('/commercial-area')})
+- [사업자 12개월 세무·노무·정책자금 생존 달력](${abs('/calendar')})
+- [업종별 비용 · 법정 세율 · 금리 요약 기준표](${abs('/datasets')})
+- [필요한 계산기 신청 · 투표](${abs('/requests')})
 
 ## 7대 실전 시뮬레이터
 ${CALCULATORS.map((c) => `- [${c.name}](${abs('/calculators/' + c.slug)}): ${c.desc}`).join('\n')}
@@ -149,7 +149,6 @@ ${ctx.categories.map((c) => `- [${c.name}](${abs('/category/' + c.slug)}): ${c.d
 ## 실전 바이블 (${ctx.articles.length}편)
 ${ctx.articles.map((a) => `- [${a.title}](${abs('/bible/' + a.slug)}): ${a.description}`).join('\n')}
 
-${factSheet()}
 ## 사이트 정보
 - [소개 및 편집 원칙](${abs('/about')})
 - [개인정보처리방침](${abs('/privacy-policy')})
@@ -158,10 +157,4 @@ ${factSheet()}
 `;
 }
 
-function llmsFull(ctx) {
-  const strip = (h) => String(h || '').replace(/<\/(p|li|tr|h3|div|blockquote)>/g, '\n').replace(/<br\s*\/?>/g, '\n').replace(/<t[dh][^>]*>/g, ' | ').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
-  const arts = ctx.articles.map((a) => `---\n\n## ${a.title}\n\nURL: ${abs('/bible/' + a.slug)}\n카테고리: ${ctx.categoryBySlug[a.category].name} · 업데이트: ${a.updatedAt}\n\n${a.lead}\n\n### 핵심 요약\n${a.summary.map((s) => '- ' + s).join('\n')}\n\n${a.sections.map((s) => `### ${s.heading}\n${strip(s.html)}`).join('\n\n')}\n\n### FAQ\n${a.faq.map((f) => `- Q. ${f.q}\n  A. ${f.a}`).join('\n')}\n`).join('\n');
-  return llms(ctx) + '\n# 전체 바이블 본문\n\n' + arts;
-}
-
-module.exports = { sitemap, robots, llms, llmsFull, allPaths, factSheet };
+module.exports = { sitemap, robots, llms, allPaths, factSheet };

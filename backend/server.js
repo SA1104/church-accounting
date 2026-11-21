@@ -27,6 +27,7 @@ const adminViews = require('./views/admin');
 const fx = require('./lib/fx');
 const rates = require('./lib/rates');
 const db = require('./lib/db');
+const simGuard = require('./lib/sim-guard');
 const facts = require('./data/facts');
 
 const app = express();
@@ -79,11 +80,6 @@ app.use(express.static(path.join(__dirname, 'public'), {
   }
 }));
 
-app.get('/js/calc-policy-data.js', (req, res) => {
-  res.type('application/javascript').set('Cache-Control', 'public, max-age=3600');
-  res.send('window.__PROGRAMS__=' + JSON.stringify(facts.POLICY_PROGRAMS.map(({ match, ...p }) => p)).replace(/</g, '\\u003c') + ';');
-});
-
 // ── 5. SSR 헬퍼 ──
 const HTML_CACHE = 'public, max-age=300, s-maxage=600, stale-while-revalidate=86400';
 function send(res, opts, status) {
@@ -92,6 +88,9 @@ function send(res, opts, status) {
   if (opts.noindex) res.set('X-Robots-Tag', 'noindex, nofollow');
   if (opts.noCache) res.set('Cache-Control', 'no-store');
   else res.set('Cache-Control', HTML_CACHE);
+  if (opts.scripts && opts.scripts.length && !opts.simToken) {
+    opts.simToken = simGuard.issueSimToken();
+  }
   res.send(layout.render(opts, content.categories));
 }
 
@@ -105,7 +104,7 @@ app.get('/', (req, res) => {
     jsonld: v.jsonld,
     body: v.body,
     current: 'home',
-    scripts: ['/js/calc-engine.js?v=' + layout.ASSET_V, '/js/mini-calc.js?v=' + layout.ASSET_V]
+    scripts: ['/js/bt-client.js?v=' + layout.ASSET_V, '/js/mini-calc.js?v=' + layout.ASSET_V]
   });
 });
 
@@ -164,7 +163,7 @@ app.get('/funding', (req, res) => {
     bodyClass: 'page-calc',
     current: 'funding',
     noCache: Object.keys(req.query).length > 0,
-    scripts: ['/js/calc-engine.js?v=' + layout.ASSET_V, '/js/mini-calc.js?v=' + layout.ASSET_V, '/js/calc-core.js?v=' + layout.ASSET_V, '/js/calc-loan-diagnose.js?v=' + layout.ASSET_V]
+    scripts: ['/js/bt-client.js?v=' + layout.ASSET_V, '/js/mini-calc.js?v=' + layout.ASSET_V, '/js/calc-core.js?v=' + layout.ASSET_V, '/js/calc-loan-diagnose.js?v=' + layout.ASSET_V]
   });
 });
 
@@ -220,12 +219,11 @@ app.get('/calculators/:slug', (req, res, next) => {
   const r = CALC_ROUTES[req.params.slug];
   if (!r) return next();
   const v = r.view(req.query, content);
-  const extra = req.params.slug === 'policy-funds' ? ['/js/calc-policy-data.js?v=' + layout.ASSET_V] : [];
   send(res, {
     title: r.title, description: r.desc, path: '/calculators/' + req.params.slug, jsonld: v.jsonld, body: v.body, bodyClass: 'page-calc',
     current: r.current || 'calc',
     noCache: Object.keys(req.query).length > 0,
-    scripts: ['/js/calc-engine.js?v=' + layout.ASSET_V].concat(extra, ['/js/calc-core.js?v=' + layout.ASSET_V, '/js/calc-' + req.params.slug + '.js?v=' + layout.ASSET_V])
+    scripts: ['/js/bt-client.js?v=' + layout.ASSET_V, '/js/calc-core.js?v=' + layout.ASSET_V, '/js/calc-' + req.params.slug + '.js?v=' + layout.ASSET_V]
   });
 });
 
@@ -249,7 +247,7 @@ app.get('/bible/:slug', (req, res, next) => {
   send(res, {
     title: a.title, description: a.description, path: '/bible/' + a.slug, type: 'article', jsonld: v.jsonld, body: v.body, keywords: a.keywords,
     published: a.publishedAt, modified: a.updatedAt, current: 'cat:' + a.category, bodyClass: 'page-article',
-    scripts: ['/js/calc-engine.js?v=' + layout.ASSET_V, '/js/mini-calc.js?v=' + layout.ASSET_V]
+    scripts: ['/js/bt-client.js?v=' + layout.ASSET_V, '/js/mini-calc.js?v=' + layout.ASSET_V]
   });
 });
 app.get('/article/:slug', (req, res) => res.redirect(301, '/bible/' + encodeURIComponent(req.params.slug)));
@@ -272,7 +270,7 @@ Object.entries(LEGAL).forEach(([slug, [fn, title, desc]]) => {
 app.get('/sitemap.xml', (req, res) => { res.type('application/xml').set('Cache-Control', 'public, max-age=3600').send(seo.sitemap(content)); });
 app.get('/robots.txt', (req, res) => { res.type('text/plain').set('Cache-Control', 'public, max-age=3600').send(seo.robots()); });
 app.get('/llms.txt', (req, res) => { res.type('text/markdown; charset=utf-8').set('Cache-Control', 'public, max-age=3600').send(seo.llms(content)); });
-app.get('/llms-full.txt', (req, res) => { res.type('text/markdown; charset=utf-8').set('Cache-Control', 'public, max-age=3600').send(seo.llmsFull(content)); });
+app.get('/llms-full.txt', (req, res) => res.redirect(301, '/llms.txt'));
 if (process.env.ADSENSE_CLIENT) {
   app.get('/ads.txt', (req, res) => res.type('text/plain').set('Cache-Control', 'public, max-age=3600').send(`google.com, ${process.env.ADSENSE_CLIENT.trim().replace(/^ca-/, '')}, DIRECT, f08c47fec0942fa0\n`));
 }
@@ -360,27 +358,38 @@ app.get('/api/version', (req, res) => {
 app.get('/api/fx', (req, res) => { res.set('Cache-Control', 'public, max-age=300').json(fx.publicRates()); });
 app.get('/api/rates', (req, res) => { res.set('Cache-Control', 'public, max-age=300').json(rates.getMarketRatesSummary()); });
 
-// AI 인용 & 연구용 정형 오픈 데이터셋 API (CORS 개방)
-app.get('/api/datasets/startup-30-benchmarks.json', (req, res) => {
-  res.set({ 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=3600' }).json(datasetsViews.buildStartup30Dataset());
+// ── 서버 전용 블랙박스 계산 API (서명 토큰 + 출처 검증 + 자동화 수집 차단) ──
+app.post('/api/sim/eval', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const guard = simGuard.verifySimRequest(req, 180);
+  if (!guard.ok) return res.status(guard.status).json({ ok: false, error: guard.error });
+  try {
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+    const out = simGuard.evaluateSimulatorPayload(body);
+    return res.status(out.ok ? 200 : 400).json(out);
+  } catch (e) {
+    return res.status(400).json({ ok: false, error: 'invalid simulation payload' });
+  }
 });
-app.get('/api/datasets/startup-30-benchmarks.csv', (req, res) => {
-  res.set({
-    'Access-Control-Allow-Origin': '*',
-    'Cache-Control': 'public, max-age=3600',
-    'Content-Type': 'text/csv; charset=utf-8',
-    'Content-Disposition': 'attachment; filename="boozathink-startup-30-benchmarks.csv"'
-  }).send(datasetsViews.buildStartup30Csv());
+
+app.get('/api/sim/profile/:id', (req, res) => {
+  res.set('Cache-Control', 'private, max-age=300');
+  const guard = simGuard.verifySimRequest(req, 120);
+  if (!guard.ok) return res.status(guard.status).json({ ok: false, error: guard.error });
+  const out = simGuard.getSingleStartupProfileDefaults(
+    String(req.params.id || '').slice(0, 48),
+    String(req.query.region || 'recommend').slice(0, 32),
+    String(req.query.intmode || 'turnkey').slice(0, 16)
+  );
+  return res.json({ ok: true, ...out });
 });
-app.get('/api/datasets/statutory-rates.json', (req, res) => {
-  res.set({ 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=3600' }).json(datasetsViews.buildStatutoryDataset());
-});
-app.get('/api/datasets/solo-business-365-timeline.json', (req, res) => {
-  res.set({ 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=3600' }).json(datasetsViews.buildTimelineDataset());
-});
-app.get('/api/datasets/live-simulation-index.json', async (req, res) => {
-  const ds = await datasetsViews.buildLiveBenchmarkDataset(db);
-  res.set({ 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=300' }).json(ds);
+
+// 일괄 원본 데이터 파일 추출 차단 (웹 기준표 /datasets 로 안내)
+app.use('/api/datasets', (req, res) => {
+  res.set('Cache-Control', 'no-store').status(403).json({
+    ok: false,
+    error: '원본 데이터 일괄 파일 제공이 종료되었습니다. 웹 기준표(https://boozathink.com/datasets) 및 시뮬레이터를 이용해 주세요.'
+  });
 });
 
 const hits = new Map();

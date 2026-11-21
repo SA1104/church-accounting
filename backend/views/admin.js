@@ -3,7 +3,7 @@ const { esc, CALCULATORS } = require('./layout');
 const { icon } = require('./icons');
 const { PERSONAS } = require('../data/start-timeline');
 const { STARTUP_PROFILES } = require('../data/startup-profiles');
-const E = require('../public/js/calc-engine.js');
+const E = require('../lib/calc-engine.js');
 
 const SOURCE_LABELS = {
   google: 'Google 검색',

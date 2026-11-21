@@ -1,8 +1,8 @@
-/* BoozaThink Inline 3-Second Mini Calculator Hydrator */
+/* BoozaThink Inline 3-Second Mini Calculator Hydrator (Server Black-Box Mode) */
 (function () {
   'use strict';
   var E = window.BTEngine;
-  if (!E) return;
+  if (!E || !E.evalSim) return;
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -12,12 +12,12 @@
 
   document.querySelectorAll('[data-mini]').forEach(function (box) {
     var type = box.getAttribute('data-mini');
-    var def = E.MINI[type];
-    if (!def) return;
+    if (!type) return;
     var outEl = box.querySelector('[data-mc-out]');
     var inputs = box.querySelectorAll('input[data-mc]');
+    var timer = null;
 
-    function update() {
+    function syncLabelsAndCollect() {
       var vals = {};
       inputs.forEach(function (inp) {
         var k = inp.getAttribute('data-mc');
@@ -28,17 +28,25 @@
         if (outVal) outVal.textContent = E.fmt(vals[k], 2) + unit;
         if (window.BTSyncRangeFill) window.BTSyncRangeFill(inp);
       });
-      var rows = E.mini(type, vals);
-      if (outEl) {
-        outEl.innerHTML = rows.map(function (r) {
-          return '<div class="' + (r[2] || '') + '"><dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd></div>';
-        }).join('');
-      }
+      return vals;
+    }
+
+    function requestEval() {
+      var vals = syncLabelsAndCollect();
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(function () {
+        E.evalSim('mini', null, { type: type, vals: vals }).then(function (res) {
+          if (!res || !res.ok || !Array.isArray(res.rows) || !outEl) return;
+          outEl.innerHTML = res.rows.map(function (r) {
+            return '<div class="' + (r[2] || '') + '"><dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd></div>';
+          }).join('');
+        }).catch(function () {});
+      }, 65);
     }
 
     inputs.forEach(function (inp) {
-      inp.addEventListener('input', update);
+      inp.addEventListener('input', requestEval);
     });
-    update();
+    syncLabelsAndCollect();
   });
 })();

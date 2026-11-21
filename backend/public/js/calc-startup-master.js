@@ -1,11 +1,15 @@
-/* 창업 풀코스 A-to-Z & 12개월 계절 손익 시뮬레이터 컨트롤러 (v2.6) */
+/* 창업 풀코스 A-to-Z & 12개월 계절 손익 시뮬레이터 컨트롤러 (Server Black-Box Mode v3.0) */
 (function () {
   'use strict';
   var E = window.BTEngine, C = window.BTCalc;
-  var PROFILES = window.__STARTUP_PROFILES__ || [];
-  if (!E || !C || !PROFILES.length) return;
+  if (!E || !C) return;
 
-  var p0 = PROFILES[0];
+  var boot = window.__BT_BOOT__ || {};
+  var curProfBundle = boot.initProfile || {
+    profile: { id: 'takeout-coffee', name: '테이크아웃 저가커피', group: '카페·디저트', pyeong: 10, cogsPct: 30, seasonNote: '' },
+    defaults: { pyeong: 10, deposit: 2500, rent: 180, maint: 28, interior: 2200, equip: 2400, premium: 1500, kiosk: 1, kioskcnt: 1, staff: 220, dshare: 20, pshare: 45, dappfee: '7.8', drider: 3000, dpack: 450, dpromo: 300, menuItems: [{ cat: '아메리카노·커피', price: 2500, qty: 130, cogs: 26 }] }
+  };
+
   var STEP_TITLES = {
     1: '업종 & 창업 지역 고르기',
     2: '가게 보증금 · 월세 · 인테리어',
@@ -14,29 +18,20 @@
     5: '내 현금 자본금 · 기존 대출 진단'
   };
 
-  function defaultDelivPreset(prof) {
-    var g = (prof && prof.group) || '';
-    if (g === '외식·배달') return { dshare: 45, pshare: 15, dappfee: 7.8, drider: 3300, dpack: 900, dpromo: 500 };
-    if (g === '카페·디저트') return { dshare: 20, pshare: 45, dappfee: 7.8, drider: 3000, dpack: 450, dpromo: 300 };
-    if (g === '도소매·생활밀착') return { dshare: 10, pshare: 20, dappfee: 7.8, drider: 3000, dpack: 300, dpromo: 200 };
-    if (g === '이커머스·B2B') return { dshare: 0, pshare: 0, dappfee: 6.8, drider: 0, dpack: 600, dpromo: 300 };
-    return { dshare: 0, pshare: 0, dappfee: 7.8, drider: 3000, dpack: 400, dpromo: 0 };
-  }
-
   function intModeNoteText(mode) {
     if (mode === 'self') return '목수·전기·설비·간판 기술자를 사장님이 직접 따로 불러 시공하는 방식입니다. 업체 종합 관리마진(약 20~25%)을 아낄 수 있지만, 도면과 공사 순서를 직접 챙겨야 합니다.';
     if (mode === 'takeover') return '이전에 같은 업종을 하던 가게의 주방·에어컨·바닥 공사를 그대로 넘겨받고 간판과 도색만 손보는 방식입니다. 초기 투자비를 절반 이하로 줄일 수 있어 초보 창업자에게 가장 안전합니다.';
     return '인테리어 전문 업체 한 곳에 철거부터 목공·전기·마감까지 통째로 맡기는 가장 흔한 방식입니다. 몸은 편하지만 업체 이윤이 포함되므로 최소 3곳 이상 상세 내역서를 비교하세요.';
   }
 
-  function parseMenu(str, prof) {
+  function parseMenu(str, fallbackItems) {
     if (str && typeof str === 'string') {
       try {
         var parsed = JSON.parse(str);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed.slice(0, 10);
       } catch (_) {}
     }
-    return E.defaultCategoriesForProfile(prof || p0);
+    return (fallbackItems || []).map(function (x) { return Object.assign({}, x); });
   }
 
   function renderSeasonBars(months, bestM, worstM) {
@@ -52,64 +47,54 @@
     }).join('') + '</div>';
   }
 
-  function applyProfileDefaults(s, prof) {
-    var reg = (E.STARTUP_REGIONS && E.STARTUP_REGIONS[s.region]) || E.STARTUP_REGIONS.recommend;
-    s.pyeong = prof.pyeong;
-    s.deposit = Math.round(prof.deposit * reg.depMult);
-    s.rent = Math.round(prof.rent * reg.rentMult);
-    s.maint = prof.maint;
-    var factor = s.intmode === 'self' ? 0.78 : (s.intmode === 'takeover' ? 0.42 : 1.0);
-    s.interior = Math.round(prof.pyeong * prof.interiorPerPyeong * factor);
-    s.equip = prof.equip;
-    s.premium = prof.premium;
-    s.kiosk = prof.kioskCount > 0 ? 1 : 0;
-    s.kioskcnt = prof.kioskCount || 0;
-    s.staff = prof.staffMonthly;
-
-    var dp = defaultDelivPreset(prof);
-    s.dshare = dp.dshare;
-    s.pshare = dp.pshare;
-    s.dappfee = String(dp.dappfee);
-    s.drider = dp.drider;
-    s.dpack = dp.dpack;
-    s.dpromo = dp.dpromo;
-
-    var cats = E.defaultCategoriesForProfile(prof);
-    s.menudata = JSON.stringify(cats);
-  }
-
-  var initDp = defaultDelivPreset(p0);
-  var initCats = E.defaultCategoriesForProfile(p0);
-  var menuItemsRef = initCats.slice();
+  var d0 = curProfBundle.defaults;
+  var p0 = curProfBundle.profile;
+  var baseInteriorPerPyeong = d0.pyeong > 0 ? (d0.interior / d0.pyeong) : 220;
+  var menuItemsRef = parseMenu('', d0.menuItems);
   var menuDomNeedsRebuild = true;
   var latestEstRate = 3.5;
+
+  function syncProfileHeaderDom(rootEl, prof, selectedId) {
+    var sNote = rootEl.querySelector('[data-season-note]');
+    if (sNote && prof.seasonNote) sNote.textContent = prof.seasonNote;
+    var selName = rootEl.querySelector('[data-sel-prof-name]');
+    if (selName) selName.textContent = '선택된 업종: ' + prof.name;
+    var selMeta = rootEl.querySelector('[data-sel-prof-meta]');
+    if (selMeta) selMeta.textContent = prof.group + ' · 표준 ' + prof.pyeong + '평 · 평균 원가율 ' + prof.cogsPct + '% 기준이 적용되었습니다.';
+
+    rootEl.querySelectorAll('[data-pick-profile]').forEach(function (btn) {
+      var isAct = btn.getAttribute('data-pick-profile') === selectedId;
+      btn.classList.toggle('active', isAct);
+      btn.setAttribute('aria-pressed', isAct ? 'true' : 'false');
+    });
+  }
 
   C.mount({
     slug: 'startup-master',
     defaults: {
       profile: p0.id,
       region: 'recommend',
-      pyeong: p0.pyeong,
-      deposit: p0.deposit,
-      rent: p0.rent,
-      maint: p0.maint,
+      pyeong: d0.pyeong,
+      deposit: d0.deposit,
+      rent: d0.rent,
+      maint: d0.maint,
       intmode: 'turnkey',
-      interior: Math.round(p0.pyeong * p0.interiorPerPyeong),
-      equip: p0.equip,
-      premium: p0.premium,
-      kiosk: 1,
-      kioskcnt: p0.kioskCount || 1,
+      interior: d0.interior,
+      equip: d0.equip,
+      premium: d0.premium,
+      kiosk: d0.kiosk,
+      kioskcnt: d0.kioskcnt || 1,
       subsidy: 1,
-      staff: p0.staffMonthly,
+      staff: d0.staff,
       days: 26,
-      menudata: JSON.stringify(initCats),
+      menudata: JSON.stringify(menuItemsRef),
       delivmode: 'detail',
-      dshare: initDp.dshare,
-      pshare: initDp.pshare,
-      dappfee: String(initDp.dappfee),
-      drider: initDp.drider,
-      dpack: initDp.dpack,
-      dpromo: initDp.dpromo,
+      dshare: d0.dshare,
+      pshare: d0.pshare,
+      dappfee: String(d0.dappfee),
+      drider: d0.drider,
+      dpack: d0.dpack,
+      dpromo: d0.dpromo,
       season: 1,
       own: 6000,
       hasloan: '0',
@@ -126,52 +111,72 @@
       loanrate: 3.5,
       loanyears: 5
     },
+    buildEvalState: function (s) {
+      return Object.assign({}, s, { menuItems: menuItemsRef, delivmode: 'detail' });
+    },
     onBeforeCalc: function (s, changedKey, h) {
-      var prof = PROFILES.find(function (x) { return x.id === s.profile; }) || p0;
       if (changedKey === 'profile') {
-        applyProfileDefaults(s, prof);
-        menuItemsRef = parseMenu(s.menudata, prof);
-        menuDomNeedsRebuild = true;
-        var hiddenMenu = h.form.querySelector('input[data-bind="menudata"]');
-        if (hiddenMenu) hiddenMenu.value = s.menudata;
-      } else if (changedKey === 'region') {
-        var reg = (E.STARTUP_REGIONS && E.STARTUP_REGIONS[s.region]) || E.STARTUP_REGIONS.recommend;
-        s.deposit = Math.round(prof.deposit * reg.depMult);
-        s.rent = Math.round(prof.rent * reg.rentMult);
-      } else if (changedKey === 'intmode' || changedKey === 'pyeong') {
+        return E.fetchProfileDefaults(s.profile, s.region, s.intmode).then(function (bundle) {
+          if (!bundle || !bundle.defaults) return;
+          curProfBundle = bundle;
+          var df = bundle.defaults;
+          s.pyeong = df.pyeong;
+          s.deposit = df.deposit;
+          s.rent = df.rent;
+          s.maint = df.maint;
+          s.interior = df.interior;
+          s.equip = df.equip;
+          s.premium = df.premium;
+          s.kiosk = df.kiosk;
+          s.kioskcnt = df.kioskcnt;
+          s.staff = df.staff;
+          s.dshare = df.dshare;
+          s.pshare = df.pshare;
+          s.dappfee = String(df.dappfee);
+          s.drider = df.drider;
+          s.dpack = df.dpack;
+          s.dpromo = df.dpromo;
+          var modeDiv = s.intmode === 'self' ? 0.78 : (s.intmode === 'takeover' ? 0.42 : 1.0);
+          baseInteriorPerPyeong = df.pyeong > 0 ? (df.interior / (df.pyeong * modeDiv)) : 220;
+          menuItemsRef = (df.menuItems || []).map(function (x) { return Object.assign({}, x); });
+          s.menudata = JSON.stringify(menuItemsRef);
+          menuDomNeedsRebuild = true;
+          var hiddenMenu = h.form.querySelector('input[data-bind="menudata"]');
+          if (hiddenMenu) hiddenMenu.value = s.menudata;
+          syncProfileHeaderDom(h.rootEl, bundle.profile, s.profile);
+        });
+      }
+      if (changedKey === 'region' || changedKey === 'intmode') {
+        return E.fetchProfileDefaults(s.profile, s.region, s.intmode).then(function (bundle) {
+          if (!bundle || !bundle.defaults) return;
+          curProfBundle = bundle;
+          var df2 = bundle.defaults;
+          if (changedKey === 'region') {
+            s.deposit = df2.deposit;
+            s.rent = df2.rent;
+          } else {
+            var modeFactor = s.intmode === 'self' ? 0.78 : (s.intmode === 'takeover' ? 0.42 : 1.0);
+            baseInteriorPerPyeong = df2.pyeong > 0 ? (df2.interior / (df2.pyeong * modeFactor)) : baseInteriorPerPyeong;
+            s.interior = Math.round(s.pyeong * baseInteriorPerPyeong * modeFactor);
+          }
+        });
+      }
+      if (changedKey === 'pyeong') {
         var factor = s.intmode === 'self' ? 0.78 : (s.intmode === 'takeover' ? 0.42 : 1.0);
-        s.interior = Math.round(s.pyeong * prof.interiorPerPyeong * factor);
+        s.interior = Math.round(s.pyeong * baseInteriorPerPyeong * factor);
       } else if (changedKey === 'loantype') {
         s.loanrate = s.loantype === 'policy' ? 3.5 : (s.loantype === 'mixed' ? 4.4 : 5.5);
       } else if (changedKey === 'dshare') {
-        if (Number(s.dshare) + Number(s.pshare) > 100) {
-          s.pshare = Math.max(0, 100 - Number(s.dshare));
-        }
+        if (Number(s.dshare) + Number(s.pshare) > 100) s.pshare = Math.max(0, 100 - Number(s.dshare));
       } else if (changedKey === 'pshare') {
-        if (Number(s.dshare) + Number(s.pshare) > 100) {
-          s.dshare = Math.max(0, 100 - Number(s.pshare));
-        }
+        if (Number(s.dshare) + Number(s.pshare) > 100) s.dshare = Math.max(0, 100 - Number(s.pshare));
       } else if (!changedKey) {
-        menuItemsRef = parseMenu(s.menudata, prof);
+        menuItemsRef = parseMenu(s.menudata, curProfBundle.defaults.menuItems);
         menuDomNeedsRebuild = true;
       }
-
-      var sNote = h.rootEl.querySelector('[data-season-note]');
-      if (sNote) sNote.textContent = prof.seasonNote;
-      var selName = h.rootEl.querySelector('[data-sel-prof-name]');
-      if (selName) selName.textContent = '선택된 업종: ' + prof.name;
-      var selMeta = h.rootEl.querySelector('[data-sel-prof-meta]');
-      if (selMeta) selMeta.textContent = prof.group + ' · 표준 ' + prof.pyeong + '평 · 평균 원가율 ' + prof.cogsPct + '% 기준이 적용되었습니다.';
-
-      h.rootEl.querySelectorAll('[data-pick-profile]').forEach(function (btn) {
-        var isAct = btn.getAttribute('data-pick-profile') === s.profile;
-        btn.classList.toggle('active', isAct);
-        btn.setAttribute('aria-pressed', isAct ? 'true' : 'false');
-      });
+      syncProfileHeaderDom(h.rootEl, curProfBundle.profile, s.profile);
     },
-    render: function (s, h) {
-      var prof = PROFILES.find(function (x) { return x.id === s.profile; }) || p0;
-
+    render: function (s, h, srv) {
       // 1) Wire 5-Step Wizard once
       var stepper = h.rootEl.querySelector('[data-stepper]');
       if (stepper && !stepper._wired) {
@@ -203,14 +208,10 @@
               ? '1단계 ~ 5단계 전체 펼쳐보기 모드'
               : ('현재 ' + curStep + ' / 5 단계 진행 중 · ' + (STEP_TITLES[curStep] || ''));
           }
-          if (expandBtn) {
-            expandBtn.textContent = expandedAll ? '단계별로 하나씩 보기' : '전체 단계 한눈에 펼치기';
-          }
+          if (expandBtn) expandBtn.textContent = expandedAll ? '단계별로 하나씩 보기' : '전체 단계 한눈에 펼치기';
           if (scrollIntoView) {
             h.form.scrollTop = 0;
-            if (window.innerWidth <= 920) {
-              stepper.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
+            if (window.innerWidth <= 920) stepper.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
         }
 
@@ -270,9 +271,7 @@
             var gBtn = e.target.closest('[data-group-filter]');
             if (!gBtn) return;
             activeGroup = gBtn.getAttribute('data-group-filter') || 'all';
-            groupWrap.querySelectorAll('[data-group-filter]').forEach(function (b) {
-              b.classList.toggle('active', b === gBtn);
-            });
+            groupWrap.querySelectorAll('[data-group-filter]').forEach(function (b) { b.classList.toggle('active', b === gBtn); });
             filterProfiles();
           });
         }
@@ -325,9 +324,8 @@
           if (!row) return;
           var idx = parseInt(row.getAttribute('data-m-idx'), 10);
           if (!menuItemsRef[idx]) return;
-          if (field === 'cat') {
-            menuItemsRef[idx].cat = e.target.value;
-          } else {
+          if (field === 'cat') menuItemsRef[idx].cat = e.target.value;
+          else {
             var numVal = parseFloat(e.target.value);
             menuItemsRef[idx][field] = Number.isFinite(numVal) ? numVal : 0;
           }
@@ -350,11 +348,14 @@
           }
           var resetBtn = e.target.closest('[data-reset-menu]');
           if (resetBtn) {
-            var curProf = PROFILES.find(function (x) { return x.id === s.profile; }) || p0;
-            menuItemsRef = E.defaultCategoriesForProfile(curProf);
-            rebuildMenuDom();
-            syncMenuHiddenAndCalc();
-            if (h.showToast) h.showToast('업종 기본 판매 카테고리로 되돌렸습니다');
+            E.fetchProfileDefaults(s.profile, s.region, s.intmode).then(function (bundle) {
+              if (!bundle || !bundle.defaults) return;
+              curProfBundle = bundle;
+              menuItemsRef = (bundle.defaults.menuItems || []).map(function (x) { return Object.assign({}, x); });
+              rebuildMenuDom();
+              syncMenuHiddenAndCalc();
+              if (h.showToast) h.showToast('업종 기본 판매 카테고리로 되돌렸습니다');
+            });
             return;
           }
           var delBtn = e.target.closest('[data-del-menu]');
@@ -372,7 +373,6 @@
       }
       if (menuDomNeedsRebuild) rebuildMenuDom();
 
-      // 4) Wire Apply Estimated Loan Rate button once
       var estRateBtn = h.rootEl.querySelector('[data-apply-est-rate]');
       if (estRateBtn && !estRateBtn._wired) {
         estRateBtn._wired = true;
@@ -386,12 +386,11 @@
         });
       }
 
-      // 5) Compute full A-to-Z result with menuItemsRef
-      var calcParams = Object.assign({}, s, { menuItems: menuItemsRef, delivmode: 'detail' });
-      var r = E.startupMaster(calcParams, PROFILES);
+      if (!srv || !srv.r) return {};
+      var r = srv.r;
+      if (r.profile) syncProfileHeaderDom(h.rootEl, r.profile, s.profile);
       latestEstRate = r.loanCheck.estWeightedRate;
 
-      // Update Step 1 Location Recommendation & Map Link
       var locBest = h.rootEl.querySelector('[data-loc-best]');
       var locAvoid = h.rootEl.querySelector('[data-loc-avoid]');
       var locTip = h.rootEl.querySelector('[data-loc-tip]');
@@ -401,7 +400,6 @@
       if (locTip) locTip.textContent = r.locRec.tip;
       if (mapLink) mapLink.href = '/commercial-area?biz=' + encodeURIComponent(r.profile.id) + '&region=' + encodeURIComponent(r.regionKey);
 
-      // Update Step 2 Lease Cap Note & Interior Mode Note
       var leaseNote = h.rootEl.querySelector('[data-lease-note]');
       if (leaseNote) {
         leaseNote.innerHTML = '환산보증금(보증금 + 월세×100) <strong>' + E.manwon(r.convertedDeposit) + '</strong> — ' +
@@ -413,7 +411,6 @@
       var intNote = h.rootEl.querySelector('[data-intmode-note]');
       if (intNote) intNote.textContent = intModeNoteText(r.intMode);
 
-      // Update Step 4 Menu Summary & Delivery Detail Visibility/Summary
       var menuSum = h.rootEl.querySelector('[data-menu-sum]');
       if (menuSum) {
         menuSum.innerHTML = '하루 총 <strong>' + E.fmt(r.dailyOrders) + '건</strong> · 평균 결제 <strong>' + E.won(r.ticket) + '</strong> · 평균 원가율 <strong>' + E.pct(r.cogsPct) + '</strong>';
@@ -433,7 +430,6 @@
         }
       }
 
-      // Update Step 5 Existing Loans Visibility & Eligibility Verdict
       var exLoanBox = h.rootEl.querySelector('[data-exloan-box]');
       if (exLoanBox) exLoanBox.hidden = String(s.hasloan) !== '1';
       var colValBox = h.rootEl.querySelector('[data-colval-box]');
@@ -451,7 +447,6 @@
         if (estRateBtn) estRateBtn.textContent = '진단 예상금리(연 ' + r.loanCheck.estWeightedRate.toFixed(1) + '%) 적용';
       }
 
-      // 6) Update Right-side Output KPIs & Charts
       h.setHeroStatus(r.avgMonthlyCashFlow > 0 && r.deficitMonths === 0 ? 'safe' : (r.avgMonthlyCashFlow > 0 ? 'caution' : 'danger'));
       var pbTxt = r.paybackMonths != null ? E.fmt(r.paybackMonths, 1) + '개월' : '회수 불가';
 
@@ -468,6 +463,16 @@
       var occPct = r.annualSalesKRW > 0 ? ((r.rent + r.maint) * 10000 * 12 / r.annualSalesKRW) * 100 : 0;
       h.setOut('rentRatioOut', E.pct(occPct) + (occPct <= 12 ? ' (안정)' : (occPct <= 16 ? ' (주의)' : ' (위험)')));
       h.setOut('exIntOut', r.loanCheck.exMonthlyInterestKRW > 0 ? E.won(r.loanCheck.exMonthlyInterestKRW) : '없음(0원)');
+
+      if (r.fieldTraps) {
+        h.setOut('vatRefundOut', E.manwon(r.fieldTraps.vatEarlyRefundAtRiskManwon));
+        h.setOut('elecPlumbOut', E.manwon(r.fieldTraps.elecUpgradeManwon + r.fieldTraps.plumbingExhaustManwon));
+        h.setOut('initInvOut', E.manwon(r.fieldTraps.initialInventoryManwon));
+        h.setOut('rampBufOut', E.manwon(r.fieldTraps.rampUpDeficitBufferManwon));
+        h.setOut('nomCapOut', E.manwon(r.totalStartup));
+        h.setOut('trueSafeCapOut', E.manwon(r.fieldTraps.trueSafeCapitalManwon));
+        h.setOut('restoreOut', E.manwon(r.fieldTraps.restorationReserveManwon));
+      }
 
       var chkBox = h.rootEl.querySelector('[data-startup-chk]');
       if (chkBox && !chkBox._wired) {
@@ -496,7 +501,6 @@
       h.setBreakdown(avgMonthlySales, r.monthlyBreakdown);
       h.setChart('waterfall', h.waterfallSvg(avgMonthlySales, r.monthlyBreakdown));
 
-      // 위기 방어력 & 내 몸값 착시 판독 업데이트
       h.setOut('bepOrdersOut', E.fmt(r.resilience.bepDailyOrders) + '건/일 (' + (r.resilience.orderBufferPct >= 0 ? '여유 +' + r.resilience.orderBufferPct + '%' : '목표 부족') + ')');
       h.setOut('shock20Out', E.won(r.resilience.shockSalesDown20KRW));
       h.setOut('shockCostOut', E.won(r.resilience.shockCostUp3pKRW));
@@ -542,18 +546,18 @@
           heroSub: '1년 누적 ' + E.won(r.annualCashFlow) + ' · 초기투자 회수 ' + pbTxt,
           rows: [
             ['창업 희망 지역', r.regionInfo.name.split('(')[0].trim()],
-            ['총 창업자금 (보증금 포함)', E.manwon(r.totalStartup)],
+            ['명목 창업자금 (보증금 포함)', E.manwon(r.totalStartup)],
+            ['현장 숨은비용 포함 안전 총자금', r.fieldTraps ? E.manwon(r.fieldTraps.trueSafeCapitalManwon) : E.manwon(r.totalStartup), true],
             ['순수 초기 시설·권리금 (회수대상)', E.manwon(r.sunkStartup)],
             ['내 현금 / 필요 대출금', E.manwon(r.ownCash) + ' / ' + E.manwon(r.loanNeeded)],
             ['연간 추정 총매출 (' + menuItemsRef.length + '개 카테고리)', E.won(r.annualSalesKRW)],
             ['− 월평균 원가·배달·고정비', '−' + E.won((r.annualSalesKRW - r.annualOpProfit) / 12)],
             ['− 월평균 부가세·종소세 적립', '−' + E.won(r.annualTotalTaxKRW / 12)],
             ['− 월 신규 대출 원리금 상환', '−' + E.won(r.monthlyDebtServiceKRW)],
-            ['= 월평균 순현금흐름(실수령)', E.won(r.avgMonthlyCashFlow), true],
-            ['성수기 최고 / 비수기 최저', E.won(r.bestMonth.cashFlow) + ' / ' + E.won(r.worstMonth.cashFlow)]
+            ['= 월평균 순현금흐름(실수령)', E.won(r.avgMonthlyCashFlow), true]
           ],
           noteLines: [
-            '대출 진단: ' + r.loanCheck.verdictTitle,
+            '결제 전 일반과세 등록 시 부가세 환급액: ' + (r.fieldTraps ? E.manwon(r.fieldTraps.vatEarlyRefundAtRiskManwon) : '-'),
             r.deficitMonths > 0 ? '비수기 적자 ' + r.deficitMonths + '개월 예상 — 예비 운영자금 확보 필수' : '12개월 전 구간 흑자 현금흐름 유지'
           ]
         }
