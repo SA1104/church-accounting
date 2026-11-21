@@ -268,112 +268,151 @@ def build_logo_03_bt_ivory_html(bt_ink_uri: str, shift_x: int) -> str:
 
 
 # ---------------------------------------------------------------------------
-# 2. Executive Channel Banner (2560x1440 — Brush Seal + Approved Copy + Clean Data)
+# 2. Panoramic All-Devices Channel Banner (2560x1440 — Father's Hand & Flowing Stream)
 # ---------------------------------------------------------------------------
-def build_channel_banner_html(wordmark_uri: str) -> str:
+def prepare_panoramic_flow_bg_uri() -> str:
     """
-    2560x1440 Executive Banner inside strict 1546x423 YouTube All-Devices Safe Zone.
-    ZERO generic clip-art icons/arrows — Left seal features pure Master Brush `BOOZA THINK` calligraphy!
+    Prepares `banner_father_flow_v1.jpg` at 2560x1440 with horizontal optical framing so:
+      - Joined hands + golden glow sit squarely inside x: 1560..2015, y: 512..925 (100% inside Mobile 1546x423!)
+      - Flowing champagne-gold & sky-blue ribbons span continuously across Tablet (1855x423),
+        PC Desktop (2560x423), and Full 16:9 Smart TV (2560x1440) with zero hard box cutoffs!
     """
+    src = Image.open(ASSETS_DIR / "banner_father_flow_v1.jpg").convert("RGB")
+    # Scale slightly wider (2656 x 1482) and shift -76px left & -18px up so clasped hands sit inside x <= 2015
+    scaled = src.resize((2656, 1482), Image.Resampling.LANCZOS)
+    framed = scaled.crop((76, 18, 76 + 2560, 18 + 1440))
+    framed = framed.filter(ImageFilter.UnsharpMask(radius=1.4, percent=115, threshold=3))
+    buf = io.BytesIO()
+    framed.save(buf, format="JPEG", quality=95, subsampling=0)
+    return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+
+
+def build_channel_banner_html(wordmark_uri: str, bg_flow_uri: str, show_device_guides: bool = False) -> str:
+    """
+    2560x1440 Seamless Panoramic Banner:
+      - TV Full Canvas       : 2560 x 1440 (0..2560, 0..1440)
+      - PC Desktop Strip     : 2560 x 423  (0..2560, 508..931)
+      - Tablet Strip         : 1855 x 423  (352..2207, 508..931)
+      - Mobile Safe Core     : 1546 x 423  (507..2053, 508..931)
+    """
+    guide_html = ""
+    if show_device_guides:
+        guide_html = """
+        <!-- TV Full Frame (2560 x 1440) -->
+        <div style="position:absolute; inset:8px; border:5px dashed rgba(248,250,252,0.75); border-radius:18px; pointer-events:none; z-index:50;">
+          <span style="position:absolute; left:24px; top:18px; background:#0f172a; color:#f8fafc; border:2px solid #cbd5e1; padding:6px 18px; border-radius:999px; font-size:22px; font-weight:900;">
+            TV 전체 화면 영역 (2560 × 1440)
+          </span>
+        </div>
+        <!-- PC Desktop Strip (0..2560, y: 508..931) -->
+        <div style="position:absolute; left:0; width:2560px; top:508px; height:423px; border-top:4px dashed #38bdf8; border-bottom:4px dashed #38bdf8; background:rgba(56,189,248,0.04); pointer-events:none; z-index:51;">
+          <span style="position:absolute; left:24px; top:14px; background:#0284c7; color:#ffffff; padding:5px 16px; border-radius:999px; font-size:20px; font-weight:900; box-shadow:0 4px 12px rgba(0,0,0,0.4);">
+            PC 모니터 영역 (2560 × 423)
+          </span>
+          <span style="position:absolute; right:24px; top:14px; background:#0284c7; color:#ffffff; padding:5px 16px; border-radius:999px; font-size:20px; font-weight:900;">
+            PC 우측 날개 ➔
+          </span>
+        </div>
+        <!-- Tablet Strip (x: 352..2207, y: 508..931) -->
+        <div style="position:absolute; left:352px; width:1855px; top:508px; height:423px; border-left:4px dashed #34d399; border-right:4px dashed #34d399; pointer-events:none; z-index:52;">
+          <span style="position:absolute; left:8px; bottom:-42px; background:#059669; color:#ffffff; padding:5px 16px; border-radius:999px; font-size:19px; font-weight:900; box-shadow:0 4px 12px rgba(0,0,0,0.4);">
+            태블릿 영역 (1855 × 423)
+          </span>
+          <span style="position:absolute; right:8px; bottom:-42px; background:#059669; color:#ffffff; padding:5px 16px; border-radius:999px; font-size:19px; font-weight:900; box-shadow:0 4px 12px rgba(0,0,0,0.4);">
+            태블릿 우측 경계
+          </span>
+        </div>
+        <!-- Mobile All-Devices Safe Zone (x: 507..2053, y: 508..931) -->
+        <div style="position:absolute; left:507px; width:1546px; top:508px; height:423px; border:5px solid #fbbf24; box-shadow:0 0 0 3px rgba(15,23,42,0.65); pointer-events:none; z-index:53;">
+          <span style="position:absolute; left:18px; top:-44px; background:#fbbf24; color:#0f172a; padding:6px 20px; border-radius:999px; font-size:21px; font-weight:900; box-shadow:0 4px 14px rgba(0,0,0,0.45);">
+            핸드폰(스마트폰) 핵심 안전영역 (1546 × 423 · 모든 기기 공통 노출)
+          </span>
+        </div>
+        """
+
     return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><style>
     {FONT_CSS}
     body {{
       width: 2560px; height: 1440px; overflow: hidden; position: relative;
-      background-color: #f5f7fb;
-      background-image:
-        linear-gradient(#e4eaf3 2px, transparent 2px),
-        linear-gradient(90deg, #e4eaf3 2px, transparent 2px);
-      background-size: 48px 48px;
+      background: #081022;
     }}
-    .exec-card {{
-      position: absolute; left: 520px; top: 518px; width: 1520px; height: 404px;
-      background: linear-gradient(135deg, #0b132b 0%, #122147 58%, #0c1631 100%);
-      border: 5px solid #d99b26;
-      border-radius: 36px;
-      box-shadow: 0 22px 50px rgba(11, 19, 43, 0.28), inset 0 0 0 2px rgba(96, 165, 250, 0.24);
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 28px 38px;
+    .bg-art {{
+      position: absolute; inset: 0; width: 2560px; height: 1440px;
+      object-fit: cover; z-index: 1;
+    }}
+    /* Seamless full-canvas soft vignette strictly centered around the typography — zero rectangular div seams! */
+    .text-veil {{
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 680px 320px at 980px 720px, rgba(6, 12, 28, 0.72) 0%, rgba(6, 12, 28, 0.36) 55%, rgba(6, 12, 28, 0.0) 100%);
+      z-index: 2; pointer-events: none;
+    }}
+    /* Subtle TV-only upper/lower atmospheric captions (visible on Smart TVs, safely outside 508..931 strip) */
+    .tv-top-brand {{
+      position: absolute; left: 536px; top: 385px; z-index: 3;
+      font-size: 22px; font-weight: 800; letter-spacing: 0.16em;
+      color: rgba(226, 232, 240, 0.62);
+    }}
+    .tv-bot-motto {{
+      position: absolute; left: 536px; top: 1008px; z-index: 3;
+      font-size: 23px; font-weight: 700; letter-spacing: 0.02em;
+      color: rgba(248, 250, 252, 0.68);
+    }}
+    /* Core Safe-Zone Content (x: 534..1560 inside 507..2053; x: 1560..2035 leaves the Joined Hands & Flow unobstructed!) */
+    .safe-left-group {{
+      position: absolute; left: 534px; top: 524px; width: 1030px; height: 392px;
+      display: flex; align-items: center; gap: 30px; z-index: 5;
     }}
     .seal {{
-      width: 252px; height: 252px; border-radius: 50%; flex-shrink: 0;
-      background: radial-gradient(circle at 44% 34%, #1b3468 0%, #091024 78%);
-      border: 6px solid #d99b26;
-      box-shadow: inset 0 0 0 5px rgba(255,255,255,0.10);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      padding: 16px;
+      width: 224px; height: 224px; border-radius: 50%; flex-shrink: 0;
+      background: radial-gradient(circle at 44% 34%, rgba(27, 52, 104, 0.92) 0%, rgba(9, 16, 36, 0.95) 80%);
+      border: 5.5px solid #e5a93b;
+      box-shadow: 0 14px 32px rgba(0,0,0,0.52), inset 0 0 0 4px rgba(255,255,255,0.12);
+      display: flex; align-items: center; justify-content: center;
+      padding: 14px;
     }}
     .seal img {{
-      width: 204px; height: auto;
-      filter: drop-shadow(0 6px 14px rgba(0,0,0,0.5));
+      width: 184px; height: auto;
+      filter: drop-shadow(0 6px 14px rgba(0,0,0,0.55));
     }}
-
     .mid-col {{
-      flex: 1; padding: 0 34px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
+      display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
     }}
-    .pill-row {{ display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }}
+    .pill-row {{ display: flex; align-items: center; gap: 10px; margin-bottom: 13px; }}
     .kicker-pill {{
-      background: rgba(37, 99, 235, 0.26); color: #93c5fd;
-      border: 2px solid #3b82f6; border-radius: 999px;
-      padding: 6px 18px; font-size: 20px; font-weight: 800;
+      background: rgba(15, 29, 62, 0.85); color: #93c5fd;
+      border: 2px solid rgba(96, 165, 250, 0.72); border-radius: 999px;
+      padding: 6px 18px; font-size: 19px; font-weight: 800;
     }}
     .free-pill {{
-      background: rgba(217, 155, 38, 0.20); color: #fde047;
-      border: 2px solid #d99b26; border-radius: 999px;
-      padding: 6px 16px; font-size: 19px; font-weight: 800;
+      background: rgba(217, 155, 38, 0.22); color: #fde047;
+      border: 2px solid rgba(245, 180, 59, 0.80); border-radius: 999px;
+      padding: 6px 16px; font-size: 18.5px; font-weight: 800;
     }}
     .main-title {{
-      font-size: 54px; font-weight: 900; color: #ffffff;
+      font-size: 55px; font-weight: 900; color: #ffffff;
       letter-spacing: -0.03em; line-height: 1.12;
+      text-shadow: 0 6px 22px rgba(0,0,0,0.65);
     }}
     .main-title span {{ color: #fbbf24; }}
     .sub-desc {{
-      margin-top: 12px; font-size: 23px; font-weight: 700; color: #cbd5e1;
-      letter-spacing: -0.015em;
+      margin-top: 12px; font-size: 22.5px; font-weight: 700; color: #e2e8f0;
+      letter-spacing: -0.015em; text-shadow: 0 3px 12px rgba(0,0,0,0.65);
+      white-space: nowrap;
     }}
     .cta-btn {{
-      margin-top: 22px; background: linear-gradient(90deg, #d99b26 0%, #fbbf24 100%);
+      margin-top: 22px; background: linear-gradient(90deg, #e0a32e 0%, #fbbf24 100%);
       color: #0b132b; border-radius: 999px; padding: 12px 30px;
-      font-size: 24px; font-weight: 900; letter-spacing: -0.01em;
-      box-shadow: 0 8px 20px rgba(217, 155, 38, 0.30);
+      font-size: 23.5px; font-weight: 900; letter-spacing: -0.01em;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
     }}
-
-    .sim-widget {{
-      width: 468px; height: 334px; flex-shrink: 0;
-      background: rgba(11, 18, 36, 0.90);
-      border: 2.5px solid rgba(148, 163, 184, 0.32);
-      border-radius: 24px; padding: 20px 22px;
-      display: flex; flex-direction: column; justify-content: space-between;
-    }}
-    .w-head {{
-      background: #1e293b; border-radius: 12px; padding: 9px 16px;
-      display: flex; align-items: center; justify-content: space-between;
-      font-size: 19px; font-weight: 800; color: #fde047;
-    }}
-    .w-head span {{ color: #93c5fd; font-size: 17px; }}
-    .metric-block {{ display: flex; flex-direction: column; gap: 6px; }}
-    .m-top {{ display: flex; justify-content: space-between; font-size: 19px; font-weight: 800; }}
-    .m-lbl {{ color: #e2e8f0; }}
-    .m-val-good {{ color: #34d399; font-weight: 900; }}
-    .m-val-warn {{ color: #fb7185; font-weight: 900; }}
-    .bar-track {{ width: 100%; height: 14px; background: #1e293b; border-radius: 999px; overflow: hidden; }}
-    .bar-good {{ width: 78%; height: 100%; background: linear-gradient(90deg, #3b82f6, #34d399); border-radius: 999px; }}
-    .bar-warn {{ width: 42%; height: 100%; background: linear-gradient(90deg, #f43f5e, #fb923c); border-radius: 999px; }}
-    .w-bottom-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }}
-    .mini-box {{
-      border-radius: 14px; padding: 11px 14px;
-      background: rgba(30, 41, 59, 0.78);
-      border: 1.8px solid rgba(59, 130, 246, 0.42);
-    }}
-    .mini-box.gold {{ border-color: rgba(217, 155, 38, 0.55); }}
-    .mb-k {{ font-size: 16px; font-weight: 700; color: #94a3b8; white-space: nowrap; }}
-    .mb-v {{ margin-top: 4px; font-size: 20px; font-weight: 900; color: #ffffff; white-space: nowrap; letter-spacing: -0.02em; }}
-    .mini-box.gold .mb-v {{ color: #fde047; }}
     </style></head><body>
-      <div class="exec-card">
+      <img src="{bg_flow_uri}" class="bg-art" alt="Father Hand and Golden Flowing Stream" />
+      <div class="text-veil"></div>
+      <div class="tv-top-brand">BOOZA THINK · STEWARDSHIP &amp; BUSINESS LAB</div>
+      <div class="safe-left-group">
         <div class="seal">
           <img src="{wordmark_uri}" alt="BOOZA THINK" />
         </div>
-
         <div class="mid-col">
           <div class="pill-row">
             <span class="kicker-pill">창업 · 자영업 · 온라인 셀러 실전 데이터</span>
@@ -383,39 +422,105 @@ def build_channel_banner_html(wordmark_uri: str) -> str:
           <div class="sub-desc">30개 업종 창업비용 · 배달·셀러 마진 · 정책자금 · 세금 3초 계산기</div>
           <div class="cta-btn">무료 3초 실전 시뮬레이터 ▶ boozathink.com</div>
         </div>
+      </div>
+      <div class="tv-bot-motto">위로부터 잡아주시는 손길과 막힘없이 흐르는 선한 재정의 길 · boozathink.com</div>
+      {guide_html}
+    </body></html>"""
 
-        <div class="sim-widget">
-          <div class="w-head">
-            <div>실전 창업 · 순수익 3초 판독</div>
-            <span>30개 업종 기준</span>
+
+def build_4device_crop_mockup_board(clean_banner_path: Path, out_board_path: Path) -> None:
+    """
+    Slices the actual clean 2560x1440 banner into the exact 4 YouTube device viewports
+    (Smartphone, Tablet, PC Monitor, Smart TV) and renders a clear visual inspection board!
+    """
+    full = Image.open(clean_banner_path).convert("RGB")
+    crops = {
+        "mobile": full.crop((507, 508, 2053, 931)),   # 1546 x 423
+        "tablet": full.crop((352, 508, 2207, 931)),   # 1855 x 423
+        "pc": full.crop((0, 508, 2560, 931)),         # 2560 x 423
+        "tv": full,                                   # 2560 x 1440
+    }
+    uris = {}
+    for k, im in crops.items():
+        b = io.BytesIO()
+        im.save(b, format="JPEG", quality=92)
+        uris[k] = "data:image/jpeg;base64," + base64.b64encode(b.getvalue()).decode("ascii")
+
+    html = f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><style>
+    {FONT_CSS}
+    body {{
+      width: 1800px; height: 1520px; background: #0f172a; color: #f8fafc;
+      padding: 44px 54px; display: flex; flex-direction: column; justify-content: space-between;
+    }}
+    .hdr {{ display: flex; align-items: baseline; justify-content: space-between; border-bottom: 2px solid #334155; padding-bottom: 16px; }}
+    .hdr h1 {{ font-size: 36px; font-weight: 900; color: #fbbf24; }}
+    .hdr span {{ font-size: 20px; font-weight: 700; color: #94a3b8; }}
+    .row-top {{ display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 10px; }}
+    .card {{
+      background: #1e293b; border: 2px solid #334155; border-radius: 22px; padding: 20px 24px;
+      display: flex; flex-direction: column; gap: 12px;
+    }}
+    .lbl {{ display: flex; align-items: center; justify-content: space-between; font-size: 22px; font-weight: 900; }}
+    .lbl .tag {{ font-size: 16px; font-weight: 800; padding: 4px 14px; border-radius: 999px; }}
+    .card img {{ width: 100%; height: auto; border-radius: 12px; border: 2px solid #475569; }}
+    .bot-grid {{ display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 28px; align-items: stretch; }}
+    </style></head><body>
+      <div class="hdr">
+        <h1>부자생각 유튜브 배너 — 핸드폰 · 태블릿 · PC · TV 실제 노출 화면 검증</h1>
+        <span>실제 업로드 파일: BoozaThink_Channel_Banner_2560x1440.png (가이드선 없는 클린 원본)</span>
+      </div>
+
+      <div class="row-top">
+        <div class="card" style="border-color:#fbbf24;">
+          <div class="lbl">
+            <span>① 핸드폰 (모바일 앱 화면)</span>
+            <span class="tag" style="background:#fbbf24; color:#0f172a;">1546 × 423 핵심 영역</span>
           </div>
-          <div class="metric-block">
-            <div class="m-top">
-              <span class="m-lbl">순서·수수료 설계 완료 매장</span>
-              <span class="m-val-good">월 순익 +642만 (22.5%)</span>
-            </div>
-            <div class="bar-track"><div class="bar-good"></div></div>
+          <img src="{uris['mobile']}" />
+        </div>
+        <div class="card" style="border-color:#34d399;">
+          <div class="lbl">
+            <span>② 태블릿 (아이패드·갤럭시탭 화면)</span>
+            <span class="tag" style="background:#059669; color:#ffffff;">1855 × 423 확장 영역</span>
           </div>
-          <div class="metric-block">
-            <div class="m-top">
-              <span class="m-lbl">수수료·부가세 누락 매장</span>
-              <span class="m-val-warn">월 순익 +185만 (6.4%)</span>
-            </div>
-            <div class="bar-track"><div class="bar-warn"></div></div>
+          <img src="{uris['tablet']}" />
+        </div>
+      </div>
+
+      <div class="card" style="border-color:#38bdf8;">
+        <div class="lbl">
+          <span>③ PC 데스크톱 모니터 (좌우 끝까지 흐르는 파노라마 영역)</span>
+          <span class="tag" style="background:#0284c7; color:#ffffff;">2560 × 423 와이드 영역</span>
+        </div>
+        <img src="{uris['pc']}" />
+      </div>
+
+      <div class="bot-grid">
+        <div class="card" style="border-color:#cbd5e1;">
+          <div class="lbl">
+            <span>④ 스마트 TV 전체 화면 (상하단 빛의 근원과 물결까지 전체 노출)</span>
+            <span class="tag" style="background:#e2e8f0; color:#0f172a;">2560 × 1440 풀 캔버스</span>
           </div>
-          <div class="w-bottom-grid">
-            <div class="mini-box">
-              <div class="mb-k">결제 전 사업자·통장 세팅</div>
-              <div class="mb-v">+480만 부가세 환급</div>
-            </div>
-            <div class="mini-box gold">
-              <div class="mb-k">기존대출·신용 맞춤 진단</div>
-              <div class="mb-v">연 3.5% 정책자금</div>
-            </div>
+          <img src="{uris['tv']}" style="max-height:455px; object-fit:contain; background:#081022;" />
+        </div>
+        <div class="card" style="justify-content:center; gap:18px; padding:32px;">
+          <div style="font-size:28px; font-weight:900; color:#fde047;">‘부자생각’ 이중 의미(富者 · 父子) 시각 설계</div>
+          <div style="font-size:21px; line-height:1.55; color:#e2e8f0; font-weight:600;">
+            • <b>위에서 내밀어 잡아주시는 손 (父子 · 아버지와 자녀)</b>:<br>
+              핸드폰·태블릿·PC·TV 어느 기기로 접속해도 우측 핵심 자리에 따뜻한 빛 속에서 내려와 우리의 손을 잡아주는 펜 스케치가 온전히 들어옵니다.<br><br>
+            • <b>막힘없이 흐르는 선한 흐름 (富者 · Flowing)</b>:<br>
+              TV의 상하단 하늘부터 PC·태블릿의 좌우 날개까지 금빛과 푸른 물결이 끊기지 않고 하나로 이어져 흐르도록 전체 2560×1440 화폭을 모두 채웠습니다.
           </div>
         </div>
       </div>
     </body></html>"""
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        pg = browser.new_page(viewport={"width": 1800, "height": 1520}, device_scale_factor=1)
+        pg.set_content(html, wait_until="networkidle")
+        pg.screenshot(path=str(out_board_path), type="png")
+        browser.close()
 
 
 # ---------------------------------------------------------------------------
@@ -600,10 +705,15 @@ def main() -> None:
     bt_white_uri, bt_shift_x = extract_bt_monogram_uri(ink_rgb=(255, 255, 255), target_h=380)
     bt_ink_uri, _ = extract_bt_monogram_uri(ink_rgb=(15, 23, 42), target_h=380)
 
+    bg_flow_uri = prepare_panoramic_flow_bg_uri()
+
     logo1 = OUT_DIR / "BoozaThink_Profile_Logo_01_NavyGold_BrushWordmark_800x800.png"
     logo2 = OUT_DIR / "BoozaThink_Profile_Logo_02_NavyGold_BT_Calligraphy_800x800.png"
     logo3 = OUT_DIR / "BoozaThink_Profile_Logo_03_IvoryInk_BT_Calligraphy_800x800.png"
     banner = OUT_DIR / "BoozaThink_Channel_Banner_2560x1440.png"
+    banner_jpg = OUT_DIR / "BoozaThink_Channel_Banner_2560x1440.jpg"
+    banner_guide = OUT_DIR / "BoozaThink_Banner_4Device_Viewport_Guide_2560x1440.png"
+    banner_board = OUT_DIR / "BoozaThink_Banner_4Device_Mockup_Board.png"
     wm1 = OUT_DIR / "BoozaThink_Video_Watermark_01_BrushWordmark_Dark_400x400.png"
     wm2 = OUT_DIR / "BoozaThink_Video_Watermark_02_BT_Calligraphy_Dark_400x400.png"
     wm3 = OUT_DIR / "BoozaThink_Video_Watermark_03_Transparent_Brush_400x400.png"
@@ -624,8 +734,12 @@ def main() -> None:
         pg_logo.close()
 
         pg_ban = browser.new_page(viewport={"width": 2560, "height": 1440}, device_scale_factor=1)
-        pg_ban.set_content(build_channel_banner_html(wm_white_gold), wait_until="networkidle")
+        pg_ban.set_content(build_channel_banner_html(wm_white_gold, bg_flow_uri, show_device_guides=False), wait_until="networkidle")
         pg_ban.screenshot(path=str(banner), type="png")
+        pg_ban.screenshot(path=str(banner_jpg), type="jpeg", quality=95)
+
+        pg_ban.set_content(build_channel_banner_html(wm_white_gold, bg_flow_uri, show_device_guides=True), wait_until="networkidle")
+        pg_ban.screenshot(path=str(banner_guide), type="png")
         pg_ban.close()
 
         pg_wm = browser.new_page(viewport={"width": 400, "height": 400}, device_scale_factor=1)
@@ -641,11 +755,17 @@ def main() -> None:
 
         browser.close()
 
+    # Ensure PNG banner stays strictly below YouTube's 6,000,000-byte upload ceiling
+    if banner.stat().st_size > 5_600_000:
+        im_b = Image.open(banner).convert("RGB").quantize(colors=256, method=Image.Quantize.MEDIANCUT)
+        im_b.save(banner, format="PNG", optimize=True)
+
+    build_4device_crop_mockup_board(banner, banner_board)
     write_channel_setup_guide(guide)
 
-    for src in (logo1, logo2, logo3, banner, wm1, wm2, wm3, guide):
+    for src in (logo1, logo2, logo3, banner, banner_jpg, banner_guide, banner_board, wm1, wm2, wm3, guide):
         shutil.copy2(src, MANUAL_BOX / src.name)
-        print(f"[OK v3 Brush] {src.name} ({src.stat().st_size:,} bytes) -> staged to Desktop box")
+        print(f"[OK v4 Flow] {src.name} ({src.stat().st_size:,} bytes) -> staged to Desktop box")
 
 
 if __name__ == "__main__":
