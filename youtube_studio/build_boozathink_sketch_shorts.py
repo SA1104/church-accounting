@@ -649,7 +649,7 @@ def build_ep01_shorts() -> Path:
             frame_rgb = frame_rgba.convert("RGB")
             if s_idx == 1 and fn == int(n_frames * 0.42):
                 frame_rgb.save(preview_s1_png, format="PNG")
-            if s_idx == 2 and fn == int(n_frames * 0.88):
+            if s_idx == 2 and fn == int(n_frames * 0.44):
                 frame_rgb.save(cover_png, format="PNG")
 
             proc.stdin.write(frame_rgb.tobytes())

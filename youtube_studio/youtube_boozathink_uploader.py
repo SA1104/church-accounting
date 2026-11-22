@@ -181,6 +181,7 @@ def stage_for_manual_youtube_and_reels(
     pinned_comment: str,
     tags: list[str],
     subfolder: str = "01_쇼츠_릴스_업로드_대기함",
+    alt_titles: list[str] | None = None,
 ) -> Path:
     box = MANUAL_UPLOAD_BOX / subfolder
     box.mkdir(parents=True, exist_ok=True)
@@ -189,14 +190,23 @@ def stage_for_manual_youtube_and_reels(
     if thumb_path and thumb_path.exists():
         shutil.copy2(thumb_path, box / thumb_path.name)
 
+    alt_block = ""
+    if alt_titles:
+        alt_block = (
+            "▶ 취향대로 골라 쓰는 대체 제목 후보:\n"
+            + "\n".join(f"  {idx+1}) {t}" for idx, t in enumerate(alt_titles))
+            + "\n\n"
+        )
+
     meta_txt = box / f"{mp4_path.stem}_제목_설명_고정댓글_복사용.txt"
     meta_content = (
-        f"[부자생각 (BoozaThink) — 유튜브 쇼츠 & 인스타 릴스 & 스레드 복사용 시트]\n"
+        f"[부자생각 (BoozaThink) — 유튜브 & 인스타 릴스 & 스레드 복사용 시트]\n"
         f"========================================================================\n"
         f"▶ 영상 파일: {dst_mp4.name}\n\n"
-        f"▶ 유튜브 쇼츠 제목 (그대로 복사):\n{title}\n\n"
+        f"▶ 1순위 추천 제목 (그대로 복사):\n{title}\n\n"
+        f"{alt_block}"
         f"▶ 유튜브 설명란 / 인스타 릴스 캡션 (그대로 복사):\n{description}\n\n"
-        f"▶ 조회수 전환율을 높이는 베스트 고정댓글 (업로드 직후 첫 댓글로 고정!):\n{pinned_comment}\n\n"
+        f"▶ 조회수 전환율을 높이는 고정댓글 (업로드 직후 첫 댓글로 고정!):\n{pinned_comment}\n\n"
         f"▶ 추천 태그:\n{', '.join(tags)}\n"
     )
     meta_txt.write_text(meta_content, encoding="utf-8")
@@ -214,6 +224,7 @@ def upload_shorts_package(
     privacy: str = "public",
     force_api_upload: bool = False,
     subfolder: str = "01_쇼츠_릴스_업로드_대기함",
+    alt_titles: list[str] | None = None,
 ) -> str:
     from googleapiclient.http import MediaFileUpload
 
@@ -225,6 +236,7 @@ def upload_shorts_package(
         pinned_comment=pinned_comment,
         tags=tags,
         subfolder=subfolder,
+        alt_titles=alt_titles,
     )
     if not force_api_upload:
         print(
@@ -264,23 +276,19 @@ def upload_ep01(privacy: str = "public", force_api_upload: bool = False) -> str:
     if not mp4_path.exists():
         raise FileNotFoundError(f"1호 쇼츠 영상이 아직 생성되지 않았습니다: {mp4_path}")
 
-    title = "내 가게 창업, 순서만 알면 참 쉽습니다 — 계약 전 꼭 먼저 챙길 3가지 #부자생각 #Shorts"
+    title = "내 가게 창업, 순서만 알면 참 쉽습니다 — 계약 전 꼭 먼저 챙길 3가지 | 부자생각 #Shorts"
     description = (
         "막막해 보이던 내 가게 준비도 순서와 숫자부터 알면 훨씬 쉽고 명확해집니다.\n\n"
         "1) 인테리어 결제 전 사업자등록·사업용 통장 먼저 만들어 부가세 환급 챙기기\n"
         "2) 임대차 계약서 도장 찍기 전 정화조·전기 용량과 정책자금 신청 순서 확인하기\n"
         "3) 30개 업종별 초기 비용과 배달·세금 뺀 진짜 순수익 먼저 계산해 보기\n\n"
-        "올해 12월 31일까지만 모든 업종 계산기와 결과표 이미지 저장을 무료로 열어두었습니다.\n"
-        "내 업종과 자본금을 넣고 3초 만에 실제 순수익과 안전 자금선을 확인해 보세요.\n\n"
-        "무료 창업·순수익 시뮬레이터: https://boozathink.com/calculators/startup-master?utm_source=yt_shorts&utm_medium=ep01\n"
-        "창업 준비부터 첫 1년 전체 순서표: https://boozathink.com/start-guide?utm_source=yt_shorts&utm_medium=ep01\n\n"
-        "#부자생각 #BoozaThink #초보창업 #소자본창업 #자영업 #개인사업자 #창업순서 #창업비용계산기 #Shorts"
+        "내 업종과 자본금을 넣어 한 달 실제 순수익과 안전 자금선을 미리 점검해 보세요.\n"
+        "• 부자생각 창업·손익 연구소: https://boozathink.com\n\n"
+        "#부자생각 #BoozaThink #초보창업 #소자본창업 #자영업 #개인사업자 #창업순서 #손익계산 #Shorts"
     )
     pinned_comment = (
-        "내 가게 차릴 때 얼마가 들고 한 달에 실제로 얼마가 남을지 막막하셨다면,\n"
-        "올해 12월 31일까지 무료로 열어둔 부자생각 창업 계산기에서 내 업종 숫자를 먼저 넣어보세요!\n"
-        "👉 무료 창업·순수익 계산기: https://boozathink.com/calculators/startup-master?utm_source=yt_shorts&utm_medium=ep01_comment\n"
-        "👉 계약부터 첫 1년 전체 순서표: https://boozathink.com/start-guide?utm_source=yt_shorts&utm_medium=ep01_comment"
+        "내 가게 차릴 때 실제로 얼마가 들고 한 달에 얼마가 남을지 막막하셨다면,\n"
+        "검색창에 ‘부자생각(boozathink.com)’을 쳐서 내 업종 숫자를 직접 넣어 확인해 보세요!"
     )
     tags = [
         "부자생각",
@@ -317,23 +325,27 @@ def upload_intro(privacy: str = "public", force_api_upload: bool = False) -> tup
     r16 = upload_shorts_package(
         mp4_path=mp4_16,
         thumb_path=thumb,
-        title="[부자생각 공식 소개] 창업 전 예상수익 계산부터 운영 중 새는 돈 구멍까지! 무료 3초 실전 시뮬레이터",
+        title="창업 전 예상수익부터 장사 중 새는 돈 구멍까지, 숫자로 한눈에 잡는 법 | 부자생각",
+        alt_titles=[
+            "매출은 나오는데 왜 통장에 돈이 안 남을까? 내 가게 손익 구멍 3초 진단법 | 부자생각",
+            "계약 도장 찍기 전 꼭 계산해 봐야 할 진짜 순수익 이야기 — 부자생각 창업·손익 연구소",
+        ],
         description=(
             "창업을 앞두고 실제로 한 달에 얼마가 남을지 미리 계산해 보고 싶으신가요?\n"
             "아니면 지금 열심히 사업은 하고 있는데 도대체 어디서 돈이 새는지 손익 구조의 구멍을 확실히 찾아내고 싶으신가요?\n\n"
-            "예비창업자 · 매장 사장님 · 온라인 셀러를 위한 실전 창업·손익 연구소, 부자생각(boozathink.com)을 소개합니다!\n\n"
-            "• 30개 업종 실전 창업 마스터: 초기 인테리어·창업비용부터 비수기 버티는 힘까지 계산\n"
-            "• 매장 손익 구멍 정밀 탐지: 배달·포장 수수료 마진, 상가 월세 손익분기점, 주휴수당 vs 키오스크 비교\n"
-            "• 온라인 셀러 & 자금·세금 판독: 쿠팡·스토어 광고 효율·반품 손실, 저금리 정책자금·대환 진단, 부가세·종소세 계산기\n\n"
-            "올해 12월 31일까지만 모든 업종 시뮬레이터를 무료로 열어두었으니 누구나 편하게 찾아와 사용해 보세요!\n\n"
-            "👉 부자생각 무료 3초 시뮬레이터: https://boozathink.com/?utm_source=youtube&utm_medium=channel_intro\n\n"
-            "#부자생각 #BoozaThink #창업시뮬레이터 #자영업순수익 #배달마진계산기 #스마트스토어마진 #정책자금"
+            "예비창업자 · 매장 사장님 · 온라인 셀러를 위한 실전 창업·손익 연구소, 부자생각입니다.\n\n"
+            "• 30개 업종 실전 창업 설계: 초기 인테리어·창업비용부터 비수기 버티는 현금흐름까지\n"
+            "• 매장 손익 구멍 정밀 점검: 배달·포장 수수료 마진, 상가 월세 손익분기점, 주휴수당 vs 키오스크 비교\n"
+            "• 온라인 셀러 & 자금·세금 계산: 쿠팡·스토어 광고 효율·반품 손실, 저금리 정책자금·대환 진단, 부가세·종소세 실수령\n\n"
+            "검색창에 ‘부자생각’을 검색하시거나 아래 주소에서 내 가게 숫자를 직접 넣어 확인해 보세요.\n"
+            "• 부자생각 창업·손익 연구소: https://boozathink.com\n\n"
+            "#부자생각 #BoozaThink #자영업순수익 #소자본창업 #배달마진 #스마트스토어 #정책자금 #손익계산"
         ),
         pinned_comment=(
-            "창업 전에 예상 수익을 미리 계산해 보고 싶은 분도, 사업 중 어디서 돈이 새는지 확실히 점검하고 싶은 사장님도 누구나 무료로 써보실 수 있습니다 (올해 12.31까지 무료 개방)!\n"
-            "👉 https://boozathink.com/?utm_source=youtube&utm_medium=intro_pinned"
+            "창업 전에 예상 수익을 미리 따져보고 싶은 분도, 지금 운영하는 매장에서 어디서 돈이 새는지 확실히 점검하고 싶은 사장님도\n"
+            "검색창에 ‘부자생각(boozathink.com)’을 쳐서 내 업종 숫자를 편하게 넣어 확인해 보세요!"
         ),
-        tags=["부자생각", "BoozaThink", "창업시뮬레이터", "자영업순수익", "배달마진", "스마트스토어", "정책자금", "손익계산기"],
+        tags=["부자생각", "BoozaThink", "자영업순수익", "소자본창업", "배달마진", "스마트스토어", "정책자금", "손익계산"],
         privacy=privacy,
         force_api_upload=force_api_upload,
         subfolder="01_공식_채널소개_영상팩",
@@ -341,14 +353,14 @@ def upload_intro(privacy: str = "public", force_api_upload: bool = False) -> tup
     r9 = upload_shorts_package(
         mp4_path=mp4_9,
         thumb_path=None,
-        title="창업 전 예상수익 계산도, 장사 중 새는 돈 구멍 찾기도 3초 만에 끝내는 법! #부자생각 #Shorts",
+        title="창업 전 예상수익도, 장사 중 새는 돈 구멍도 3초 만에 찾는 법 | 부자생각 #Shorts",
         description=(
-            "30개 업종 창업비용부터 배달·셀러 수수료 마진, 월세 손익분기점, 정책자금·세금까지 3초 만에 확인해 보세요! (올해 12.31까지 무료 개방)\n\n"
-            "👉 무료 3초 실전 시뮬레이터: https://boozathink.com/?utm_source=yt_shorts&utm_medium=intro_shorts\n\n"
-            "#부자생각 #BoozaThink #창업비용계산기 #자영업 #소상공인 #온라인셀러 #Shorts"
+            "30개 업종 창업비용부터 배달·셀러 수수료 마진, 월세 손익분기점, 정책자금·세금까지 숫자로 선명하게 점검해 보세요.\n\n"
+            "• 부자생각 창업·손익 연구소: https://boozathink.com\n\n"
+            "#부자생각 #BoozaThink #소자본창업 #자영업 #소상공인 #온라인셀러 #Shorts"
         ),
-        pinned_comment="내 업종·매장 손익 구멍 3초 무료 판독기 👉 https://boozathink.com/?utm_source=yt_shorts&utm_medium=intro_shorts_pinned",
-        tags=["부자생각", "BoozaThink", "창업계산기", "자영업", "온라인셀러", "Shorts"],
+        pinned_comment="내 업종 예상수익과 매장 손익 구멍 점검은 검색창에 ‘부자생각(boozathink.com)’을 검색해 보세요!",
+        tags=["부자생각", "BoozaThink", "소자본창업", "자영업", "온라인셀러", "Shorts"],
         privacy=privacy,
         force_api_upload=force_api_upload,
         subfolder="01_공식_채널소개_영상팩",

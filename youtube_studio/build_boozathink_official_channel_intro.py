@@ -967,7 +967,7 @@ def render_intro_thumbnail_1280x720(brush_white_mint: Image.Image, out_jpg: Path
         </div>
         <div class="main-h">창업 전 예상수익부터<span>새는 돈 구멍까지 3초 판독!</span></div>
         <div class="sim-strip">창업비용 · 배달마진 · 셀러ROAS · 정책자금 · 세금</div>
-        <div class="cta">올해 12.31 무료 개방 ▶ boozathink.com</div>
+        <div class="cta">30개 업종 실전 손익 계산 ▶ boozathink.com</div>
       </div>
       <div class="right-pad">
         <div class="r-top">누구나 숫자만 넣어 바로 확인</div>
