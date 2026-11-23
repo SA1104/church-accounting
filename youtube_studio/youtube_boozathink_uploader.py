@@ -15,6 +15,7 @@ BOOZA THINK (부자생각) — Isolated YouTube Brand Channel OAuth Linker & Har
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timedelta, timezone
 import json
 import os
 import shutil
@@ -22,6 +23,8 @@ import sys
 from pathlib import Path
 
 os.environ["OAUTHLIB_RELAX_TOKEN_SCOPE"] = "1"
+KST = timezone(timedelta(hours=9))
+WEEKDAY_KO = ("월", "화", "수", "목", "금", "토", "일")
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -173,6 +176,31 @@ def assert_boozathink_channel_identity(yt, on_auth: bool = False) -> dict:
     return {"channel_id": ch_id, "title": title, "custom_url": custom_url}
 
 
+def resolve_date_subfolder(target_date: str | None = None, label: str = "유튜브_릴스_업로드") -> str:
+    if target_date:
+        dt = datetime.strptime(target_date.strip()[:10], "%Y-%m-%d")
+    else:
+        dt = datetime.now(KST)
+    wd = WEEKDAY_KO[dt.weekday()]
+    return f"{dt.strftime('%Y-%m-%d')}_{wd}_{label}"
+
+
+def clean_uploaded_date_folders(date_prefix: str) -> list[Path]:
+    """Deletes any folder in MANUAL_UPLOAD_BOX matching the given date prefix (e.g. '2026-11-23' or '2026-11-24')."""
+    key = date_prefix.strip()
+    if not key or not MANUAL_UPLOAD_BOX.exists():
+        return []
+    removed: list[Path] = []
+    for sub in sorted(MANUAL_UPLOAD_BOX.iterdir()):
+        if sub.is_dir() and (sub.name.startswith(key) or key in sub.name):
+            shutil.rmtree(sub)
+            removed.append(sub)
+            print(f"[업로드 완료 폴더 삭제됨] {sub}")
+    if not removed:
+        print(f"[안내] '{key}'와 일치하는 대기함 폴더가 없습니다.")
+    return removed
+
+
 def stage_for_manual_youtube_and_reels(
     mp4_path: Path,
     thumb_path: Path | None,
@@ -180,10 +208,12 @@ def stage_for_manual_youtube_and_reels(
     description: str,
     pinned_comment: str,
     tags: list[str],
-    subfolder: str = "01_쇼츠_릴스_업로드_대기함",
+    subfolder: str | None = None,
     alt_titles: list[str] | None = None,
+    target_date: str | None = None,
 ) -> Path:
-    box = MANUAL_UPLOAD_BOX / subfolder
+    folder_name = subfolder or resolve_date_subfolder(target_date)
+    box = MANUAL_UPLOAD_BOX / folder_name
     box.mkdir(parents=True, exist_ok=True)
     dst_mp4 = box / mp4_path.name
     shutil.copy2(mp4_path, dst_mp4)
@@ -223,8 +253,9 @@ def upload_shorts_package(
     tags: list[str],
     privacy: str = "public",
     force_api_upload: bool = False,
-    subfolder: str = "01_쇼츠_릴스_업로드_대기함",
+    subfolder: str | None = None,
     alt_titles: list[str] | None = None,
+    target_date: str | None = None,
 ) -> str:
     from googleapiclient.http import MediaFileUpload
 
@@ -237,6 +268,7 @@ def upload_shorts_package(
         tags=tags,
         subfolder=subfolder,
         alt_titles=alt_titles,
+        target_date=target_date,
     )
     if not force_api_upload:
         print(
@@ -270,7 +302,7 @@ def upload_shorts_package(
     return vid_id
 
 
-def upload_ep01(privacy: str = "public", force_api_upload: bool = False) -> str:
+def upload_ep01(privacy: str = "public", force_api_upload: bool = False, target_date: str | None = None) -> str:
     mp4_path = OUT_SHORTS_DIR / "BOOZATHINK_EP01_Easy_Startup_Order_9x16_Shorts.mp4"
     thumb_path = OUT_SHORTS_DIR / "BOOZATHINK_EP01_Cover_1080x1920.png"
     if not mp4_path.exists():
@@ -311,10 +343,11 @@ def upload_ep01(privacy: str = "public", force_api_upload: bool = False) -> str:
         tags=tags,
         privacy=privacy,
         force_api_upload=force_api_upload,
+        subfolder=resolve_date_subfolder(target_date, "EP01_창업순서_쇼츠"),
     )
 
 
-def upload_intro(privacy: str = "public", force_api_upload: bool = False) -> tuple[str, str]:
+def upload_intro(privacy: str = "public", force_api_upload: bool = False, target_date: str | None = None) -> tuple[str, str]:
     intro_dir = STUDIO_DIR / "output" / "official_channel_intro"
     mp4_16 = intro_dir / "BOOZATHINK_Official_01_Channel_Intro_16x9_1080p.mp4"
     mp4_9 = intro_dir / "BOOZATHINK_Official_01_Channel_Intro_9x16_Shorts.mp4"
@@ -322,6 +355,7 @@ def upload_intro(privacy: str = "public", force_api_upload: bool = False) -> tup
     if not mp4_16.exists() or not mp4_9.exists():
         raise FileNotFoundError(f"공식 채널 소개 영상이 아직 생성되지 않았습니다: {intro_dir}")
 
+    folder = resolve_date_subfolder(target_date, "공식_채널소개_영상팩")
     r16 = upload_shorts_package(
         mp4_path=mp4_16,
         thumb_path=thumb,
@@ -348,7 +382,7 @@ def upload_intro(privacy: str = "public", force_api_upload: bool = False) -> tup
         tags=["부자생각", "BoozaThink", "자영업순수익", "소자본창업", "배달마진", "스마트스토어", "정책자금", "손익계산"],
         privacy=privacy,
         force_api_upload=force_api_upload,
-        subfolder="01_공식_채널소개_영상팩",
+        subfolder=folder,
     )
     r9 = upload_shorts_package(
         mp4_path=mp4_9,
@@ -363,12 +397,12 @@ def upload_intro(privacy: str = "public", force_api_upload: bool = False) -> tup
         tags=["부자생각", "BoozaThink", "소자본창업", "자영업", "온라인셀러", "Shorts"],
         privacy=privacy,
         force_api_upload=force_api_upload,
-        subfolder="01_공식_채널소개_영상팩",
+        subfolder=folder,
     )
     return r16, r9
 
 
-def upload_ep02(privacy: str = "public", force_api_upload: bool = False) -> str:
+def upload_ep02(privacy: str = "public", force_api_upload: bool = False, target_date: str | None = None) -> str:
     ep_dir = STUDIO_DIR / "output" / "ep02_abc_compare_shorts"
     mp4_path = ep_dir / "BOOZATHINK_EP02_ABC_Compare_9x16_Shorts.mp4"
     thumb_path = ep_dir / "BOOZATHINK_EP02_Cover_1080x1920.png"
@@ -399,10 +433,11 @@ def upload_ep02(privacy: str = "public", force_api_upload: bool = False) -> str:
         tags=["부자생각", "BoozaThink", "업종비교", "카페창업", "치킨창업", "무인매장", "소자본창업", "자영업순수익", "Shorts"],
         privacy=privacy,
         force_api_upload=force_api_upload,
+        subfolder=resolve_date_subfolder(target_date, "EP02_업종ABC비교_쇼츠"),
     )
 
 
-def upload_ep03(privacy: str = "public", force_api_upload: bool = False) -> str:
+def upload_ep03(privacy: str = "public", force_api_upload: bool = False, target_date: str | None = None) -> str:
     ep_dir = STUDIO_DIR / "output" / "ep03_delivery_leak_shorts"
     mp4_path = ep_dir / "BOOZATHINK_EP03_Delivery_Margin_Leak_9x16_Shorts.mp4"
     thumb_path = ep_dir / "BOOZATHINK_EP03_Cover_1080x1920.png"
@@ -433,6 +468,7 @@ def upload_ep03(privacy: str = "public", force_api_upload: bool = False) -> str:
         tags=["부자생각", "BoozaThink", "배달마진", "배달수수료", "자영업순수익", "외식창업", "배달의민족", "쿠팡이츠", "Shorts"],
         privacy=privacy,
         force_api_upload=force_api_upload,
+        subfolder=resolve_date_subfolder(target_date, "EP03_배달마진구멍_쇼츠"),
     )
 
 
@@ -444,11 +480,15 @@ if __name__ == "__main__":
     parser.add_argument("--upload-ep01", action="store_true", help="1호 펜 스케치 쇼츠 스테이징 또는 업로드")
     parser.add_argument("--upload-ep02", action="store_true", help="2호 업종 A·B·C안 비교 쇼츠 스테이징 또는 업로드")
     parser.add_argument("--upload-ep03", action="store_true", help="3호 배달 마진 구멍 해부 쇼츠 스테이징 또는 업로드")
+    parser.add_argument("--date", default=None, help="일자별 대기함 폴더 날짜 지정 (예: 2026-11-24)")
+    parser.add_argument("--clean-date", default=None, help="업로드 완료된 일자 폴더 전체 삭제 (예: 2026-11-23)")
     parser.add_argument("--privacy", default="public", choices=["public", "unlisted", "private"])
     parser.add_argument("--force-api-upload", action="store_true", help="대기함 저장과 동시에 YouTube API 직접 업로드 실행")
     args = parser.parse_args()
 
-    if args.auth:
+    if args.clean_date:
+        clean_uploaded_date_folders(args.clean_date)
+    elif args.auth:
         yt_c = get_youtube_client(interactive_auth=True)
         info = assert_boozathink_channel_identity(yt_c, on_auth=True)
         print(f"[연동 완료 & 채널 잠금 설정됨] {info}")
@@ -457,12 +497,12 @@ if __name__ == "__main__":
         info = assert_boozathink_channel_identity(yt_c, on_auth=False)
         print(f"[검증 통과] 안전하게 부자생각 채널에 연결되어 있습니다: {info}")
     elif args.upload_intro:
-        upload_intro(privacy=args.privacy, force_api_upload=args.force_api_upload)
+        upload_intro(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
     elif args.upload_ep01:
-        upload_ep01(privacy=args.privacy, force_api_upload=args.force_api_upload)
+        upload_ep01(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
     elif args.upload_ep02:
-        upload_ep02(privacy=args.privacy, force_api_upload=args.force_api_upload)
+        upload_ep02(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
     elif args.upload_ep03:
-        upload_ep03(privacy=args.privacy, force_api_upload=args.force_api_upload)
+        upload_ep03(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
     else:
-        print("Ready. Options: --auth | --verify-channel | --upload-intro | --upload-ep01 | --upload-ep02 | --upload-ep03")
+        print("Ready. Options: --auth | --verify-channel | --upload-ep01..03 [--date YYYY-MM-DD] | --clean-date YYYY-MM-DD")
