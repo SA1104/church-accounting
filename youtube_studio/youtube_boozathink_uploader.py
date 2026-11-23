@@ -185,6 +185,15 @@ def resolve_date_subfolder(target_date: str | None = None, label: str = "유튜�
     return f"{dt.strftime('%Y-%m-%d')}_{wd}_{label}"
 
 
+def _on_rm_error(func, path, _exc):
+    import stat
+    try:
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+    except Exception:
+        pass
+
+
 def clean_uploaded_date_folders(date_prefix: str) -> list[Path]:
     """Deletes any folder in MANUAL_UPLOAD_BOX matching the given date prefix (e.g. '2026-11-23' or '2026-11-24')."""
     key = date_prefix.strip()
@@ -193,7 +202,7 @@ def clean_uploaded_date_folders(date_prefix: str) -> list[Path]:
     removed: list[Path] = []
     for sub in sorted(MANUAL_UPLOAD_BOX.iterdir()):
         if sub.is_dir() and (sub.name.startswith(key) or key in sub.name):
-            shutil.rmtree(sub)
+            shutil.rmtree(sub, onexc=_on_rm_error)
             removed.append(sub)
             print(f"[업로드 완료 폴더 삭제됨] {sub}")
     if not removed:
