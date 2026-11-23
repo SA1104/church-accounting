@@ -38,8 +38,12 @@ Allow: /
 Disallow: /api/
 Disallow: /admin
 
-# Google AdSense crawler explicitly allowed
+# Google AdSense crawlers explicitly allowed
 User-agent: Mediapartners-Google
+Allow: /
+Disallow: /admin
+
+User-agent: Google-Display-Ads-Bot
 Allow: /
 Disallow: /admin
 

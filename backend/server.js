@@ -91,6 +91,9 @@ function send(res, opts, status) {
   if (opts.scripts && opts.scripts.length && !opts.simToken) {
     opts.simToken = simGuard.issueSimToken();
   }
+  if (!opts.adsenseClient) {
+    opts.adsenseClient = process.env.ADSENSE_CLIENT || db.getSiteConfig('adsense_client');
+  }
   res.send(layout.render(opts, content.categories));
 }
 
@@ -142,8 +145,8 @@ app.get('/datasets', async (req, res) => {
   const liveIdx = await datasetsViews.buildLiveBenchmarkDataset(db);
   const v = datasetsViews.datasetsView(liveIdx);
   send(res, {
-    title: '업종별 평균 비용 · 세율 · 금리 공개 기준표 — 30대 창업 업종 데이터 모음',
-    description: '대한민국 30대 창업 업종 평균 초기비용·원가율·계절 변화, 소상공인 세법·4대보험·대출금리 기준, 개인사업자 1년 할 일 순서표를 엑셀(CSV)·JSON으로 투명하게 공개합니다.',
+    title: '업종별 평균 비용 · 법정 세율 · 금리 요약 기준표 — 시뮬레이터 공식 근거 모음',
+    description: '대한민국 30대 창업 업종 평균 초기비용·원가율·계절 편차, 소상공인 세법·4대보험·상가 환산보증금·정책자금 금리 공식 고시 기준을 한눈에 열람할 수 있습니다.',
     path: '/datasets',
     jsonld: v.jsonld,
     body: v.body,
@@ -271,9 +274,11 @@ app.get('/sitemap.xml', (req, res) => { res.type('application/xml').set('Cache-C
 app.get('/robots.txt', (req, res) => { res.type('text/plain').set('Cache-Control', 'public, max-age=3600').send(seo.robots()); });
 app.get('/llms.txt', (req, res) => { res.type('text/markdown; charset=utf-8').set('Cache-Control', 'public, max-age=3600').send(seo.llms(content)); });
 app.get('/llms-full.txt', (req, res) => res.redirect(301, '/llms.txt'));
-if (process.env.ADSENSE_CLIENT) {
-  app.get('/ads.txt', (req, res) => res.type('text/plain').set('Cache-Control', 'public, max-age=3600').send(`google.com, ${process.env.ADSENSE_CLIENT.trim().replace(/^ca-/, '')}, DIRECT, f08c47fec0942fa0\n`));
-}
+app.get('/ads.txt', (req, res, next) => {
+  const ads = layout.normalizeAdSenseClient(process.env.ADSENSE_CLIENT || db.getSiteConfig('adsense_client'));
+  if (!ads) return next();
+  res.type('text/plain; charset=utf-8').set('Cache-Control', 'public, max-age=300').send(`google.com, ${ads.pub}, DIRECT, f08c47fec0942fa0\n`);
+});
 
 // ── Admin (Site-Kit 상황판 · 검색엔진 완전 비노출) ──
 function makeAdminToken() {
@@ -340,13 +345,15 @@ app.get('/admin', async (req, res) => {
     ownerExcluded = true;
   }
   const summary = await db.getAnalyticsSummary(req.query.days);
+  const activeAds = layout.normalizeAdSenseClient(process.env.ADSENSE_CLIENT || db.getSiteConfig('adsense_client'));
   const envStatus = {
     ga4: Boolean(process.env.GA_MEASUREMENT_ID),
     ga4Id: process.env.GA_MEASUREMENT_ID || '',
     gsc: Boolean(process.env.GOOGLE_SITE_VERIFICATION),
     naver: Boolean(process.env.NAVER_SITE_VERIFICATION),
     clarity: Boolean(process.env.CLARITY_PROJECT_ID),
-    adsense: Boolean(process.env.ADSENSE_CLIENT),
+    adsense: Boolean(activeAds),
+    adsenseId: activeAds ? activeAds.caPub : '',
     ownerExcluded,
     phoneEnrollUrl: `${layout.SITE.url}/admin/exclude-device?k=${makeOwnerDeviceSig()}`,
     notice: req.query.msg || ''
@@ -382,6 +389,19 @@ app.post('/admin/reset-traffic', express.urlencoded({ extended: false, limit: '2
   if (!isAdminAuthed(req)) return res.redirect(303, '/admin');
   await db.resetTrafficLogs();
   res.redirect(303, '/admin?msg=traffic_reset');
+});
+
+app.post('/admin/save-adsense', express.urlencoded({ extended: false, limit: '2kb' }), async (req, res) => {
+  if (!isAdminAuthed(req)) return res.redirect(303, '/admin');
+  const raw = String((req.body && req.body.adsense_client) || '').trim();
+  if (!raw) {
+    await db.setSiteConfig('adsense_client', '');
+    return res.redirect(303, '/admin?msg=adsense_cleared');
+  }
+  const parsed = layout.normalizeAdSenseClient(raw);
+  if (!parsed) return res.redirect(303, '/admin?msg=adsense_invalid');
+  await db.setSiteConfig('adsense_client', parsed.caPub);
+  res.redirect(303, '/admin?msg=adsense_saved');
 });
 
 app.post('/admin/login', express.urlencoded({ extended: false, limit: '4kb' }), (req, res) => {

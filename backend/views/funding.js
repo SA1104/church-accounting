@@ -296,33 +296,37 @@ function fundingView(q) {
   </section>
 
   <section class="sec">
-    <div class="card pro-gate">
-      <span class="pill">전문가 자금 설계 연계</span>
-      <h2 style="margin:10px 0 8px;font-size:22px">사업 확장 · 대환 · 한도 설계 1:1 사전 검토 요청</h2>
-      <p style="margin:0 0 16px;color:var(--text-2);font-size:15px">복잡한 정책자금 공고 매칭이나 담보·보증 결합 한도 설계가 필요하신 대표님께서는 현재 상황과 필요 자금 규모를 남겨 주세요. 연구소 자금 자문 파트너십을 통해 적합한 조달 루트 검토 의견을 회신드립니다. (불법 중개수수료를 요구하지 않습니다.)</p>
-      <form id="funding-consult-form" class="contact-form" novalidate>
-        <div class="kpi-grid" style="background:none">
-          <div class="field" style="background:none;padding:0;border:0">
-            <label for="fc-email">회신받을 이메일 또는 연락처</label>
-            <input type="email" id="fc-email" required placeholder="ceo@example.com" class="admin-input">
-          </div>
-          <div class="field" style="background:none;padding:0;border:0">
-            <label for="fc-amt">필요 자금 규모 · 희망 시기</label>
-            <input type="text" id="fc-amt" placeholder="예: 매장 확장자금 1억원 / 2개월 내" class="admin-input">
-          </div>
-        </div>
-        <div class="field" style="border:0">
-          <label for="fc-msg">업종 · 연매출 · 보유 담보 및 궁금하신 사항</label>
-          <textarea id="fc-msg" rows="3" required placeholder="예: 경기권 외식업 3년차, 연매출 3억, 기존 대출 4천만원(8.5%) 대환 및 추가 운전자금 문의" class="contact-ta"></textarea>
-        </div>
-        <input type="text" id="fc-hp" style="display:none" tabindex="-1" autocomplete="off">
-        <button type="submit" class="btn btn-primary" id="fc-btn">자금 설계 검토 요청하기</button>
-        <span class="toast" id="fc-toast" role="status" aria-live="polite"></span>
-      </form>
+    <div class="card">
+      <span class="pill">공공기관 공식 접수 창구 · 불법 중개 주의</span>
+      <h2 style="margin:10px 0 8px;font-size:21px">정책자금 · 지역신보 공식 온라인 신청처 &amp; 사칭 브로커 주의 안내</h2>
+      <p style="margin:0 0 14px;color:var(--text-2);font-size:14.5px">소상공인 정책자금과 신용보증재단 보증서는 정부·지자체 공식 누리집에서 대표자 본인이 <strong>수수료 0원</strong>으로 직접 신청할 수 있습니다. 정부 기관을 사칭하거나 승인 보장을 미끼로 착수금·성공보수(3~10%)·보험 가입을 요구하는 불법 대출 알선 브로커를 반드시 주의하세요.</p>
+      <div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+        <a class="card" style="padding:14px;text-decoration:none" href="https://ols.semas.or.kr" rel="nofollow noopener" target="_blank">
+          <span style="font-size:12px;color:var(--brand);font-weight:800">소상공인시장진흥공단</span>
+          <strong style="display:block;margin-top:4px;font-size:15px">소상공인정책자금 공식 누리집 ↗</strong>
+          <small style="color:var(--text-3)">일반경영안정 · 대환대출 · 혁신성장 직접/대리대출 온라인 접수</small>
+        </a>
+        <a class="card" style="padding:14px;text-decoration:none" href="https://www.koreg.or.kr" rel="nofollow noopener" target="_blank">
+          <span style="font-size:12px;color:var(--brand);font-weight:800">전국 17개 지역신보</span>
+          <strong style="display:block;margin-top:4px;font-size:15px">신용보증재단중앙회 · 보증드림 ↗</strong>
+          <small style="color:var(--text-3)">지자체 이차보전 특례보증 · 비대면 보증서 예약 및 상담</small>
+        </a>
+        <a class="card" style="padding:14px;text-decoration:none" href="https://www.kosmes.or.kr" rel="nofollow noopener" target="_blank">
+          <span style="font-size:12px;color:var(--brand);font-weight:800">5인 이상 · 제조/IT</span>
+          <strong style="display:block;margin-top:4px;font-size:15px">중소벤처기업진흥공단 정책자금 ↗</strong>
+          <small style="color:var(--text-3)">청년전용창업자금 · 혁신창업사업화 · 신성장기반 시설자금</small>
+        </a>
+        <a class="card" style="padding:14px;text-decoration:none" href="https://www.kinfa.or.kr" rel="nofollow noopener" target="_blank">
+          <span style="font-size:12px;color:var(--brand);font-weight:800">저신용 · 재기지원</span>
+          <strong style="display:block;margin-top:4px;font-size:15px">서민금융진흥원 미소금융 ↗</strong>
+          <small style="color:var(--text-3)">저신용 영세 자영업자 창업·운영자금 및 이자 경감 안내</small>
+        </a>
+      </div>
     </div>
   </section>
 
   ${faqHtml(faq)}
+  <aside class="trust-box"><h2>금융 데이터 기준 각주 &amp; 비(非)중개 면책 고지</h2><p>부자생각(BoozaThink)은 대출성 상품 판매대리·중개업자나 금융자문업자가 아니며, 특정 금융상품 가입 권유·대출 알선·수수료 수취를 일절 행하지 않습니다. 본 페이지의 금리 밴드와 추정 한도는 한국은행·은행연합회·금융투자협회·소상공인시장진흥공단·신용보증재단중앙회의 공개 기준(검증일 <strong>${mkt.verifiedAt}</strong>)에 따른 모의 계산 참고치이며, 실제 승인 여부·적용 금리·한도는 신청 시점의 신용도·담보 평가·예산 잔액에 따라 금융기관 심사에서 최종 결정됩니다. (<a href="/terms-of-service">이용약관</a> · <a href="/privacy-policy">개인정보처리방침</a>)</p></aside>
 </div>
 <script>
 (function(){
@@ -373,23 +377,6 @@ function fundingView(q) {
       if(b)b.textContent='준비 완료 '+d+' / '+t;
     });
   }
-  var f=document.getElementById('funding-consult-form');
-  if(!f)return;
-  var btn=document.getElementById('fc-btn'), st=document.getElementById('fc-toast');
-  f.addEventListener('submit',function(e){
-    e.preventDefault();
-    btn.disabled=true; st.textContent='접수 중...';
-    var amt=document.getElementById('fc-amt').value;
-    var msg='[희망규모: '+amt+'] '+document.getElementById('fc-msg').value;
-    fetch('/api/biz/contact',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({category:'funding-consult',email:document.getElementById('fc-email').value,page_url:window.location.href,website:document.getElementById('fc-hp').value,message:msg})
-    }).then(function(r){return r.json();}).then(function(d){
-      btn.disabled=false;
-      if(d&&d.ok){st.textContent='정상 접수되었습니다. 검토 후 이메일로 안내드리겠습니다.';f.reset();}
-      else{st.textContent=d&&d.error?d.error:'이메일 형식과 내용을(10자 이상) 확인해 주세요.';}
-    }).catch(function(){btn.disabled=false;st.textContent='일시적인 통신 오류가 발생했습니다.';});
-  });
 })();
 </script>
 <script>window.__BT_BOOT__=${JSON.stringify({ slug: 'loan-diagnose', data: { r } }).replace(/</g, '\\u003c')};</script>`;

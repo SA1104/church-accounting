@@ -62,6 +62,7 @@ function calendarView() {
   </section>
 
   ${faqHtml(faq)}
+  <aside class="trust-box"><h2>세무 · 노무 · 공고 일정 안내 및 면책 고지</h2><p>본 캘린더는 국세청 세무일정, 고용노동부 최저임금 고시 주기, 중소벤처기업부·소상공인시장진흥공단 정례 공고 일정을 기준으로 정리한 일반 안내 자료입니다(검증일 <strong>${facts.VERIFIED_AT}</strong>). 법정 공휴일 여부에 따라 실제 신고 마감일이 익영업일로 순연되거나 지원사업 예산 소진 시 조기 마감될 수 있으므로, 신고·신청 전 반드시 홈택스 및 해당 기관 최신 공고문을 확인하시기 바랍니다. (<a href="/terms-of-service">이용약관</a> · <a href="/privacy-policy">개인정보처리방침</a>)</p></aside>
 </div>`;
 
   return { body, jsonld: [breadcrumbLd(crumbs), faqLd(faq)] };

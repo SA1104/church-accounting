@@ -426,7 +426,7 @@ function startupMasterView(q) {
     <div class="calc-out">
       ${out}
       <div class="card bench" data-bench aria-live="polite"><div class="bench-head"><span class="pill">같은 업종 평균과 비교</span><span class="bench-src" data-bench-src>익명 계산 통계</span></div><p class="bench-text" data-bench-text>같은 업종을 계산해 본 예비창업자 평균 수익률과 비교해 드립니다.</p></div>
-      <p class="free-save-tip">올해 무료 개방 기간에 저장해 둔 진단표 이미지와 계산 링크는 기간이 지나도 제한 없이 다시 확인하실 수 있습니다.</p>
+      <p class="free-save-tip">저장해 둔 창업 진단표 이미지와 계산 링크는 언제든 다시 불러와 조건을 수정·비교하실 수 있습니다.</p>
       <div class="calc-actions" role="group" aria-label="결과 공유">
         <button type="button" class="btn btn-primary" data-action="copy-link">${icon('link', 16)} 내 창업 설계 링크 복사</button>
         <button type="button" class="btn" data-action="receipt">${icon('receipt', 16)} 창업 손익 진단표 이미지 저장</button>
@@ -465,6 +465,7 @@ function startupMasterView(q) {
   </section>
 
   ${faqHtml(faq)}
+  <aside class="trust-box"><h2>창업 시뮬레이션 기준 각주 &amp; 면책 고지</h2><p>공식 참조 출처: 소상공인시장진흥공단 창업·상권 기초통계, 공정거래위원회 가맹사업 정보공개서 요약, 국세청(부가가치세·종합소득세), 고용노동부(현행 및 차기 확정 최저임금 고시), 법제처(상가건물 임대차보호법 시행령). 검증 기준일: <strong>${facts.VERIFIED_AT}</strong>. 본 시뮬레이터의 업종별 초기 비용·원가율·계절 지수 및 추정 순이익은 공개 요율과 현장 평균치에 기반한 모의 설계 자료이며, 실제 매출·시공비·세액·대출 승인을 보장하지 않습니다. (<a href="/terms-of-service">이용약관</a> · <a href="/privacy-policy">개인정보처리방침</a>)</p></aside>
 </div>
 <script>window.__BT_BOOT__=${JSON.stringify({
     slug: 'startup-master',

@@ -125,29 +125,20 @@ function commercialView(q) {
         <p class="killer-text" id="cm-advice">${esc(zone.advice)}</p>
       </div>
 
-      <div class="card pro-gate">
-        <span class="pill">상세 번지 맞춤 정밀 리포트 신청</span>
-        <h2 style="margin:10px 0 8px;font-size:20px">계약 직전 상가 주소지의 적정 월세 상한선 &amp; 경쟁점 정밀 검토</h2>
-        <p style="margin:0 0 14px;font-size:14.5px;color:var(--text-2)">실제 계약을 앞둔 후보지 번지(도로명 주소)의 반경 영업 업종 밀도와 적정 월세 상한선 컨설팅 리포트를 준비 중입니다. 유료 정식 출시 전까지는 <strong>스레드·블로그·창업 카페에 BoozaThink 계산기를 소개한 링크를 남겨 주시는 분께 무료로 우선 발송</strong>해 드립니다.</p>
-        <form id="cm-unlock-form" class="contact-form" novalidate>
-          <div class="kpi-grid" style="background:none">
-            <div class="field" style="background:none;padding:0;border:0">
-              <label for="cu-email">리포트 받을 이메일</label>
-              <input type="email" id="cu-email" required placeholder="founder@example.com" class="admin-input">
-            </div>
-            <div class="field" style="background:none;padding:0;border:0">
-              <label for="cu-share">소개 게시글 링크 (또는 출시 알림 신청)</label>
-              <input type="text" id="cu-share" placeholder="https://threads.net/... 또는 '출시알림'" class="admin-input">
-            </div>
-          </div>
-          <div class="field" style="border:0">
-            <label for="cu-loc">검토 중인 상가 주소지 &amp; 창업 예정 업종</label>
-            <input type="text" id="cu-loc" required placeholder="예: 서울시 성동구 성수동2가 OO빌딩 1층 / 디저트 카페 15평" class="admin-input">
-          </div>
-          <input type="text" id="cu-hp" style="display:none" tabindex="-1" autocomplete="off">
-          <button type="submit" class="btn btn-primary" id="cu-btn">무료 소개인증 / 정밀 리포트 신청하기</button>
-          <span class="toast" id="cu-toast" role="status" aria-live="polite"></span>
-        </form>
+      <div class="card" id="cm-contract-chk">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+          <h2 class="card-h" style="margin:0">상가 임대차 계약 도장 찍기 직전 필수 확인 6가지 점검표</h2>
+          <span class="pill tnum" id="cm-chk-badge">점검 완료 0 / 6</span>
+        </div>
+        <p class="note" style="margin:6px 0 12px">지도와 배후 세대수가 마음에 들더라도 아래 6가지 공적장부·현장 실사 항목 중 하나라도 어긋나면 추가 공사비 폭탄이나 영업신고 불가 사유가 발생합니다.</p>
+        <ul class="detail-chk">
+          <li><label><input type="checkbox"><span><strong>건축물대장 주용도 &amp; 위반건축물 표기 유무</strong><span class="detail-sub">확인처: 정부24 · 음식점/카페(제2종 근생·휴게음식점) 영업신고 가능 용도인지, 노란색 위반건축물 딱지가 없는지 필히 대조</span></span></label></li>
+          <li><label><input type="checkbox"><span><strong>정화조 용량 및 소방 완비증명 대상 여부</strong><span class="detail-sub">확인처: 시·군·구청 환경과/위생과 · 기존 소매점 자리를 음식점·카페로 변경할 때 정화조 인원 한도 초과 시 입점 불가</span></span></label></li>
+          <li><label><input type="checkbox"><span><strong>등기부등본 갑구·을구 근저당권 및 환산보증금 비교</strong><span class="detail-sub">확인처: 인터넷등기소 · 선순위 채권최고액 + 내 보증금이 건물 시세의 60~70% 이내인지 확인 (<a href="/calculators/store-rent-breakeven">환산보증금 판독기</a> 연동)</span></span></label></li>
+          <li><label><input type="checkbox"><span><strong>한전 계약전력(kW) · 도시가스 배관 · 상하수도 구경</strong><span class="detail-sub">확인처: 한전ON / 현장 계량기 · 에스프레소 머신·오븐·튀김기 동시 가동 시 최소 15~25kW 확보 여부 점검</span></span></label></li>
+          <li><label><input type="checkbox"><span><strong>평일 낮 · 평일 밤 · 주말 3회 시간대별 보행 동선 실측</strong><span class="detail-sub">출근길 횡단보도 방향(우측 보행 유리), 점심 오피스 동선, 야간 배달 라이더 정차 공간을 최소 3번 직접 눈으로 확인</span></span></label></li>
+          <li><label><input type="checkbox"><span><strong>임대차계약서 특약사항 방어 문구 삽입</strong><span class="detail-sub">“영업허가 불가 시 계약 무효 및 계약금 전액 반환”, “원상복구는 임차인 입점 당시 현 시설 상태 기준” 문구 명기</span></span></label></li>
+        </ul>
       </div>
     </div>
   </section>
@@ -171,6 +162,7 @@ function commercialView(q) {
   </section>
 
   ${faqHtml(faq)}
+  <aside class="trust-box"><h2>상권 · 지도 데이터 출처 &amp; 면책 고지</h2><p>실시간 반경 점포 분포는 OpenStreetMap 공개 공간정보를 기반으로 표시되며, 상권 유형별 소비 특성·임대료 기준은 소상공인시장진흥공단 상권정보 및 국토교통부·한국부동산원 상업용부동산 임대동향 공시 자료를 참조합니다. 지도 미등재 신규 점포나 건물 개별 용도 제한이 있을 수 있으므로 임대차 계약 전 반드시 건축물대장·등기부등본 열람과 현장 실사를 병행하시기 바랍니다. (<a href="/terms-of-service">이용약관</a> · <a href="/privacy-policy">개인정보처리방침</a>)</p></aside>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script>
@@ -344,22 +336,13 @@ function commercialView(q) {
   }
   update();
 
-  var uf=document.getElementById('cm-unlock-form');
-  if(uf){
-    uf.addEventListener('submit',function(e){
-      e.preventDefault();
-      var btn=document.getElementById('cu-btn'), st=document.getElementById('cu-toast');
-      btn.disabled=true; st.textContent='접수 중...';
-      var loc=document.getElementById('cu-loc').value;
-      var sh=document.getElementById('cu-share').value;
-      fetch('/api/biz/contact',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({category:'commercial-unlock',email:document.getElementById('cu-email').value,page_url:sh,website:document.getElementById('cu-hp').value,message:'[상권리포트 신청] 후보지 및 업종: '+loc+' / 인증링크: '+sh})
-      }).then(function(r){return r.json();}).then(function(d){
-        btn.disabled=false;
-        if(d&&d.ok){st.textContent='신청이 접수되었습니다! 확인 후 이메일로 리포트를 발송해 드립니다.';uf.reset();}
-        else{st.textContent=d&&d.error?d.error:'이메일과 후보지 내용을(10자 이상) 입력해 주세요.';}
-      }).catch(function(){btn.disabled=false;st.textContent='일시적인 통신 오류가 발생했습니다.';});
+  var cc=document.getElementById('cm-contract-chk');
+  if(cc){
+    cc.addEventListener('change',function(){
+      var t=cc.querySelectorAll('input[type="checkbox"]').length;
+      var d=cc.querySelectorAll('input[type="checkbox"]:checked').length;
+      var b=document.getElementById('cm-chk-badge');
+      if(b)b.textContent='점검 완료 '+d+' / '+t;
     });
   }
 })();

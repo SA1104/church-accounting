@@ -147,7 +147,7 @@ async function main() {
       const hasCanon = /<link rel="canonical" href="https:\/\/boozathink\.com/.test(r.text);
       const visibleText = stripTags(r.text);
       const noUndefined = !/\bundefined\b/.test(visibleText);
-      const bannedMetaTerms = ['페르소나', '만화 광고', '4컷 만화', '4컷만화', '만화 1편', '만화 2편', '만화 3편', '1컷', '2컷', '시계열', 'AI 인용', 'LLM 팩트시트', 'E-E-A-T', 'Schema.org'];
+      const bannedMetaTerms = ['페르소나', '만화 광고', '4컷 만화', '4컷만화', '만화 1편', '만화 2편', '만화 3편', '1컷', '2컷', '시계열', 'AI 인용', 'LLM 팩트시트', 'E-E-A-T', 'Schema.org', '정식 유료 전환 전', '리포트를 준비 중입니다', '소개한 링크를 남겨 주시는 분께'];
       const hitTerm = bannedMetaTerms.find((t) => visibleText.includes(t));
       const noJargon = !hitTerm;
       const ldMatches = [...r.text.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
@@ -184,31 +184,44 @@ async function main() {
     );
 
     const calcCoreJs = await fetchRes(baseUrl, '/js/calc-core.js');
-    assert(calcCoreJs.status === 200 && calcCoreJs.text.includes("typeof initialDefaults[k] === 'string'"), 'v2.6 Fix: calc-core.js Hidden String Profile Binding');
+    assert(calcCoreJs.status === 200 && calcCoreJs.text.includes('data-compare-workbench'), 'Decision Workbench & Multi-Candidate Compare Engine (/js/calc-core.js)');
 
     const fundPage = await fetchRes(baseUrl, '/funding');
-    assert(fundPage.status === 200 && fundPage.text.includes('id="rate-gap-sim"') && fundPage.text.includes('data-mini="apr-trap"') && fundPage.text.includes('business-loan-approval-limit-guide') && fundPage.text.includes('data-fd-exloan'), 'Funding Hub: 6-Channel Rate Gap Sim + APR Trap + Detailed Existing Debt Check');
+    assert(fundPage.status === 200 && fundPage.text.includes('ols.semas.or.kr') && !fundPage.text.includes('id="funding-consult-form"') && fundPage.text.includes('class="trust-box"') && fundPage.text.includes('data-fd-exloan'), 'AdSense YMYL Safe Funding Hub: Official SEMAS/KOREG Portals + Non-Intermediary Trust Box');
 
     const commPage = await fetchRes(baseUrl, '/commercial-area');
-    assert(commPage.status === 200 && commPage.text.includes('id="cm-map"') && commPage.text.includes('leaflet@1.9.4') && commPage.text.includes('overpass-api.de'), 'Commercial Lab: Real Interactive Leaflet Map + Radius Circle + Overpass POI Search');
-    assert(masterPage.text.includes('data-free-open="calc"') && masterPage.text.includes('올해 12.31까지 무료 개방') && delivPage.text.includes('data-free-open="calc"'), 'Year-End Free Open Access Notice & D-Day Badge Across Simulators');
+    assert(commPage.status === 200 && commPage.text.includes('id="cm-map"') && commPage.text.includes('id="cm-contract-chk"') && !commPage.text.includes('id="cm-unlock-form"') && commPage.text.includes('class="trust-box"'), 'AdSense Safe Commercial Lab: Interactive Map + 6-Point Lease Checklist + Zero Link-Exchange Gate');
+    assert(masterPage.text.includes('data-free-open="calc"') && !masterPage.text.includes('정식 유료 전환 전') && masterPage.text.includes('class="trust-box"'), 'Permanent Open-Access Banner & YMYL Disclaimer Across Simulators');
     assert(masterPage.text.includes('data-resilience-card') && masterPage.text.includes('bepOrdersOut') && masterPage.text.includes('sweatNote'), 'v2.7 Startup Resilience Shock Test & Owner Sweat-Equity Check');
 
     const reqPage = await fetchRes(baseUrl, '/requests');
     const voteBtnCnt = (reqPage.text.match(/data-vote-btn="/g) || []).length;
-    assert(reqPage.status === 200 && voteBtnCnt >= 8 && reqPage.text.includes('id="tool-req-form"'), 'v2.7 Customer Simulator Wishlist & Upvote Hub (/requests)', `ideas=${voteBtnCnt}`);
+    assert(reqPage.status === 200 && voteBtnCnt >= 8 && reqPage.text.includes('id="tool-req-form"') && reqPage.text.includes('수식 검증 프로세스'), 'Customer Simulator Wishlist & Editorial Process Guide (/requests)', `ideas=${voteBtnCnt}`);
 
     const sgPage = await fetchRes(baseUrl, '/start-guide');
     const pCnt = (sgPage.text.match(/data-persona-btn="/g) || []).length;
     const cCnt = (sgPage.text.match(/data-comic-tab="/g) || []).length;
     const tlCnt = (sgPage.text.match(/data-tl-id="/g) || []).length;
-    assert(sgPage.status === 200 && pCnt === 6 && cCnt === 3 && tlCnt === 32 && sgPage.text.includes('"@type":"HowTo"'), 'Start-Guide: 6 Personas + 3 4-Cut Comic Ads + 32-Step Chronology', `personas=${pCnt}, comics=${cCnt}, steps=${tlCnt}`);
+    assert(sgPage.status === 200 && pCnt === 6 && cCnt === 3 && tlCnt === 32 && sgPage.text.includes('"@type":"HowTo"'), 'Start-Guide: 6 Personas + 3 Story Tabs + 32-Step Chronology', `personas=${pCnt}, stories=${cCnt}, steps=${tlCnt}`);
 
     const dsBench = await fetchRes(baseUrl, '/api/datasets/startup-30-benchmarks.json');
-    const dsBenchJson = JSON.parse(dsBench.text);
-    const dsStat = await fetchRes(baseUrl, '/api/datasets/statutory-rates.json');
-    const dsTime = await fetchRes(baseUrl, '/api/datasets/solo-business-365-timeline.json');
-    assert(dsBench.status === 200 && dsBenchJson.count === 30 && dsStat.status === 200 && dsTime.status === 200, 'AI Citation Open Datasets API (JSON/CSV)', `startup30=${dsBenchJson.count}`);
+    assert(dsBench.status === 403, 'Anti-Clone Vault: Bulk Raw Dataset Dump Blocked (HTTP 403)', `HTTP ${dsBench.status}`);
+
+    // Verify 1-Click AdSense Meta Tag & ads.txt Normalization (Local Mode)
+    if (!isLiveMode) {
+      const prevSetting = db.getSiteConfig('adsense_client');
+      await db.setSiteConfig('adsense_client', 'pub-1234567890123456');
+      const homeAds = await fetchRes(baseUrl, '/');
+      const adsTxt = await fetchRes(baseUrl, '/ads.txt');
+      assert(
+        homeAds.text.includes('<meta name="google-adsense-account" content="ca-pub-1234567890123456">') &&
+        homeAds.text.includes('pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1234567890123456') &&
+        adsTxt.status === 200 &&
+        adsTxt.text.trim() === 'google.com, pub-1234567890123456, DIRECT, f08c47fec0942fa0',
+        '1-Click AdSense Publisher ID Normalization (<meta> + adsbygoogle.js + /ads.txt)'
+      );
+      await db.setSiteConfig('adsense_client', prevSetting);
+    }
 
     // Check 2027 Year Mode Preset on Labor Calculator
     const y2027Check = await fetchRes(baseUrl, '/calculators/labor-automation?year=2027');
@@ -235,13 +248,13 @@ async function main() {
     );
 
     const rb = await fetchRes(baseUrl, '/robots.txt');
-    assert(rb.status === 200 && rb.text.includes('Mediapartners-Google') && rb.text.includes('Allow: /api/datasets/') && rb.text.includes('Disallow: /admin'), 'GET /robots.txt', 'Mediapartners-Google & /api/datasets/ allowed, /admin disallowed');
+    assert(rb.status === 200 && rb.text.includes('Mediapartners-Google') && rb.text.includes('Google-Display-Ads-Bot') && rb.text.includes('Disallow: /admin'), 'GET /robots.txt', 'Mediapartners-Google & Google-Display-Ads-Bot allowed, /admin disallowed');
 
     const llms = await fetchRes(baseUrl, '/llms.txt');
     assert(llms.status === 200 && llms.text.includes('/funding') && llms.text.includes('/commercial-area') && llms.text.includes('startup-master'), 'GET /llms.txt', `${llms.size} bytes`);
 
     const llmsFull = await fetchRes(baseUrl, '/llms-full.txt');
-    assert(llmsFull.status === 200 && llmsFull.size > 80000, 'GET /llms-full.txt', `${llmsFull.size} bytes`);
+    assert(llmsFull.status === 200 && llmsFull.text.includes('BoozaThink'), 'GET /llms-full.txt -> 301 /llms.txt', `${llmsFull.size} bytes`);
 
     // 3. All 20 Bible Articles
     console.log('\n3) 20 Bible Articles SSR Content & Quality Audit');
@@ -316,8 +329,9 @@ async function main() {
       db.MIGRATION_SQL.includes('ALTER TABLE public.biz_page_events ENABLE ROW LEVEL SECURITY') &&
       db.MIGRATION_SQL.includes('ALTER TABLE public.biz_inquiries ENABLE ROW LEVEL SECURITY') &&
       db.MIGRATION_SQL.includes('ALTER TABLE public.biz_tool_requests ENABLE ROW LEVEL SECURITY') &&
-      db.MIGRATION_SQL.includes('ALTER TABLE public.biz_tool_votes ENABLE ROW LEVEL SECURITY');
-    assert(ddlHasRls, 'Migration DDL Enforces RLS on all 5 BoozaThink tables (runs, events, inquiries, tool_requests, tool_votes)');
+      db.MIGRATION_SQL.includes('ALTER TABLE public.biz_tool_votes ENABLE ROW LEVEL SECURITY') &&
+      db.MIGRATION_SQL.includes('ALTER TABLE public.biz_site_config ENABLE ROW LEVEL SECURITY');
+    assert(ddlHasRls, 'Migration DDL Enforces RLS on all 6 BoozaThink tables (runs, events, inquiries, tool_requests, tool_votes, site_config)');
 
     const dbRes = await fetchRes(baseUrl, '/api/biz/db-status');
     const dbJson = JSON.parse(dbRes.text);

@@ -40,7 +40,7 @@ function toggle(key, label, on, hint) {
 function o(key, text, cls) { return `<span data-out="${key}"${cls ? ` class="${cls}"` : ''}>${text}</span>`; }
 
 function actions() {
-  return `<p class="free-save-tip">올해 무료 개방 기간에 저장해 둔 계산 영수증 이미지와 링크는 기간이 지나도 계속 확인하실 수 있습니다.</p>
+  return `<p class="free-save-tip">저장해 둔 계산 영수증 이미지와 공유 링크는 언제든 다시 열어 조건을 비교하실 수 있습니다.</p>
 <div class="calc-actions" role="group" aria-label="결과 공유">
   <button type="button" class="btn btn-primary" data-action="copy-link">${icon('link', 16)} 내 매장 시뮬레이션 링크 복사</button>
   <button type="button" class="btn" data-action="receipt">${icon('receipt', 16)} 손익 계산 영수증 이미지 저장</button>
@@ -175,7 +175,7 @@ ${facts.DELIVERY_PLANS.filter((p) => p.id !== 'custom').map((p) => `<tr><td>${es
     { q: '업종 선택 버튼을 바꾸면 무엇이 달라지나요?', a: '한식·분식, 치킨·피자, 고기·족발, 카페·디저트마다 현장의 통상 식자재+포장 원가율 범위와 평균 객단가가 다릅니다. 업종을 선택하면 즉시 내 메뉴의 원가율이 업종 평균 대비 적정한지 진단해 드리며, 평균값 채우기 버튼으로 업종 표준 단가·원가를 바로 불러올 수 있습니다.' },
     { q: '배달앱 수수료에 부가세가 붙나요?', a: '플랫폼 중개이용료와 업주 부담 배달비는 VAT 별도로 고지됩니다. 일반과세자는 이 부가세를 매입세액으로 공제받기 때문에 실질 비용은 고지 금액과 같으며, 간이과세자라면 부가세·종소세 통합 계산기(/calculators/vat-income-tax)도 함께 확인해 보세요.' },
     { q: '순마진율은 몇 %가 적정한가요?', a: '임대료·인건비를 빼기 전 1주문 순마진율이 최소 20~28%는 확보되어야 월 고정비와 사장님 인건비가 남는 경우가 많습니다.' },
-    { q: '입력한 매출 정보가 저장되나요?', a: '아니요. 개별 입력 수치는 브라우저 안에서만 연산되며 서버에 저장되지 않습니다.' }
+    { q: '입력한 매출 정보가 저장되나요?', a: '아니요. 개별 입력 수치는 서버 데이터베이스에 원본 저장되지 않고 연산 즉시 휘발됩니다.' }
   ];
   return pageShell(calc, q, form, out, guide, faq, ctx.byCategory['delivery-store-profit'] || [], `※ 배달플랫폼 상생협의체 상생요금제 기준 반영 (검증일 ${facts.VERIFIED_AT})`, simGuard.buildDeliveryEval(s));
 }

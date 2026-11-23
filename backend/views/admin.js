@@ -149,6 +149,26 @@ function dashboardView(data, ctx, envStatus) {
   </header>
 
   ${envStatus.notice === 'traffic_reset' ? '<div class="callout" style="margin-bottom:16px;border-color:#059669;background:rgba(16,185,129,0.08)"><strong>초기화 완료:</strong> 이전 테스트 방문·계산기 실행 기록을 모두 0으로 비웠습니다. 이제부터는 사장님 기기를 제외한 <strong>100% 순수 외부 손님</strong>만 집계됩니다.</div>' : ''}
+  ${envStatus.notice === 'adsense_saved' ? `<div class="callout" style="margin-bottom:16px;border-color:#2563eb;background:rgba(37,99,235,0.08)"><strong>애드센스 즉시 적용 완료 (${esc(envStatus.adsenseId)}):</strong> 모든 페이지 <code>&lt;head&gt;</code> 소유권 메타태그·스크립트와 <a href="/ads.txt" target="_blank">/ads.txt</a>가 활성화되었습니다! 이제 Google AdSense 화면에서 <strong>[검토 요청]</strong> 버튼만 누르시면 됩니다.</div>` : ''}
+  ${envStatus.notice === 'adsense_invalid' ? '<div class="callout warn" style="margin-bottom:16px"><strong>형식 확인 필요:</strong> 게시자 ID는 <code>ca-pub-1234567890123456</code> 또는 <code>pub-1234567890123456</code> 형식으로 입력해 주세요.</div>' : ''}
+
+  <section class="card admin-sec" style="border:2px solid #2563eb;margin-bottom:18px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap">
+      <div style="flex:1;min-width:260px">
+        <span class="pill" style="background:${envStatus.adsense ? '#dbeafe;color:#1e40af' : '#f1f5f9;color:#475569'};font-weight:800">
+          ${envStatus.adsense ? `✓ Google AdSense 활성 (${esc(envStatus.adsenseId)})` : 'Google AdSense 원클릭 연동 대기'}
+        </span>
+        <h2 class="card-h" style="margin:8px 0 4px;font-size:18px">Google AdSense 게시자 ID 원클릭 등록 (재배포 불필요)</h2>
+        <p style="margin:0;font-size:13.5px;color:var(--text-2);line-height:1.55">
+          애드센스 계정의 게시자 ID(<code>ca-pub-XXXXXXXXXXXXXXXX</code>)를 넣고 저장하면 <strong>전 페이지 소유권 메타태그·광고 스크립트·<a href="/ads.txt" target="_blank">/ads.txt</a>가 0.1초 만에 자동 생성</strong>됩니다. (기존 애드센스 계정이 있으시면 새 계정을 만들지 말고 기존 계정의 [사이트 → 새 사이트 추가]에 <code>boozathink.com</code>만 추가하세요!)
+        </p>
+      </div>
+    </div>
+    <form method="POST" action="/admin/save-adsense" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center">
+      <input type="text" name="adsense_client" value="${esc(envStatus.adsenseId || '')}" placeholder="예: ca-pub-1234567890123456" style="flex:1 1 260px;padding:8px 12px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:13.5px">
+      <button type="submit" class="btn btn-primary btn-sm">애드센스 코드 &amp; ads.txt 즉시 적용</button>
+    </form>
+  </section>
 
   <section class="card admin-sec" style="border:2px solid #059669;margin-bottom:18px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap">

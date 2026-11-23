@@ -22,28 +22,35 @@ const CALCULATORS = [
   { slug: 'policy-funds', short: '정책자금 · 저금리 대환 매칭', name: '소상공인 정책자금 · 4.5% 대환대출 · 스마트상점 보조금 매칭기', iconKey: 'bank', desc: '업종·업력·매출 조건에 맞는 정책자금을 매칭하고 고금리 대환 이자 절감액과 보조금 자부담을 계산합니다.', category: 'policy-funds-grants' }
 ];
 
-const ASSET_V = '20261122c';
+const ASSET_V = '20261123a';
+
+function normalizeAdSenseClient(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return null;
+  const digits = s.replace(/^(?:ca-)?pub-/i, '').trim();
+  if (!/^\d{10,20}$/.test(digits)) return null;
+  return { caPub: `ca-pub-${digits}`, pub: `pub-${digits}` };
+}
 
 function yearEndFreeInfo() {
   const kstNow = new Date(Date.now() + 9 * 3600 * 1000);
   const year = kstNow.getUTCFullYear();
   const endUtcMs = Date.UTC(year, 11, 31, 23, 59, 59);
   const daysLeft = Math.max(0, Math.ceil((endUtcMs - kstNow.getTime()) / 86400000));
-  const dBadge = daysLeft > 0 ? `D-${daysLeft}` : '오늘 마감';
+  const dBadge = daysLeft > 0 ? `D-${daysLeft}` : '상시 제공';
   return { year, daysLeft, dBadge };
 }
 
 function freeOpenBanner(mode) {
-  const info = yearEndFreeInfo();
   if (mode === 'hero') {
     return `<div class="free-open-box" data-free-open="hero">
-      <span class="free-open-badge">올해 12.31까지 무료 개방 · ${info.dBadge}</span>
-      <div class="free-open-body"><strong>올해 말까지 모든 정밀 계산기와 1년 수익·대출 진단표를 무료로 열어두고 있습니다.</strong> 회원가입 없이 내 가게 조건을 마음껏 넣어보시고 결과 이미지와 링크를 미리 보관해 두세요.</div>
+      <span class="free-open-badge">회원가입 없이 즉시 계산 · A·B·C안 비교</span>
+      <div class="free-open-body"><strong>30개 창업 업종 12개월 손익 설계부터 배달·셀러·세금·정책자금 한도 진단까지 별도 가입 없이 바로 이용할 수 있습니다.</strong> 고민 중인 조건을 A·B·C안으로 저장해 나란히 비교하고 결과 영수증 이미지와 링크로 보관해 두세요.</div>
     </div>`;
   }
   return `<div class="free-open-box" data-free-open="calc">
-    <span class="free-open-badge">올해 12.31까지 무료 개방 · ${info.dBadge}</span>
-    <div class="free-open-body"><strong>정식 유료 전환 전, 올해 말까지 모든 세부 설정과 결과 저장 기능을 무료로 풀어드리고 있습니다.</strong> 계산이 끝나면 아래 이미지 저장·링크 복사로 내 결과를 미리 챙겨 두세요.</div>
+    <span class="free-open-badge">회원가입 없이 즉시 계산 · 조건 저장·비교</span>
+    <div class="free-open-body"><strong>모든 세부 항목 설정과 A·B·C안 조건 비교, 고해상도 비교표·영수증 이미지 저장을 바로 이용할 수 있습니다.</strong> 입력하신 개별 수치는 서버 데이터베이스에 저장되지 않습니다.</div>
   </div>`;
 }
 
@@ -128,12 +135,11 @@ function gnb(categories, current) {
 
 function seasonBar() {
   const { current } = getCurrentAndNextMonth();
-  const info = yearEndFreeInfo();
-  return `<div class="season-bar" role="region" aria-label="올해 한시 무료 개방 안내">
+  return `<div class="season-bar" role="region" aria-label="이달의 세무·자금 점검 안내">
   <div class="container season-inner">
-    <span class="season-pill">올해 12.31까지 무료 개방 · ${info.dBadge}</span>
-    <span class="season-msg">창업 5단계 수익 · 배달 · 세금 · 대출한도 전 기능, 올해 말까지 회원가입 없이 무료로 풀어드리고 있습니다 (${current.month}월 세무 점검 포함)</span>
-    <a class="season-link" href="/calculators/startup-master">무료로 계산하기 →</a>
+    <span class="season-pill">${current.month}월 사업자 필수 점검</span>
+    <span class="season-msg">${esc(current.headline)} — 30개 업종 12개월 손익 · 배달 · 세금 · 정책자금 한도를 회원가입 없이 바로 비교해 보세요</span>
+    <a class="season-link" href="/calculators/startup-master">창업·손익 계산하기 →</a>
   </div>
 </div>`;
 }
@@ -145,21 +151,21 @@ function footer(categories) {
   <div class="footer-inner">
     <div class="f-brand">
       <a class="logo" href="/"><span class="logo-mark" aria-hidden="true">B</span><span class="logo-text"><strong>BoozaThink</strong></span></a>
-      <p>창업 초기부터 매장 운영, 세무, 확장 자금 조달까지 — 현장 사업·금융 실무자의 경험과 정밀 데이터 계산 엔진을 결합해 진심을 담아 만든 의사결정 연구소입니다. 입력하신 개별 수치는 서버에 저장되지 않습니다.</p>
+      <p>창업 초기부터 매장 운영, 세무, 확장 자금 조달까지 — 현장 사업·금융 실무자의 경험과 정밀 데이터 계산 엔진을 결합해 진심을 담아 만든 부자생각(BoozaThink) 의사결정 연구소입니다. 입력하신 개별 수치는 서버 데이터베이스에 저장되지 않습니다.</p>
     </div>
     <div class="f-col"><h3>핵심 시뮬레이터</h3><ul>${CALCULATORS.slice(0, 5).map((c) => `<li><a href="/calculators/${c.slug}">${esc(c.short)}</a></li>`).join('')}<li><a href="/calculators">전체 계산기 보기</a></li><li><a href="/requests">필요한 계산기 신청 · 투표</a></li></ul></div>
     <div class="f-col"><h3>창업 · 자금 · 상권</h3><ul><li><a href="/start-guide">첫 창업 1년 할 일 순서표</a></li><li><a href="/funding">사업자 대출 · 정책자금 라운지</a></li><li><a href="/commercial-area">우리 동네 상권 · 지도 분석</a></li><li><a href="/calendar">12개월 세무 · 자금 달력</a></li>${categories.slice(0, 2).map((c) => `<li><a href="/category/${c.slug}">${esc(c.name)}</a></li>`).join('')}</ul></div>
     <div class="f-col"><h3>기준 자료 · 이용 안내</h3><ul><li><a href="https://www.youtube.com/@BoozaThink" target="_blank" rel="noopener">공식 유튜브 · 부자생각</a></li><li><a href="/datasets">업종별 평균 비용 · 세율 기준표</a></li><li><a href="/about">서비스 소개 & 데이터 원칙</a></li><li><a href="/privacy-policy">개인정보처리방침</a></li><li><a href="/terms-of-service">이용약관 · 면책고지</a></li><li><a href="/contact">제휴 · 오류 제보</a></li></ul></div>
   </div>
   <div class="footer-src">
-    <p><strong>공식 데이터 출처 및 각주</strong> · 소상공인시장진흥공단 · 공정거래위원회 · 국세청 · 고용노동부(현행 및 차기 확정 최저임금 고시 반영) · 한국은행·은행연합회·금융투자협회 공시 지표 · 법제처(상가건물 임대차보호법) · 중소기업중앙회 (최신 검증 기준일 ${facts.VERIFIED_AT} · 55개 핵심 수식 자동 검산 완료)</p>
+    <p><strong>공식 데이터 출처 및 각주</strong> · 소상공인시장진흥공단 · 공정거래위원회 · 국세청 · 고용노동부(현행 및 차기 확정 최저임금 고시 반영) · 한국은행·은행연합회·금융투자협회 공시 지표 · 법제처(상가건물 임대차보호법) · 중소기업중앙회 (최신 검증 기준일 ${facts.VERIFIED_AT} · 77개 핵심 수식 자동 검산 완료)</p>
     <p class="f-legal">본 플랫폼의 시뮬레이션 결과는 최신 공개 법령·고시 요율에 기반한 참고용 추정치이며 세무·노무·법률·금융 자문이나 대출 승인을 보장하지 않습니다. 중요한 의사결정 전에는 반드시 계약서·공고문 확인 및 전문가 상담을 진행하세요. · <a href="/about">소개</a> · <a href="/privacy-policy">개인정보처리방침</a> · <a href="/terms-of-service">이용약관</a> · <a href="/contact">문의</a></p>
     <p class="f-copy">© ${year} BoozaThink Lab. Crafted with field experience & precision modeling.</p>
   </div>
 </footer>`;
 }
 
-function externalTrackingHead() {
+function externalTrackingHead(runtimeAdsRaw) {
   const out = [];
   if (process.env.GOOGLE_SITE_VERIFICATION) out.push(`<meta name="google-site-verification" content="${esc(process.env.GOOGLE_SITE_VERIFICATION)}">`);
   if (process.env.NAVER_SITE_VERIFICATION) out.push(`<meta name="naver-site-verification" content="${esc(process.env.NAVER_SITE_VERIFICATION)}">`);
@@ -172,8 +178,10 @@ function externalTrackingHead() {
     const cid = esc(process.env.CLARITY_PROJECT_ID.trim());
     out.push(`<script>(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","${cid}");</script>`);
   }
-  if (process.env.ADSENSE_CLIENT) {
-    out.push(`<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${esc(process.env.ADSENSE_CLIENT.trim())}" crossorigin="anonymous"></script>`);
+  const ads = normalizeAdSenseClient(process.env.ADSENSE_CLIENT || runtimeAdsRaw);
+  if (ads) {
+    out.push(`<meta name="google-adsense-account" content="${esc(ads.caPub)}">`);
+    out.push(`<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${esc(ads.caPub)}" crossorigin="anonymous"></script>`);
   }
   return out.join('\n');
 }
@@ -224,7 +232,7 @@ ${opts.modified ? `<meta property="article:modified_time" content="${opts.modifi
 <link rel="stylesheet" href="/css/app.css?v=${ASSET_V}">
 <script>(function(){try{var t=localStorage.getItem('bt-theme');if(!t){t=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){}})();</script>
 ${ld}
-${opts.skipAnalytics ? '' : externalTrackingHead()}
+${opts.skipAnalytics ? '' : externalTrackingHead(opts.adsenseClient)}
 </head>
 <body class="${opts.bodyClass || ''}">
 <a class="skip" href="#main">본문 바로가기</a>
@@ -241,4 +249,4 @@ ${scripts}
 </html>`;
 }
 
-module.exports = { SITE, CALCULATORS, esc, jsonLd, abs, breadcrumbLd, faqLd, breadcrumbHtml, faqHtml, render, ASSET_V, yearEndFreeInfo, freeOpenBanner };
+module.exports = { SITE, CALCULATORS, esc, jsonLd, abs, breadcrumbLd, faqLd, breadcrumbHtml, faqHtml, render, ASSET_V, yearEndFreeInfo, freeOpenBanner, normalizeAdSenseClient };

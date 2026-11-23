@@ -105,7 +105,14 @@ const DDL_STEPS = [
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (slug, session_hash)
   )`,
-  `ALTER TABLE public.biz_tool_votes ENABLE ROW LEVEL SECURITY`
+  `ALTER TABLE public.biz_tool_votes ENABLE ROW LEVEL SECURITY`,
+
+  `CREATE TABLE IF NOT EXISTS public.biz_site_config (
+    key TEXT PRIMARY KEY,
+    val TEXT NOT NULL DEFAULT '',
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+  `ALTER TABLE public.biz_site_config ENABLE ROW LEVEL SECURITY`
 ];
 
 const REVOKE_STEPS = [
@@ -113,7 +120,8 @@ const REVOKE_STEPS = [
   `REVOKE ALL ON TABLE public.biz_page_events FROM anon, authenticated`,
   `REVOKE ALL ON TABLE public.biz_inquiries FROM anon, authenticated`,
   `REVOKE ALL ON TABLE public.biz_tool_requests FROM anon, authenticated`,
-  `REVOKE ALL ON TABLE public.biz_tool_votes FROM anon, authenticated`
+  `REVOKE ALL ON TABLE public.biz_tool_votes FROM anon, authenticated`,
+  `REVOKE ALL ON TABLE public.biz_site_config FROM anon, authenticated`
 ];
 
 const MIGRATION_SQL = DDL_STEPS.join(';\n') + ';';
@@ -143,6 +151,45 @@ const memToolRequests = SEED_TOOL_IDEAS.map((it, idx) => ({
   requester_email: null
 }));
 const memToolVotes = new Set();
+const memSiteConfig = {};
+
+async function hydrateSiteConfig() {
+  try {
+    if (driver === 'pg' && pool) {
+      const { rows } = await pool.query(`SELECT key, val FROM public.biz_site_config`);
+      rows.forEach((r) => { if (r && r.key) memSiteConfig[r.key] = String(r.val || ''); });
+    } else if (driver === 'supabase-rpc' && rpcConfig) {
+      const rows = await rpcExecSql(`SELECT key, val FROM public.biz_site_config`);
+      rows.forEach((r) => { if (r && r.key) memSiteConfig[r.key] = String(r.val || ''); });
+    }
+  } catch (e) { /* ignore hydration error */ }
+}
+
+function getSiteConfig(key) {
+  return memSiteConfig[key] || '';
+}
+
+async function setSiteConfig(key, val) {
+  const k = String(key || '').trim().slice(0, 64);
+  const v = String(val == null ? '' : val).trim().slice(0, 256);
+  if (!k) return { ok: false };
+  memSiteConfig[k] = v;
+  if (state.connected && driver === 'pg' && pool) {
+    await pool.query(
+      `INSERT INTO public.biz_site_config (key, val, updated_at) VALUES ($1, $2, now())
+       ON CONFLICT (key) DO UPDATE SET val = EXCLUDED.val, updated_at = now()`,
+      [k, v]
+    );
+  } else if (state.connected && driver === 'supabase-rpc') {
+    const safeK = k.replace(/[^a-z0-9_-]/gi, '');
+    const safeV = v.replace(/'/g, "''");
+    await rpcExecSql(
+      `INSERT INTO public.biz_site_config (key, val, updated_at) VALUES ('${safeK}', '${safeV}', now())
+       ON CONFLICT (key) DO UPDATE SET val = EXCLUDED.val, updated_at = now()`
+    );
+  }
+  return { ok: true, key: k, val: v };
+}
 
 function refFromDbUrl(url) {
   try {
@@ -205,6 +252,7 @@ async function execDdlAndRls() {
     try { await runStmt(s); } catch (e) { /* non-supabase pg ignore */ }
   }
   await seedCuratedTools().catch(() => {});
+  await hydrateSiteConfig().catch(() => {});
   if (String(process.env.ENFORCE_PUBLIC_RLS || 'true') !== 'false' && (!state.projectRef || state.projectRef === TARGET_PROJECT_REF)) {
     const rows = driver === 'pg' ? (await pool.query(RLS_STATUS_SQL)).rows : await rpcExecSql(RLS_STATUS_SQL);
     for (const row of rows) {
@@ -991,6 +1039,6 @@ async function close() {
 
 module.exports = {
   init, record, collectEvent, createInquiry, getPublicToolRequests, voteToolRequest, submitToolRequest,
-  getAnalyticsSummary, resetTrafficLogs, rlsStatus, close,
+  getAnalyticsSummary, resetTrafficLogs, getSiteConfig, setSiteConfig, rlsStatus, close,
   state: () => ({ ...state }), MIGRATION_SQL, ENFORCE_ALL_RLS_SQL, RLS_STATUS_SQL, CALCS
 };
