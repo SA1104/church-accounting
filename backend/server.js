@@ -279,7 +279,7 @@ app.get('/robots.txt', (req, res) => { res.type('text/plain').set('Cache-Control
 app.get('/llms.txt', (req, res) => { res.type('text/markdown; charset=utf-8').set('Cache-Control', 'public, max-age=3600').send(seo.llms(content)); });
 app.get('/llms-full.txt', (req, res) => res.redirect(301, '/llms.txt'));
 app.get('/ads.txt', (req, res, next) => {
-  const ads = layout.normalizeAdSenseClient(process.env.ADSENSE_CLIENT || db.getSiteConfig('adsense_client'));
+  const ads = layout.normalizeAdSenseClient(process.env.ADSENSE_CLIENT || db.getSiteConfig('adsense_client') || layout.DEFAULT_ADSENSE_CLIENT);
   if (!ads) return next();
   res.type('text/plain; charset=utf-8').set('Cache-Control', 'public, max-age=300').send(`google.com, ${ads.pub}, DIRECT, f08c47fec0942fa0\n`);
 });
@@ -349,7 +349,7 @@ app.get('/admin', async (req, res) => {
     ownerExcluded = true;
   }
   const summary = await db.getAnalyticsSummary(req.query.days);
-  const activeAds = layout.normalizeAdSenseClient(process.env.ADSENSE_CLIENT || db.getSiteConfig('adsense_client'));
+  const activeAds = layout.normalizeAdSenseClient(process.env.ADSENSE_CLIENT || db.getSiteConfig('adsense_client') || layout.DEFAULT_ADSENSE_CLIENT);
   const gscTok = layout.extractMetaToken(process.env.GOOGLE_SITE_VERIFICATION || db.getSiteConfig('gsc_token'));
   const navTok = layout.extractMetaToken(process.env.NAVER_SITE_VERIFICATION || db.getSiteConfig('naver_token'));
   const envStatus = {

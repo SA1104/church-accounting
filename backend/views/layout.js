@@ -23,6 +23,7 @@ const CALCULATORS = [
 ];
 
 const ASSET_V = '20261124b';
+const DEFAULT_ADSENSE_CLIENT = 'ca-pub-3437939703644829';
 
 function normalizeAdSenseClient(raw) {
   const s = String(raw || '').trim();
@@ -189,7 +190,7 @@ function externalTrackingHead(runtimeCfg) {
     const cid = esc(process.env.CLARITY_PROJECT_ID.trim());
     out.push(`<script>(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","${cid}");</script>`);
   }
-  const ads = normalizeAdSenseClient(process.env.ADSENSE_CLIENT || cfg.adsense);
+  const ads = normalizeAdSenseClient(process.env.ADSENSE_CLIENT || cfg.adsense || DEFAULT_ADSENSE_CLIENT);
   if (ads) {
     out.push(`<meta name="google-adsense-account" content="${esc(ads.caPub)}">`);
     out.push(`<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${esc(ads.caPub)}" crossorigin="anonymous"></script>`);
@@ -260,4 +261,4 @@ ${scripts}
 </html>`;
 }
 
-module.exports = { SITE, CALCULATORS, esc, jsonLd, abs, breadcrumbLd, faqLd, breadcrumbHtml, faqHtml, render, ASSET_V, yearEndFreeInfo, freeOpenBanner, normalizeAdSenseClient, extractMetaToken };
+module.exports = { SITE, CALCULATORS, esc, jsonLd, abs, breadcrumbLd, faqLd, breadcrumbHtml, faqHtml, render, ASSET_V, DEFAULT_ADSENSE_CLIENT, yearEndFreeInfo, freeOpenBanner, normalizeAdSenseClient, extractMetaToken };
