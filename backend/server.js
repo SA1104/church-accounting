@@ -91,8 +91,12 @@ function send(res, opts, status) {
   if (opts.scripts && opts.scripts.length && !opts.simToken) {
     opts.simToken = simGuard.issueSimToken();
   }
-  if (!opts.adsenseClient) {
-    opts.adsenseClient = process.env.ADSENSE_CLIENT || db.getSiteConfig('adsense_client');
+  if (!opts.runtimeCfg) {
+    opts.runtimeCfg = {
+      adsense: process.env.ADSENSE_CLIENT || db.getSiteConfig('adsense_client'),
+      gsc: process.env.GOOGLE_SITE_VERIFICATION || db.getSiteConfig('gsc_token'),
+      naver: process.env.NAVER_SITE_VERIFICATION || db.getSiteConfig('naver_token')
+    };
   }
   res.send(layout.render(opts, content.categories));
 }
@@ -346,11 +350,15 @@ app.get('/admin', async (req, res) => {
   }
   const summary = await db.getAnalyticsSummary(req.query.days);
   const activeAds = layout.normalizeAdSenseClient(process.env.ADSENSE_CLIENT || db.getSiteConfig('adsense_client'));
+  const gscTok = layout.extractMetaToken(process.env.GOOGLE_SITE_VERIFICATION || db.getSiteConfig('gsc_token'));
+  const navTok = layout.extractMetaToken(process.env.NAVER_SITE_VERIFICATION || db.getSiteConfig('naver_token'));
   const envStatus = {
     ga4: Boolean(process.env.GA_MEASUREMENT_ID),
     ga4Id: process.env.GA_MEASUREMENT_ID || '',
-    gsc: Boolean(process.env.GOOGLE_SITE_VERIFICATION),
-    naver: Boolean(process.env.NAVER_SITE_VERIFICATION),
+    gsc: Boolean(gscTok),
+    gscToken: gscTok,
+    naver: Boolean(navTok),
+    naverToken: navTok,
     clarity: Boolean(process.env.CLARITY_PROJECT_ID),
     adsense: Boolean(activeAds),
     adsenseId: activeAds ? activeAds.caPub : '',
@@ -391,16 +399,27 @@ app.post('/admin/reset-traffic', express.urlencoded({ extended: false, limit: '2
   res.redirect(303, '/admin?msg=traffic_reset');
 });
 
-app.post('/admin/save-adsense', express.urlencoded({ extended: false, limit: '2kb' }), async (req, res) => {
+app.post('/admin/save-adsense', express.urlencoded({ extended: false, limit: '4kb' }), async (req, res) => {
   if (!isAdminAuthed(req)) return res.redirect(303, '/admin');
-  const raw = String((req.body && req.body.adsense_client) || '').trim();
-  if (!raw) {
-    await db.setSiteConfig('adsense_client', '');
-    return res.redirect(303, '/admin?msg=adsense_cleared');
+  const rawAds = String((req.body && req.body.adsense_client) || '').trim();
+  const rawGsc = String((req.body && req.body.gsc_token) || '').trim();
+  const rawNav = String((req.body && req.body.naver_token) || '').trim();
+
+  if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'gsc_token')) {
+    await db.setSiteConfig('gsc_token', layout.extractMetaToken(rawGsc));
   }
-  const parsed = layout.normalizeAdSenseClient(raw);
-  if (!parsed) return res.redirect(303, '/admin?msg=adsense_invalid');
-  await db.setSiteConfig('adsense_client', parsed.caPub);
+  if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'naver_token')) {
+    await db.setSiteConfig('naver_token', layout.extractMetaToken(rawNav));
+  }
+  if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'adsense_client')) {
+    if (!rawAds) {
+      await db.setSiteConfig('adsense_client', '');
+    } else {
+      const parsed = layout.normalizeAdSenseClient(rawAds);
+      if (!parsed) return res.redirect(303, '/admin?msg=adsense_invalid');
+      await db.setSiteConfig('adsense_client', parsed.caPub);
+    }
+  }
   res.redirect(303, '/admin?msg=adsense_saved');
 });
 

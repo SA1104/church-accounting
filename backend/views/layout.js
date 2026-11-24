@@ -165,10 +165,20 @@ function footer(categories) {
 </footer>`;
 }
 
-function externalTrackingHead(runtimeAdsRaw) {
+function extractMetaToken(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return '';
+  const m = /content=["']([^"']+)["']/i.exec(s);
+  return (m ? m[1] : s).replace(/[<>"'\s]/g, '').slice(0, 120);
+}
+
+function externalTrackingHead(runtimeCfg) {
+  const cfg = runtimeCfg && typeof runtimeCfg === 'object' ? runtimeCfg : { adsense: runtimeCfg };
   const out = [];
-  if (process.env.GOOGLE_SITE_VERIFICATION) out.push(`<meta name="google-site-verification" content="${esc(process.env.GOOGLE_SITE_VERIFICATION)}">`);
-  if (process.env.NAVER_SITE_VERIFICATION) out.push(`<meta name="naver-site-verification" content="${esc(process.env.NAVER_SITE_VERIFICATION)}">`);
+  const gscTok = extractMetaToken(process.env.GOOGLE_SITE_VERIFICATION || cfg.gsc);
+  const navTok = extractMetaToken(process.env.NAVER_SITE_VERIFICATION || cfg.naver);
+  if (gscTok) out.push(`<meta name="google-site-verification" content="${esc(gscTok)}">`);
+  if (navTok) out.push(`<meta name="naver-site-verification" content="${esc(navTok)}">`);
   if (process.env.GA_MEASUREMENT_ID) {
     const gid = esc(process.env.GA_MEASUREMENT_ID.trim());
     out.push(`<script async src="https://www.googletagmanager.com/gtag/js?id=${gid}"></script>`);
@@ -178,7 +188,7 @@ function externalTrackingHead(runtimeAdsRaw) {
     const cid = esc(process.env.CLARITY_PROJECT_ID.trim());
     out.push(`<script>(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","${cid}");</script>`);
   }
-  const ads = normalizeAdSenseClient(process.env.ADSENSE_CLIENT || runtimeAdsRaw);
+  const ads = normalizeAdSenseClient(process.env.ADSENSE_CLIENT || cfg.adsense);
   if (ads) {
     out.push(`<meta name="google-adsense-account" content="${esc(ads.caPub)}">`);
     out.push(`<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${esc(ads.caPub)}" crossorigin="anonymous"></script>`);
@@ -232,7 +242,7 @@ ${opts.modified ? `<meta property="article:modified_time" content="${opts.modifi
 <link rel="stylesheet" href="/css/app.css?v=${ASSET_V}">
 <script>(function(){try{var t=localStorage.getItem('bt-theme');if(!t){t=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){}})();</script>
 ${ld}
-${opts.skipAnalytics ? '' : externalTrackingHead(opts.adsenseClient)}
+${opts.skipAnalytics ? '' : externalTrackingHead(opts.runtimeCfg)}
 </head>
 <body class="${opts.bodyClass || ''}">
 <a class="skip" href="#main">본문 바로가기</a>
@@ -249,4 +259,4 @@ ${scripts}
 </html>`;
 }
 
-module.exports = { SITE, CALCULATORS, esc, jsonLd, abs, breadcrumbLd, faqLd, breadcrumbHtml, faqHtml, render, ASSET_V, yearEndFreeInfo, freeOpenBanner, normalizeAdSenseClient };
+module.exports = { SITE, CALCULATORS, esc, jsonLd, abs, breadcrumbLd, faqLd, breadcrumbHtml, faqHtml, render, ASSET_V, yearEndFreeInfo, freeOpenBanner, normalizeAdSenseClient, extractMetaToken };

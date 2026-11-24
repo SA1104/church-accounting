@@ -156,17 +156,32 @@ function dashboardView(data, ctx, envStatus) {
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap">
       <div style="flex:1;min-width:260px">
         <span class="pill" style="background:${envStatus.adsense ? '#dbeafe;color:#1e40af' : '#f1f5f9;color:#475569'};font-weight:800">
-          ${envStatus.adsense ? `✓ Google AdSense 활성 (${esc(envStatus.adsenseId)})` : 'Google AdSense 원클릭 연동 대기'}
+          ${envStatus.adsense ? `✓ Google AdSense 활성 (${esc(envStatus.adsenseId)})` : '서치콘솔 & 애드센스 원클릭 연동'}
         </span>
-        <h2 class="card-h" style="margin:8px 0 4px;font-size:18px">Google AdSense 게시자 ID 원클릭 등록 (재배포 불필요)</h2>
+        <h2 class="card-h" style="margin:8px 0 4px;font-size:18px">Google Search Console · 네이버 · AdSense 원클릭 등록 (재배포 불필요)</h2>
         <p style="margin:0;font-size:13.5px;color:var(--text-2);line-height:1.55">
-          애드센스 계정의 게시자 ID(<code>ca-pub-XXXXXXXXXXXXXXXX</code>)를 넣고 저장하면 <strong>전 페이지 소유권 메타태그·광고 스크립트·<a href="/ads.txt" target="_blank">/ads.txt</a>가 0.1초 만에 자동 생성</strong>됩니다. (기존 애드센스 계정이 있으시면 새 계정을 만들지 말고 기존 계정의 [사이트 → 새 사이트 추가]에 <code>boozathink.com</code>만 추가하세요!)
+          메타태그 전체(<code>&lt;meta ...&gt;</code>) 또는 코드값만 그대로 붙여넣고 저장하면 <strong>0.1초 만에 전 페이지 <code>&lt;head&gt;</code>와 <a href="/ads.txt" target="_blank">/ads.txt</a>에 즉시 반영</strong>됩니다.
         </p>
       </div>
     </div>
-    <form method="POST" action="/admin/save-adsense" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center">
-      <input type="text" name="adsense_client" value="${esc(envStatus.adsenseId || '')}" placeholder="예: ca-pub-1234567890123456" style="flex:1 1 260px;padding:8px 12px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:13.5px">
-      <button type="submit" class="btn btn-primary btn-sm">애드센스 코드 &amp; ads.txt 즉시 적용</button>
+    <form method="POST" action="/admin/save-adsense" style="display:grid;gap:10px;margin-top:12px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px">
+        <div>
+          <label style="display:block;font-size:12px;font-weight:800;margin-bottom:4px;color:var(--text-2)">1) Google Search Console 메타태그 / 코드 ${envStatus.gsc ? '✓' : ''}</label>
+          <input type="text" name="gsc_token" value="${esc(envStatus.gscToken || '')}" placeholder="HTML 태그(<meta name=google-site-verification...>) 붙여넣기" style="width:100%;padding:8px 12px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:13px">
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:800;margin-bottom:4px;color:var(--text-2)">2) Google AdSense 게시자 ID (ca-pub-...) ${envStatus.adsense ? '✓' : ''}</label>
+          <input type="text" name="adsense_client" value="${esc(envStatus.adsenseId || '')}" placeholder="예: ca-pub-1234567890123456" style="width:100%;padding:8px 12px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:13px">
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:800;margin-bottom:4px;color:var(--text-2)">3) 네이버 서치어드바이저 메타태그 (선택) ${envStatus.naver ? '✓' : ''}</label>
+          <input type="text" name="naver_token" value="${esc(envStatus.naverToken || '')}" placeholder="HTML 태그(<meta name=naver-site-verification...>) 붙여넣기" style="width:100%;padding:8px 12px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:13px">
+        </div>
+      </div>
+      <div>
+        <button type="submit" class="btn btn-primary btn-sm">소유권 태그 · 애드센스 코드 · ads.txt 한 번에 즉시 적용</button>
+      </div>
     </form>
   </section>
 
