@@ -122,7 +122,7 @@ function dashboardView(data, ctx, envStatus) {
   const envItems = [
     ['자체 내장 데이터 엔진 (Supabase)', storage === 'supabase-pg', storage === 'supabase-pg' ? '실시간 적재 중 (전 테이블 RLS ON)' : '로컬 메모리 모드'],
     ['Google Analytics 4 (GA_MEASUREMENT_ID)', envStatus.ga4, envStatus.ga4 ? envStatus.ga4Id : '미설정 (환경변수 추가 시 자동 활성)'],
-    ['Google Search Console (GOOGLE_SITE_VERIFICATION)', envStatus.gsc, envStatus.gsc ? '소유권 메타태그 활성' : '미설정'],
+    ['Google Search Console (소유권 인증)', envStatus.gsc, envStatus.gscHtmlVerified && !envStatus.gscToken ? 'HTML 파일 인증 완료 (googlec2b1f8b925e5121c.html)' : (envStatus.gsc ? '소유권 메타태그 활성' : '미설정')],
     ['네이버 서치어드바이저 (NAVER_SITE_VERIFICATION)', envStatus.naver, envStatus.naver ? '소유권 메타태그 활성' : '미설정'],
     ['Microsoft Clarity 히트맵 (CLARITY_PROJECT_ID)', envStatus.clarity, envStatus.clarity ? '세션 리플레이 활성' : '미설정'],
     ['Google AdSense (ADSENSE_CLIENT)', envStatus.adsense, envStatus.adsense ? '스크립트 + /ads.txt 활성' : '심사 신청 시 ca-pub-... 입력']
@@ -167,8 +167,8 @@ function dashboardView(data, ctx, envStatus) {
     <form method="POST" action="/admin/save-adsense" style="display:grid;gap:10px;margin-top:12px">
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px">
         <div>
-          <label style="display:block;font-size:12px;font-weight:800;margin-bottom:4px;color:var(--text-2)">1) Google Search Console 메타태그 / 코드 ${envStatus.gsc ? '✓' : ''}</label>
-          <input type="text" name="gsc_token" value="${esc(envStatus.gscToken || '')}" placeholder="HTML 태그(<meta name=google-site-verification...>) 붙여넣기" style="width:100%;padding:8px 12px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:13px">
+          <label style="display:block;font-size:12px;font-weight:800;margin-bottom:4px;color:${envStatus.gsc ? '#059669' : 'var(--text-2)'}">1) Google Search Console ${envStatus.gscHtmlVerified && !envStatus.gscToken ? '✓ (HTML 파일 인증 완료)' : (envStatus.gsc ? '✓' : '')}</label>
+          <input type="text" name="gsc_token" value="${esc(envStatus.gscToken || '')}" placeholder="${envStatus.gscHtmlVerified ? '✓ 이미 HTML 파일로 인증 완료됨 (비워두셔도 됩니다)' : 'HTML 태그(<meta name=google-site-verification...>) 붙여넣기'}" style="width:100%;padding:8px 12px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:13px">
         </div>
         <div>
           <label style="display:block;font-size:12px;font-weight:800;margin-bottom:4px;color:var(--text-2)">2) Google AdSense 코드 스니펫 또는 게시자 ID ${envStatus.adsense ? '✓' : ''}</label>

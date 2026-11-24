@@ -351,12 +351,14 @@ app.get('/admin', async (req, res) => {
   const summary = await db.getAnalyticsSummary(req.query.days);
   const activeAds = layout.normalizeAdSenseClient(process.env.ADSENSE_CLIENT || db.getSiteConfig('adsense_client') || layout.DEFAULT_ADSENSE_CLIENT);
   const gscTok = layout.extractMetaToken(process.env.GOOGLE_SITE_VERIFICATION || db.getSiteConfig('gsc_token'));
+  const gscHtmlVerified = require('fs').existsSync(path.join(__dirname, 'public', 'googlec2b1f8b925e5121c.html'));
   const navTok = layout.extractMetaToken(process.env.NAVER_SITE_VERIFICATION || db.getSiteConfig('naver_token'));
   const envStatus = {
     ga4: Boolean(process.env.GA_MEASUREMENT_ID),
     ga4Id: process.env.GA_MEASUREMENT_ID || '',
-    gsc: Boolean(gscTok),
+    gsc: Boolean(gscTok || gscHtmlVerified),
     gscToken: gscTok,
+    gscHtmlVerified,
     naver: Boolean(navTok),
     naverToken: navTok,
     clarity: Boolean(process.env.CLARITY_PROJECT_ID),
