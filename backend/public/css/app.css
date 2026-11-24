@@ -662,6 +662,15 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 
 .cmp-badge.draft { background: #fef3c7; color: #92400e; }
 .wb-win-col { background: rgba(16, 185, 129, 0.06); }
 
+/* Mobile 375px Grid Overflow Prevention (Google Mobile-First Indexing & AdSense) */
+.calc > *, .calc-form, .calc-out, .card { min-width: 0; max-width: 100%; }
+.step-nav, .season-chart { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+@media (max-width: 520px) {
+  .season-chart { gap: 3px; }
+  .season-chart .m-val { font-size: 10px; }
+  .season-chart .m-lbl { font-size: 10.5px; }
+}
+
 /* Dedicated Printable A4 Comparison Sheet */
 .bt-print-sheet { display: none; }
 

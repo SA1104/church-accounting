@@ -22,7 +22,7 @@ const CALCULATORS = [
   { slug: 'policy-funds', short: '정책자금 · 저금리 대환 매칭', name: '소상공인 정책자금 · 4.5% 대환대출 · 스마트상점 보조금 매칭기', iconKey: 'bank', desc: '업종·업력·매출 조건에 맞는 정책자금을 매칭하고 고금리 대환 이자 절감액과 보조금 자부담을 계산합니다.', category: 'policy-funds-grants' }
 ];
 
-const ASSET_V = '20261123a';
+const ASSET_V = '20261124b';
 
 function normalizeAdSenseClient(raw) {
   const s = String(raw || '').trim();
