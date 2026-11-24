@@ -171,8 +171,8 @@ function dashboardView(data, ctx, envStatus) {
           <input type="text" name="gsc_token" value="${esc(envStatus.gscToken || '')}" placeholder="HTML 태그(<meta name=google-site-verification...>) 붙여넣기" style="width:100%;padding:8px 12px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:13px">
         </div>
         <div>
-          <label style="display:block;font-size:12px;font-weight:800;margin-bottom:4px;color:var(--text-2)">2) Google AdSense 게시자 ID (ca-pub-...) ${envStatus.adsense ? '✓' : ''}</label>
-          <input type="text" name="adsense_client" value="${esc(envStatus.adsenseId || '')}" placeholder="예: ca-pub-1234567890123456" style="width:100%;padding:8px 12px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:13px">
+          <label style="display:block;font-size:12px;font-weight:800;margin-bottom:4px;color:var(--text-2)">2) Google AdSense 코드 스니펫 또는 게시자 ID ${envStatus.adsense ? '✓' : ''}</label>
+          <input type="text" name="adsense_client" value="${esc(envStatus.adsenseId || '')}" placeholder="애드센스 <script...> 전체 또는 ca-pub-123456... 그대로 붙여넣기" style="width:100%;padding:8px 12px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:13px">
         </div>
         <div>
           <label style="display:block;font-size:12px;font-weight:800;margin-bottom:4px;color:var(--text-2)">3) 네이버 서치어드바이저 메타태그 (선택) ${envStatus.naver ? '✓' : ''}</label>

@@ -481,6 +481,111 @@ def upload_ep03(privacy: str = "public", force_api_upload: bool = False, target_
     )
 
 
+def upload_long01(
+    privacy: str = "public",
+    force_api_upload: bool = False,
+    target_date: str | None = None,
+    shared_label: str = "유튜브본편_쇼츠_업로드팩",
+) -> str:
+    long_dir = STUDIO_DIR / "output" / "long01_rent_trap"
+    mp4_path = long_dir / "BOOZATHINK_Long01_Rent_Trap_16x9_1080p.mp4"
+    thumb_path = long_dir / "BOOZATHINK_Long01_Rent_Trap_Thumbnail_1280x720.jpg"
+    if not mp4_path.exists():
+        raise FileNotFoundError(f"Long01 본편 영상이 아직 생성되지 않았습니다: {mp4_path}")
+
+    return upload_shorts_package(
+        mp4_path=mp4_path,
+        thumb_path=thumb_path,
+        title="“월세 200만 원이면 싸네?” 덜컥 계약했다가 원금 회수에 13년 걸리는 이유 (환산보증금 5% 폭탄) | 부자생각",
+        alt_titles=[
+            "상가 계약서 도장 찍기 전 안 보면 평생 후회합니다 — 월세 200만 원 매장의 숨은 함정 3가지 | 부자생각",
+            "장사 잘되는데 왜 남는 돈이 없을까? 권리금 회수 160개월의 늪과 환산보증금 5% 상한선 해부 | 부자생각",
+        ],
+        description=(
+            "보증금 3,000만 원에 월세 200만 원짜리 1층 상가, 겉으로만 보면 꽤 해볼 만해 보이시죠?\n"
+            "하지만 도장을 찍기 전에 실제 고정비와 원금 회수 기간을 계산해 보지 않으면 무서운 착시에 빠지기 쉽습니다.\n\n"
+            "• 숨만 쉬어도 나가는 월 고정비: 월세 200만 + 관리비 30만 + 최소 인건비·공과금 450만 = 매달 680만 원\n"
+            "• 손익분기 주문 수: 12,000원 메뉴(건당 마진 6,240원) 기준 하루 42건을 팔아야 겨우 ‘0원’ 본전\n"
+            "• 원금 회수의 늪: 하루 45건씩 쉬지 않고 팔아도 월 순이익 50만 원 → 권리금·시설비 8,000만 원 회수에 160개월(13년 4개월) 소요\n"
+            "• 환산보증금 폭탄: 보증금 + (월세×100)이 지역 기준(서울 9억·과밀/부산 6.9억·광역시 5.4억)을 넘기면 법정 5% 인상 상한 보호 소멸\n\n"
+            "계약서 도장 찍기 전, 보고 계신 상가의 보증금·월세·권리금을 넣어 손익분기 주문 수와 5% 상한 보호 여부를 3초 만에 확인해 보세요.\n"
+            "• 상가 월세 손익분기 & 환산보증금 판독기: https://boozathink.com/calculators/store-rent-breakeven\n\n"
+            "#부자생각 #BoozaThink #상가계약 #월세계산 #권리금회수 #환산보증금 #상가임대차보호법 #소자본창업 #자영업순수익"
+        ),
+        pinned_comment=(
+            "보고 계신 상가가 진짜 내 월급을 지켜줄 자리인지 헷갈리신다면,\n"
+            "도장 찍기 직전 ‘부자생각(boozathink.com)’ 상가 월세 판독기에 보증금·월세·권리금을 넣어 원금 회수 개월 수와 5% 상한 보호 여부부터 꼭 확인해 보세요!"
+        ),
+        tags=[
+            "부자생각",
+            "BoozaThink",
+            "상가계약주의사항",
+            "상가월세계산",
+            "권리금회수",
+            "환산보증금",
+            "상가임대차보호법",
+            "손익분기점계산",
+            "초보창업",
+            "자영업순수익",
+        ],
+        privacy=privacy,
+        force_api_upload=force_api_upload,
+        subfolder=resolve_date_subfolder(target_date, shared_label),
+    )
+
+
+def upload_ep04(
+    privacy: str = "public",
+    force_api_upload: bool = False,
+    target_date: str | None = None,
+    shared_label: str = "유튜브본편_쇼츠_업로드팩",
+) -> str:
+    ep_dir = STUDIO_DIR / "output" / "ep04_wage_cliff_shorts"
+    mp4_path = ep_dir / "BOOZATHINK_EP04_30Min_Wage_Cliff_9x16_Shorts.mp4"
+    thumb_path = ep_dir / "BOOZATHINK_EP04_Cover_1080x1920.png"
+    if not mp4_path.exists():
+        raise FileNotFoundError(f"EP04 쇼츠 영상이 아직 생성되지 않았습니다: {mp4_path}")
+
+    return upload_shorts_package(
+        mp4_path=mp4_path,
+        thumb_path=thumb_path,
+        title="알바 시간표 ‘딱 30분’ 잘못 짜서 1년에 573만 원 더 나가는 이유 (주 15시간 절벽) | 부자생각 #Shorts",
+        alt_titles=[
+            "주 14.5시간 vs 주 15시간, 단 30분 차이로 인건비가 36% 급등합니다! | 부자생각 #Shorts",
+            "사장님들 가장 많이 놓치는 주휴수당·4대보험 절벽과 테이블오더 3.8개월 본전 회수 공식 | 부자생각 #Shorts",
+        ],
+        description=(
+            "알바 시간표에서 주 14.5시간과 주 15시간은 단 ‘30분’ 차이이지만, 매달 나가는 실제 인건비는 완전히 달라집니다.\n\n"
+            "• 2026 최저시급(10,320원) 기준 주 14.5시간: 월 약 65만 6천 원 (주휴수당 미발생 · 산재보험만 적용)\n"
+            "• 주 15.0시간 도달 순간: 주휴수당(약 13.5만 원) + 4대보험 사업주 부담분(약 8.8만 원) 동시 발생 → 월 약 89만 5천 원 (+36.4% 급등!)\n"
+            "• 알바 2명 기준 연간 약 573만 원 차이 (내년 10,700원 시급 예고안 기준 연 약 600만 원 차이)\n"
+            "• 피크타임 주문 동선을 테이블오더 4대로 보완하면 약 3.8개월 만에 기기값 원금 회수, 3년 누적 약 1,539만 원 절감!\n\n"
+            "내 매장 근무 시간표와 테이블오더·키오스크 전환 손익을 3초 만에 비교해 보세요.\n"
+            "• 주휴수당 절벽 & 무인화 손익 비교기: https://boozathink.com/calculators/labor-automation\n\n"
+            "#부자생각 #BoozaThink #주휴수당 #주15시간 #알바인건비 #테이블오더 #키오스크 #자영업인건비 #소상공인 #Shorts"
+        ),
+        pinned_comment=(
+            "지금 우리 매장 시간표에서 주휴수당·4대보험이 얼마나 붙고 있는지 궁금하시다면,\n"
+            "검색창에 ‘부자생각(boozathink.com)’을 쳐서 알바 시간표와 테이블오더 회수 기간을 3초 만에 비교해 보세요!"
+        ),
+        tags=[
+            "부자생각",
+            "BoozaThink",
+            "주휴수당계산기",
+            "주15시간알바",
+            "자영업인건비",
+            "테이블오더",
+            "키오스크비용",
+            "최저시급",
+            "소상공인",
+            "Shorts",
+        ],
+        privacy=privacy,
+        force_api_upload=force_api_upload,
+        subfolder=resolve_date_subfolder(target_date, shared_label),
+    )
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--auth", action="store_true", help="최초 1회 부자생각(@BoozaThink) 브랜드 채널 전용 OAuth 연동")
@@ -489,6 +594,9 @@ if __name__ == "__main__":
     parser.add_argument("--upload-ep01", action="store_true", help="1호 펜 스케치 쇼츠 스테이징 또는 업로드")
     parser.add_argument("--upload-ep02", action="store_true", help="2호 업종 A·B·C안 비교 쇼츠 스테이징 또는 업로드")
     parser.add_argument("--upload-ep03", action="store_true", help="3호 배달 마진 구멍 해부 쇼츠 스테이징 또는 업로드")
+    parser.add_argument("--upload-ep04", action="store_true", help="4호 알바 30분 주휴수당 절벽 쇼츠 스테이징 또는 업로드")
+    parser.add_argument("--upload-long01", action="store_true", help="1호 본편(16:9) 상가 월세·권리금 13년 함정 스테이징 또는 업로드")
+    parser.add_argument("--upload-today-pack", action="store_true", help="본편(Long01) + 쇼츠(EP04) 일자별 통합 대기함 패키징")
     parser.add_argument("--date", default=None, help="일자별 대기함 폴더 날짜 지정 (예: 2026-11-24)")
     parser.add_argument("--clean-date", default=None, help="업로드 완료된 일자 폴더 전체 삭제 (예: 2026-11-23)")
     parser.add_argument("--privacy", default="public", choices=["public", "unlisted", "private"])
@@ -513,5 +621,12 @@ if __name__ == "__main__":
         upload_ep02(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
     elif args.upload_ep03:
         upload_ep03(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
+    elif args.upload_ep04:
+        upload_ep04(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
+    elif args.upload_long01:
+        upload_long01(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
+    elif args.upload_today_pack:
+        upload_long01(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
+        upload_ep04(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
     else:
-        print("Ready. Options: --auth | --verify-channel | --upload-ep01..03 [--date YYYY-MM-DD] | --clean-date YYYY-MM-DD")
+        print("Ready. Options: --auth | --verify-channel | --upload-today-pack [--date YYYY-MM-DD] | --clean-date YYYY-MM-DD")

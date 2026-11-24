@@ -27,7 +27,8 @@ const ASSET_V = '20261124b';
 function normalizeAdSenseClient(raw) {
   const s = String(raw || '').trim();
   if (!s) return null;
-  const digits = s.replace(/^(?:ca-)?pub-/i, '').trim();
+  const m = s.match(/(?:ca-)?pub-(\d{10,20})/i);
+  const digits = m ? m[1] : s.replace(/^(?:ca-)?pub-/i, '').trim();
   if (!/^\d{10,20}$/.test(digits)) return null;
   return { caPub: `ca-pub-${digits}`, pub: `pub-${digits}` };
 }

@@ -183,6 +183,76 @@ EPISODES: dict[str, dict] = {
             },
         ],
     },
+    "ep04": {
+        "out_dir": STUDIO_DIR / "output" / "ep04_wage_cliff_shorts",
+        "work_dir": STUDIO_DIR / "_work_ep04_shorts",
+        "mp4_name": "BOOZATHINK_EP04_30Min_Wage_Cliff_9x16_Shorts.mp4",
+        "cover_name": "BOOZATHINK_EP04_Cover_1080x1920.png",
+        "preview_name": "BOOZATHINK_EP04_Preview_Mid.png",
+        "cover_scene_idx": 1,
+        "scenes": [
+            {
+                "id": "ep04_s1_thirty_min_shock",
+                "asset": ASSETS_DIR / "ep04_s1_thirty_min_shock.jpg",
+                "voice": (
+                    "사장님, 지금 알바생 일주일에 열다섯 시간 쓰고 계신가요? "
+                    "시간표에서 단 삼십 분만 줄여 열네 시간 반으로 짰다면, "
+                    "알바 두 명 기준 일 년에 오백칠십삼만 원이 그대로 굳었을 겁니다!"
+                ),
+                "step_tag": "부자생각 인건비 주의보 · EP.04",
+                "headline": "알바 시간표 <span class='hl'>‘딱 30분’</span> 잘못 짜서<br>1년에 573만 원 더 나갑니다!",
+                "bubble": "“주 14시간 반이랑 주 15시간이 설마 얼마나 차이 나겠어?” 했다가 깜짝 놀랐어요!",
+                "note_badge": "사장님 필수 점검",
+                "note_badge_bg": "#ffe4e6",
+                "note_badge_fg": "#9f1239",
+                "note_title": "주 14.5시간 vs 주 15.0시간 — 단 30분의 인건비 절벽",
+                "note_body": "시간표 30분 차이로 주휴수당과 4대보험 사업주 부담금이 한꺼번에 붙기 시작합니다.",
+                "sub_first": ("사장님, 지금 알바 주 15시간 쓰고 계신가요?", "시간표에서 단 ‘30분’만 줄여 14.5시간으로 짰다면"),
+                "sub_second": ("알바 2명 기준 1년에 573만 원이", "사장님 통장에 그대로 굳었을 겁니다!"),
+                "draw_ratio": 0.64,
+            },
+            {
+                "id": "ep04_s2_wage_cliff_jump",
+                "asset": ASSETS_DIR / "ep04_s2_wage_cliff_jump.jpg",
+                "voice": (
+                    "올해 최저시급 만 삼백이십 원 기준, 주 열네 시간 반은 월 육십오만 육천 원이지만, "
+                    "딱 삼십 분 넘겨 열다섯 시간이 되는 순간 주휴수당과 사대보험이 동시에 붙어 "
+                    "월 팔십구만 오천 원으로 삼십육 퍼센트나 치솟습니다!"
+                ),
+                "step_tag": "부자생각 실전 검산 · 주 15시간 절벽",
+                "headline": "주 14.5시간 <span class='hl'>65.6만</span> vs 15시간 <span class='hl'>89.5만</span><br>30분 차이로 매달 36% 급등!",
+                "bubble": "“주휴수당 13만 5천 원에 4대보험 8만 8천 원까지 동시에 붙어 매달 24만 원이 더 나가네?!”",
+                "note_badge": "2026 최저시급 10,320원 검산",
+                "note_badge_bg": "#dbeafe",
+                "note_badge_fg": "#1e40af",
+                "note_title": "1인당 월 +238,803원 · 알바 2명이면 연 573만 원 차이!",
+                "note_body": "내년 시급(10,700원 예고안) 기준으로는 알바 2명 시 연간 약 600만 원까지 벌어집니다.",
+                "sub_first": ("주 14.5시간은 월 65만 6천 원이지만,", "딱 30분 넘겨 15시간이 되는 순간"),
+                "sub_second": ("주휴수당+4대보험이 동시에 터져", "월 89만 5천 원으로 36.4%나 치솟습니다!"),
+                "draw_ratio": 0.65,
+            },
+            {
+                "id": "ep04_s3_table_order_payback",
+                "asset": ASSETS_DIR / "ep04_s3_table_order_payback.jpg",
+                "voice": (
+                    "피크 시간 주문 동선을 테이블오더 네 대로 줄여 시간표만 조정해도, "
+                    "삼점 팔 개월이면 기기값 본전을 뽑고 삼 년간 천오백삼십구만 원을 아낍니다. "
+                    "지금 부자생각에서 내 매장 시간표부터 삼 초 만에 점검해 보세요!"
+                ),
+                "step_tag": "부자생각 해법 · 인건비 vs 자동화",
+                "headline": "테이블오더 4대로 피크시간 줄이면<br><span class='hl'>3.8개월 만에 기기값 본전</span> 회수!",
+                "bubble": "“주문·결제 동선만 줄였는데 넉 달도 안 돼 본전 뽑고 3년간 1,539만 원 아끼네요!”",
+                "note_badge": "3.8개월 원금 회수",
+                "note_badge_bg": "#dcfce7",
+                "note_badge_fg": "#166534",
+                "note_title": "boozathink.com · 주휴수당 & 테이블오더 손익 비교기",
+                "note_body": "검색창에 ‘부자생각’ — 내 매장 알바 시간표와 내년 시급 인상분까지 3초 만에 비교해 보세요!",
+                "sub_first": ("테이블오더 4대로 피크시간 동선만 줄여도", "3.8개월이면 본전 뽑고 3년간 1,539만 원 절감!"),
+                "sub_second": ("검색창에 ‘부자생각’ · boozathink.com", "내 매장 알바 시간표부터 3초 만에 비교해 보세요"),
+                "draw_ratio": 0.58,
+            },
+        ],
+    },
 }
 
 
@@ -242,8 +312,11 @@ def make_scene_voice_wav(scene_id: str, text: str, work_dir: Path) -> tuple[Path
                 try:
                     with httpx.Client(trust_env=False, timeout=75.0) as client:
                         r = client.post(url, json=payload)
-                        if r.status_code in (429, 500, 503) and attempt < 3:
-                            time.sleep(12 * attempt)
+                        if r.status_code == 429:
+                            print(f"  [TTS Notice] {scene_id} Gemini 429 -> instant Studio Neural fallback")
+                            break
+                        if r.status_code in (500, 503) and attempt < 3:
+                            time.sleep(6 * attempt)
                             continue
                         r.raise_for_status()
                         b64_pcm = r.json()["candidates"][0]["content"]["parts"][0]["inlineData"]["data"]
@@ -257,7 +330,7 @@ def make_scene_voice_wav(scene_id: str, text: str, work_dir: Path) -> tuple[Path
                     break
                 except Exception as exc:
                     print(f"  [TTS Notice] {scene_id} attempt {attempt}: {exc}")
-                    time.sleep(5.0)
+                    break
 
     if used_charon:
         af = (
@@ -933,8 +1006,8 @@ def build_episode(ep_key: str) -> Path:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--ep", default="all", choices=["ep02", "ep03", "all"])
+    parser.add_argument("--ep", default="all", choices=["ep02", "ep03", "ep04", "all"])
     args = parser.parse_args()
-    targets = ["ep02", "ep03"] if args.ep == "all" else [args.ep]
+    targets = ["ep02", "ep03", "ep04"] if args.ep == "all" else [args.ep]
     for k in targets:
         build_episode(k)
