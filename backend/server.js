@@ -444,7 +444,11 @@ app.post('/admin/logout', (req, res) => {
   res.redirect(303, '/admin');
 });
 
-// ── API ──
+// ── API (JSON 응답 검색색인 제외 헤더 부여 · Googlebot JS 렌더링은 허용) ──
+app.use('/api', (req, res, next) => {
+  res.set('X-Robots-Tag', 'noindex, nofollow');
+  next();
+});
 app.use('/api', express.json({ limit: '12kb', type: ['application/json', 'text/plain'] }));
 
 app.get('/api/version', (req, res) => {

@@ -35,10 +35,15 @@ function robots() {
   return `# BoozaThink robots.txt
 User-agent: *
 Allow: /
-Disallow: /api/
+Disallow: /api/datasets/
 Disallow: /admin
 
-# Google AdSense crawlers explicitly allowed
+# Google Search & AdSense crawlers explicitly allowed (including JS rendering endpoints)
+User-agent: Googlebot
+Allow: /
+Disallow: /api/datasets/
+Disallow: /admin
+
 User-agent: Mediapartners-Google
 Allow: /
 Disallow: /admin

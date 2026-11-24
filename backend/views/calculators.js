@@ -562,13 +562,31 @@ function index() {
   const crumbs = [{ name: '홈', path: '/' }, { name: '전체 시뮬레이터', path: '/calculators' }];
   const master = CALCULATORS[0];
   const parts = CALCULATORS.slice(1);
+  const faq = [
+    { q: '예비창업자와 현재 매장 운영 사장님은 어떤 계산기부터 쓰는 것이 좋나요?', a: '임대차 계약 전인 예비창업자라면 보증금·인테리어·권리금·12개월 계절 편차·대출 원리금을 한 번에 검증하는 창업 풀코스 A-to-Z 설계부터 시작하세요. 이미 매장을 운영 중이거나 온라인 판매 중이라면 배달앱 순수익 역산기, 셀러 손익분기 ROAS 계산기, 주휴수당·무인화 비교기 중 지금 가장 돈이 새는 구간부터 점검하시는 것이 빠릅니다.' },
+    { q: '여러 후보 업종이나 가격 조건을 저장해서 비교할 수 있나요?', a: '네, 7종 계산기 모두 결과 화면 상단에 A안·B안·C안 조건 비교 보관함이 내장되어 있습니다. 최대 5개 시나리오를 이름 붙여 저장하고, 저장된 조건을 다시 불러와 월세나 주문 수만 살짝 바꿨을 때 순수익이 얼마 변하는지 실시간 증감폭으로 비교할 수 있습니다.' },
+    { q: '계산 결과에 부가가치세와 종합소득세, 4대보험도 반영되나요?', a: '반영됩니다. 단순 매출에서 재료비만 빼는 개략식 계산이 아니라 일반·간이과세 부가가치세, 신용카드 발행세액공제(1.3%), 8단계 종합소득세 누진세율, 주 15시간 이상 근무 시 발생하는 주휴수당과 사업주 부담 4대보험 요율을 현행 및 차기 확정 고시 기준으로 정밀 산출합니다.' }
+  ];
   const body = `<div class="container">${breadcrumbHtml(crumbs)}
 <header class="page-head"><span class="eyebrow">${icon('sliders', 16)} BoozaThink 시뮬레이터 허브</span><h1>창업 풀코스부터 상황별 정밀 계산까지</h1><p class="lead">처음 창업하는 분을 위한 12개월 계절 손익 풀코스 설계부터, 운영 중 상황별로 즉시 점검하는 6대 정밀 계산기까지 한곳에 모았습니다.</p>${freeOpenBanner('hero')}</header>
 <a class="cat-calc card" href="/calculators/${master.slug}" style="padding:26px;margin-bottom:26px"><span class="ico-box">${icon(master.iconKey, 22)}</span><div><span class="pill">예비창업 · 신규출점 추천</span><h2 style="margin:6px 0 4px;font-size:21px">${esc(master.name)}</h2><p>${esc(master.desc)}</p></div><span class="cc-cta">풀코스 설계 시작 →</span></a>
 <h2 style="font-size:20px;margin:0 0 14px">상황별로 골라 쓰는 6대 정밀 손익·세무 계산기</h2>
 <div class="calc-grid calc-grid-6">${parts.map((c) => `<a class="calc-card card" href="/calculators/${c.slug}"><span class="ico-box">${icon(c.iconKey, 20)}</span><h3>${esc(c.name)}</h3><p>${esc(c.desc)}</p><span class="cc-cta">계산 시작 →</span></a>`).join('')}</div>
+
+<section class="sec prose" style="margin-top:32px">
+  <h2>창업 단계 · 사업 유형별 시뮬레이터 100% 활용 가이드</h2>
+  <p>자영업과 이커머스 현장에서 매출은 꾸준히 나오는데 정산 날 통장에 남는 돈이 부족한 가장 큰 이유는 <strong>숨은 변동비(플랫폼 중개료·결제수수료·배달비·포장재·반품 손실)</strong>와 <strong>계절·세무 고정 유출(비수기 적자·부가세·주휴수당)</strong>을 따로따로 어림짐작하기 때문입니다. 부자생각(BoozaThink) 시뮬레이터는 아래 순서대로 교차 검증할 때 가장 큰 효과를 발휘합니다.</p>
+  <ol>
+    <li><strong>임대차 계약 도장 찍기 전 (입지·임대료 검증):</strong> <a href="/calculators/store-rent-breakeven">상가 환산보증금·손익분기 계산기</a>로 해당 지역 5% 임대료 인상 상한 보호 대상인지 먼저 판독하고, 권리금과 시설비를 첫 계약 기간(24개월) 내에 회수할 수 있는 하루 최소 주문 건수를 확인합니다.</li>
+    <li><strong>업종 선택 및 초기 자금 배분 (1년 현금흐름 설계):</strong> <a href="/calculators/startup-master">창업 풀코스 A-to-Z 시뮬레이터</a>에서 고민 중인 2~3개 업종을 A안·B안·C안으로 저장해 성수기·비수기 12개월 실제 현금흐름과 초기 안전 운전자금 규모를 나란히 비교합니다.</li>
+    <li><strong>메뉴 가격 책정 및 광고 효율 점검 (마진 누수 차단):</strong> 오프라인·배달 매장은 <a href="/calculators/delivery-margin">배달앱 순수익·메뉴가 역산기</a>로 포장 할인과 세트 구성을 시뮬레이션하고, 스마트스토어·쿠팡 셀러는 <a href="/calculators/seller-roas">손익분기 ROAS 계산기</a>로 광고비 집행 전 허용 가능한 최대 클릭당 비용(CPC)을 먼저 확정합니다.</li>
+    <li><strong>인력 채용·무인화 및 절세·대환 실행 (고정비 절감):</strong> 아르바이트 채용 전 <a href="/calculators/labor-automation">주휴수당 15시간 절벽·무인화 회수 계산기</a>로 근무 시간표를 설계하고, <a href="/calculators/policy-funds">정책자금 매칭기</a>와 <a href="/calculators/vat-income-tax">부가세·종소세 계산기</a>로 이자 비용과 세후 실수령액을 최종 점검합니다.</li>
+  </ol>
+</section>
+${faqHtml(faq)}
+<aside class="trust-box"><h2>수식 검증 원칙 및 면책 안내</h2><p>모든 시뮬레이터는 국세청·고용노동부·중소벤처기업부·법제처 공식 고시 요율(검증일 <strong>${facts.VERIFIED_AT}</strong>)을 반영하며 77개 자동 검산 테스트를 통과한 산식으로 동작합니다. 산출된 수치는 의사결정을 돕기 위한 참고용 모의 추정치이며 개별 세무·노무·법률·금융 자문을 대체하지 않습니다.</p></aside>
 </div>`;
-  return { body, jsonld: [breadcrumbLd(crumbs), { '@context': 'https://schema.org', '@type': 'ItemList', itemListElement: CALCULATORS.map((c, i) => ({ '@type': 'ListItem', position: i + 1, url: abs('/calculators/' + c.slug), name: c.name })) }] };
+  return { body, jsonld: [breadcrumbLd(crumbs), { '@context': 'https://schema.org', '@type': 'ItemList', itemListElement: CALCULATORS.map((c, i) => ({ '@type': 'ListItem', position: i + 1, url: abs('/calculators/' + c.slug), name: c.name })) }, faqLd(faq)] };
 }
 
 module.exports = { delivery, seller, policy, labor, vatIncome, storeLease, index, programCards };
