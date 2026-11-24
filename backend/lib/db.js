@@ -112,7 +112,36 @@ const DDL_STEPS = [
     val TEXT NOT NULL DEFAULT '',
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`,
-  `ALTER TABLE public.biz_site_config ENABLE ROW LEVEL SECURITY`
+  `ALTER TABLE public.biz_site_config ENABLE ROW LEVEL SECURITY`,
+
+  `CREATE TABLE IF NOT EXISTS public.biz_owner_logs (
+    id BIGSERIAL PRIMARY KEY,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    log_date TEXT NOT NULL,
+    kind TEXT NOT NULL DEFAULT 'work_log',
+    status TEXT NOT NULL DEFAULT 'done',
+    category TEXT NOT NULL DEFAULT '일반업무',
+    time_range TEXT NOT NULL DEFAULT '',
+    duration_min INTEGER NOT NULL DEFAULT 0,
+    title TEXT NOT NULL,
+    raw_voice TEXT NOT NULL DEFAULT ''
+  )`,
+  `ALTER TABLE public.biz_owner_logs ENABLE ROW LEVEL SECURITY`,
+  `CREATE INDEX IF NOT EXISTS biz_owner_logs_date_idx ON public.biz_owner_logs (log_date DESC, id DESC)`,
+
+  `CREATE TABLE IF NOT EXISTS public.biz_owner_archives (
+    id BIGSERIAL PRIMARY KEY,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    doc_date TEXT NOT NULL,
+    source_type TEXT NOT NULL DEFAULT 'meeting_live',
+    meeting_kind TEXT NOT NULL DEFAULT '일반 회의',
+    title TEXT NOT NULL,
+    participants TEXT NOT NULL DEFAULT '',
+    summary_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+    raw_transcript TEXT NOT NULL DEFAULT ''
+  )`,
+  `ALTER TABLE public.biz_owner_archives ENABLE ROW LEVEL SECURITY`,
+  `CREATE INDEX IF NOT EXISTS biz_owner_archives_date_idx ON public.biz_owner_archives (doc_date DESC, id DESC)`
 ];
 
 const REVOKE_STEPS = [
@@ -121,7 +150,9 @@ const REVOKE_STEPS = [
   `REVOKE ALL ON TABLE public.biz_inquiries FROM anon, authenticated`,
   `REVOKE ALL ON TABLE public.biz_tool_requests FROM anon, authenticated`,
   `REVOKE ALL ON TABLE public.biz_tool_votes FROM anon, authenticated`,
-  `REVOKE ALL ON TABLE public.biz_site_config FROM anon, authenticated`
+  `REVOKE ALL ON TABLE public.biz_site_config FROM anon, authenticated`,
+  `REVOKE ALL ON TABLE public.biz_owner_logs FROM anon, authenticated`,
+  `REVOKE ALL ON TABLE public.biz_owner_archives FROM anon, authenticated`
 ];
 
 const MIGRATION_SQL = DDL_STEPS.join(';\n') + ';';
@@ -152,6 +183,148 @@ const memToolRequests = SEED_TOOL_IDEAS.map((it, idx) => ({
 }));
 const memToolVotes = new Set();
 const memSiteConfig = {};
+const memOwnerLogs = [];
+const memOwnerArchives = [];
+let memOwnerSeq = 1;
+
+function kstTodayStr() {
+  const d = new Date(Date.now() + 9 * 3600 * 1000);
+  return d.toISOString().slice(0, 10);
+}
+
+async function addOwnerLog(item) {
+  const row = {
+    log_date: String(item.log_date || kstTodayStr()).slice(0, 10),
+    kind: ['work_log', 'todo', 'memo'].includes(item.kind) ? item.kind : 'work_log',
+    status: item.status === 'pending' ? 'pending' : 'done',
+    category: String(item.category || '일반업무').trim().slice(0, 40) || '일반업무',
+    time_range: String(item.time_range || '').trim().slice(0, 60),
+    duration_min: Math.max(0, Math.min(1440, Math.round(Number(item.duration_min) || 0))),
+    title: String(item.title || '').trim().slice(0, 300),
+    raw_voice: String(item.raw_voice || '').trim().slice(0, 1000)
+  };
+  if (!row.title) return { ok: false, error: '내용이 비어 있습니다.' };
+
+  if (state.connected && driver === 'pg' && pool) {
+    const { rows } = await pool.query(
+      `INSERT INTO public.biz_owner_logs (log_date, kind, status, category, time_range, duration_min, title, raw_voice)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [row.log_date, row.kind, row.status, row.category, row.time_range, row.duration_min, row.title, row.raw_voice]
+    );
+    return { ok: true, item: rows[0] };
+  }
+  const memItem = { id: memOwnerSeq++, created_at: new Date().toISOString(), ...row };
+  memOwnerLogs.unshift(memItem);
+  return { ok: true, item: memItem };
+}
+
+async function toggleOwnerLog(id) {
+  const numId = Number(id);
+  if (!Number.isFinite(numId) || numId <= 0) return { ok: false };
+  if (state.connected && driver === 'pg' && pool) {
+    const { rows } = await pool.query(
+      `UPDATE public.biz_owner_logs
+       SET status = CASE WHEN status = 'pending' THEN 'done' ELSE 'pending' END
+       WHERE id = $1 RETURNING *`,
+      [numId]
+    );
+    return { ok: Boolean(rows[0]), item: rows[0] || null };
+  }
+  const found = memOwnerLogs.find((x) => x.id === numId);
+  if (!found) return { ok: false };
+  found.status = found.status === 'pending' ? 'done' : 'pending';
+  return { ok: true, item: found };
+}
+
+async function deleteOwnerLog(id) {
+  const numId = Number(id);
+  if (!Number.isFinite(numId) || numId <= 0) return { ok: false };
+  if (state.connected && driver === 'pg' && pool) {
+    await pool.query(`DELETE FROM public.biz_owner_logs WHERE id = $1`, [numId]);
+    return { ok: true };
+  }
+  const idx = memOwnerLogs.findIndex((x) => x.id === numId);
+  if (idx >= 0) memOwnerLogs.splice(idx, 1);
+  return { ok: true };
+}
+
+async function addOwnerArchive(doc) {
+  const row = {
+    doc_date: String(doc.doc_date || kstTodayStr()).slice(0, 10),
+    source_type: ['meeting_live', 'meeting_audio', 'clova_note', 'kakaotalk'].includes(doc.source_type) ? doc.source_type : 'meeting_live',
+    meeting_kind: String(doc.meeting_kind || '일반 회의').trim().slice(0, 60) || '일반 회의',
+    title: String(doc.title || '무제 회의록').trim().slice(0, 200),
+    participants: String(doc.participants || '').trim().slice(0, 240),
+    summary_json: doc.summary_json && typeof doc.summary_json === 'object' ? doc.summary_json : {},
+    raw_transcript: String(doc.raw_transcript || '').slice(0, 120000)
+  };
+  if (state.connected && driver === 'pg' && pool) {
+    const { rows } = await pool.query(
+      `INSERT INTO public.biz_owner_archives (doc_date, source_type, meeting_kind, title, participants, summary_json, raw_transcript)
+       VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7) RETURNING *`,
+      [row.doc_date, row.source_type, row.meeting_kind, row.title, row.participants, JSON.stringify(row.summary_json), row.raw_transcript]
+    );
+    return { ok: true, item: rows[0] };
+  }
+  const memDoc = { id: memOwnerSeq++, created_at: new Date().toISOString(), ...row };
+  memOwnerArchives.unshift(memDoc);
+  return { ok: true, item: memDoc };
+}
+
+async function deleteOwnerArchive(id) {
+  const numId = Number(id);
+  if (!Number.isFinite(numId) || numId <= 0) return { ok: false };
+  if (state.connected && driver === 'pg' && pool) {
+    await pool.query(`DELETE FROM public.biz_owner_archives WHERE id = $1`, [numId]);
+    return { ok: true };
+  }
+  const idx = memOwnerArchives.findIndex((x) => x.id === numId);
+  if (idx >= 0) memOwnerArchives.splice(idx, 1);
+  return { ok: true };
+}
+
+async function listOwnerDesk(queryOpts) {
+  const q = String((queryOpts && queryOpts.q) || '').trim();
+  const kindFilter = String((queryOpts && queryOpts.kind) || '').trim();
+  if (state.connected && driver === 'pg' && pool) {
+    const logsRes = await pool.query(`SELECT * FROM public.biz_owner_logs ORDER BY status ASC, log_date DESC, id DESC LIMIT 120`);
+    let archSql = `SELECT id, created_at, doc_date, source_type, meeting_kind, title, participants, summary_json, left(raw_transcript, 3000) AS raw_preview FROM public.biz_owner_archives`;
+    const params = [];
+    const conds = [];
+    if (q) {
+      params.push(`%${q}%`);
+      conds.push(`(title ILIKE $${params.length} OR meeting_kind ILIKE $${params.length} OR participants ILIKE $${params.length} OR raw_transcript ILIKE $${params.length})`);
+    }
+    if (kindFilter) {
+      params.push(kindFilter);
+      conds.push(`source_type = $${params.length}`);
+    }
+    if (conds.length) archSql += ` WHERE ` + conds.join(' AND ');
+    archSql += ` ORDER BY doc_date DESC, id DESC LIMIT 60`;
+    const archRes = await pool.query(archSql, params);
+    return { logs: logsRes.rows, archives: archRes.rows };
+  }
+  let archs = [...memOwnerArchives];
+  if (q) {
+    const low = q.toLowerCase();
+    archs = archs.filter((a) => `${a.title} ${a.meeting_kind} ${a.participants} ${a.raw_transcript}`.toLowerCase().includes(low));
+  }
+  if (kindFilter) archs = archs.filter((a) => a.source_type === kindFilter);
+  return {
+    logs: [...memOwnerLogs].slice(0, 120),
+    archives: archs.slice(0, 60).map((a) => ({ ...a, raw_preview: (a.raw_transcript || '').slice(0, 3000) }))
+  };
+}
+
+async function getOwnerArchiveById(id) {
+  const numId = Number(id);
+  if (!Number.isFinite(numId) || numId <= 0) return null;
+  if (state.connected && driver === 'pg' && pool) {
+    const { rows } = await pool.query(`SELECT * FROM public.biz_owner_archives WHERE id = $1`, [numId]);
+    return rows[0] || null;
+  }
+  return memOwnerArchives.find((x) => x.id === numId) || null;
+}
 
 async function hydrateSiteConfig() {
   try {
@@ -1039,6 +1212,8 @@ async function close() {
 
 module.exports = {
   init, record, collectEvent, createInquiry, getPublicToolRequests, voteToolRequest, submitToolRequest,
-  getAnalyticsSummary, resetTrafficLogs, getSiteConfig, setSiteConfig, rlsStatus, close,
+  getAnalyticsSummary, resetTrafficLogs, getSiteConfig, setSiteConfig,
+  addOwnerLog, toggleOwnerLog, deleteOwnerLog, addOwnerArchive, deleteOwnerArchive, listOwnerDesk, getOwnerArchiveById,
+  rlsStatus, close,
   state: () => ({ ...state }), MIGRATION_SQL, ENFORCE_ALL_RLS_SQL, RLS_STATUS_SQL, CALCS
 };

@@ -139,6 +139,7 @@ function dashboardView(data, ctx, envStatus) {
       <h1>방문 트래픽 · 고객 프로파일 · 희망 계산기 상황판</h1>
     </div>
     <div class="admin-controls">
+      <a class="btn btn-primary btn-sm" href="/admin/desk">🎙️ 내 음성비서 · 회의록 · 카톡 정리함 →</a>
       <div class="seg">
         <a class="seg-link${days === 1 ? ' active' : ''}" href="/admin?days=1">오늘(24h)</a>
         <a class="seg-link${days === 7 ? ' active' : ''}" href="/admin?days=7">최근 7일</a>

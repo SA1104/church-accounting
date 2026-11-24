@@ -24,6 +24,8 @@ const datasetsViews = require('./views/datasets');
 const pages = require('./views/pages');
 const seo = require('./views/seo');
 const adminViews = require('./views/admin');
+const deskViews = require('./views/desk');
+const deskAssistant = require('./lib/desk-assistant');
 const fx = require('./lib/fx');
 const rates = require('./lib/rates');
 const db = require('./lib/db');
@@ -54,7 +56,7 @@ app.use((req, res, next) => {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'SAMEORIGIN',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
+    'Permissions-Policy': 'camera=(), microphone=(self), geolocation=()'
   });
   next();
 });
@@ -423,6 +425,102 @@ app.post('/admin/login', express.urlencoded({ extended: false, limit: '4kb' }), 
 app.post('/admin/logout', (req, res) => {
   res.setHeader('Set-Cookie', 'bt_admin=; Path=/admin; HttpOnly; SameSite=Strict; Max-Age=0');
   res.redirect(303, '/admin');
+});
+
+// ── 대표님 전용 비공개 음성·회의록·카카오톡 통합 비서 (/admin/desk · 검색엔진 완전 비노출) ──
+function getGeminiApiKey() {
+  return String(process.env.GEMINI_API_KEY || db.getSiteConfig('gemini_api_key') || '').trim();
+}
+
+app.get('/admin/desk', async (req, res) => {
+  res.set('X-Robots-Tag', 'noindex, nofollow');
+  if (!isAdminAuthed(req)) return res.redirect(303, '/admin');
+  const data = await db.listOwnerDesk({ q: req.query.q, kind: req.query.kind });
+  const { dateStr } = deskAssistant.kstNowParts();
+  const body = deskViews.deskView(data, {
+    hasGeminiKey: Boolean(getGeminiApiKey()),
+    todayStr: dateStr,
+    searchQ: String(req.query.q || ''),
+    kindFilter: String(req.query.kind || ''),
+    notice: String(req.query.msg || '')
+  });
+  send(res, {
+    title: '대표님 전용 음성·회의·카톡 비서',
+    path: '/admin/desk',
+    body,
+    noindex: true,
+    noCache: true,
+    skipAnalytics: true
+  });
+});
+
+app.post('/admin/desk/api/save-gemini-key', express.urlencoded({ extended: false, limit: '4kb' }), async (req, res) => {
+  res.set('X-Robots-Tag', 'noindex, nofollow');
+  if (!isAdminAuthed(req)) return res.redirect(303, '/admin');
+  const k = String((req.body && req.body.gemini_key) || '').trim();
+  await db.setSiteConfig('gemini_api_key', k);
+  res.redirect(303, '/admin/desk?msg=gemini_saved');
+});
+
+const deskJsonParser = express.json({ limit: '45mb' });
+
+app.post('/admin/desk/api/voice-cmd', deskJsonParser, async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  if (!isAdminAuthed(req)) return res.status(401).json({ ok: false, error: '관리자 로그인이 필요합니다.' });
+  try {
+    const spoken = String((req.body && req.body.text) || '').trim();
+    const parsed = await deskAssistant.parseVoiceCommand(spoken, getGeminiApiKey());
+    if (!parsed.ok) return res.status(400).json(parsed);
+    const saved = [];
+    for (const it of parsed.items) {
+      const r = await db.addOwnerLog(it);
+      if (r.ok) saved.push(r.item);
+    }
+    return res.json({ ok: true, mode: parsed.mode, reply: parsed.reply, saved });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e.message || '음성 명령 처리 오류' });
+  }
+});
+
+app.post('/admin/desk/api/analyze', deskJsonParser, async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  if (!isAdminAuthed(req)) return res.status(401).json({ ok: false, error: '관리자 로그인이 필요합니다.' });
+  try {
+    const body = req.body || {};
+    const analyzed = await deskAssistant.analyzeMeetingOrKakao({
+      sourceType: body.sourceType,
+      rawText: body.rawText,
+      fileName: body.fileName,
+      mimeType: body.mimeType,
+      base64Data: body.base64Data,
+      dateWindowDays: body.dateWindowDays,
+      titleHint: body.titleHint,
+      apiKey: getGeminiApiKey()
+    });
+    if (!analyzed.ok) return res.status(400).json(analyzed);
+    const saved = await db.addOwnerArchive(analyzed);
+    return res.json({ ok: true, mode: analyzed.mode, item: saved.item });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: '분석 중 오류: ' + (e.message || 'unknown') });
+  }
+});
+
+app.post('/admin/desk/api/log-toggle', deskJsonParser, async (req, res) => {
+  if (!isAdminAuthed(req)) return res.status(401).json({ ok: false });
+  const out = await db.toggleOwnerLog(req.body && req.body.id);
+  return res.json(out);
+});
+
+app.post('/admin/desk/api/log-delete', deskJsonParser, async (req, res) => {
+  if (!isAdminAuthed(req)) return res.status(401).json({ ok: false });
+  const out = await db.deleteOwnerLog(req.body && req.body.id);
+  return res.json(out);
+});
+
+app.post('/admin/desk/api/archive-delete', deskJsonParser, async (req, res) => {
+  if (!isAdminAuthed(req)) return res.status(401).json({ ok: false });
+  const out = await db.deleteOwnerArchive(req.body && req.body.id);
+  return res.json(out);
 });
 
 // ── API ──
