@@ -275,6 +275,7 @@ Object.entries(LEGAL).forEach(([slug, [fn, title, desc]]) => {
 
 // SEO / GEO / AdSense ads.txt
 app.get('/sitemap.xml', (req, res) => { res.type('application/xml').set('Cache-Control', 'public, max-age=3600').send(seo.sitemap(content)); });
+app.get('/rss.xml', (req, res) => { res.type('application/rss+xml; charset=utf-8').set('Cache-Control', 'public, max-age=3600').send(seo.rss(content)); });
 app.get('/robots.txt', (req, res) => { res.type('text/plain').set('Cache-Control', 'public, max-age=3600').send(seo.robots()); });
 app.get('/llms.txt', (req, res) => { res.type('text/markdown; charset=utf-8').set('Cache-Control', 'public, max-age=3600').send(seo.llms(content)); });
 app.get('/llms-full.txt', (req, res) => res.redirect(301, '/llms.txt'));
@@ -352,7 +353,7 @@ app.get('/admin', async (req, res) => {
   const activeAds = layout.normalizeAdSenseClient(process.env.ADSENSE_CLIENT || db.getSiteConfig('adsense_client') || layout.DEFAULT_ADSENSE_CLIENT);
   const gscTok = layout.extractMetaToken(process.env.GOOGLE_SITE_VERIFICATION || db.getSiteConfig('gsc_token'));
   const gscHtmlVerified = require('fs').existsSync(path.join(__dirname, 'public', 'googlec2b1f8b925e5121c.html'));
-  const navTok = layout.extractMetaToken(process.env.NAVER_SITE_VERIFICATION || db.getSiteConfig('naver_token'));
+  const navTok = layout.extractMetaToken(process.env.NAVER_SITE_VERIFICATION || db.getSiteConfig('naver_token') || layout.DEFAULT_NAVER_VERIFICATION);
   const envStatus = {
     ga4: Boolean(process.env.GA_MEASUREMENT_ID),
     ga4Id: process.env.GA_MEASUREMENT_ID || '',

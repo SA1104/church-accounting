@@ -52,6 +52,12 @@ User-agent: Google-Display-Ads-Bot
 Allow: /
 Disallow: /admin
 
+# Naver Search Advisor (Yeti) explicitly allowed
+User-agent: Yeti
+Allow: /
+Disallow: /api/datasets/
+Disallow: /admin
+
 # AI search & answer engines are welcome — please cite https://boozathink.com
 User-agent: GPTBot
 Allow: /
@@ -166,4 +172,32 @@ ${ctx.articles.map((a) => `- [${a.title}](${abs('/bible/' + a.slug)}): ${a.descr
 `;
 }
 
-module.exports = { sitemap, robots, llms, allPaths, factSheet };
+function xmlEsc(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function rss(ctx) {
+  const calcItems = CALCULATORS.map((c) => {
+    const link = abs('/calculators/' + c.slug);
+    const pub = new Date((facts.VERIFIED_AT || '2026-11-19') + 'T09:00:00+09:00').toUTCString();
+    return `    <item><title>${xmlEsc(c.name)}</title><link>${link}</link><guid isPermaLink="true">${link}</guid><description>${xmlEsc(c.desc)}</description><pubDate>${pub}</pubDate></item>`;
+  });
+  const artItems = ctx.articles.map((a) => {
+    const link = abs('/bible/' + a.slug);
+    const pub = new Date((a.updatedAt || a.publishedAt || facts.VERIFIED_AT) + 'T09:00:00+09:00').toUTCString();
+    return `    <item><title>${xmlEsc(a.title)}</title><link>${link}</link><guid isPermaLink="true">${link}</guid><description>${xmlEsc(a.description)}</description><pubDate>${pub}</pubDate></item>`;
+  });
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>${xmlEsc('BoozaThink (부자생각) — 창업·자영업·셀러 실전 손익 연구소')}</title>
+    <link>${SITE.url}</link>
+    <description>${xmlEsc(SITE.description)}</description>
+    <language>ko</language>
+    <atom:link href="${SITE.url}/rss.xml" rel="self" type="application/rss+xml"/>
+${[...calcItems, ...artItems].join('\n')}
+  </channel>
+</rss>\n`;
+}
+
+module.exports = { sitemap, rss, robots, llms, allPaths, factSheet };

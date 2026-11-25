@@ -24,6 +24,7 @@ const CALCULATORS = [
 
 const ASSET_V = '20261124b';
 const DEFAULT_ADSENSE_CLIENT = 'ca-pub-3437939703644829';
+const DEFAULT_NAVER_VERIFICATION = '27265533a7799520006f9152a715533ca129b6e3';
 
 function normalizeAdSenseClient(raw) {
   const s = String(raw || '').trim();
@@ -178,7 +179,7 @@ function externalTrackingHead(runtimeCfg) {
   const cfg = runtimeCfg && typeof runtimeCfg === 'object' ? runtimeCfg : { adsense: runtimeCfg };
   const out = [];
   const gscTok = extractMetaToken(process.env.GOOGLE_SITE_VERIFICATION || cfg.gsc);
-  const navTok = extractMetaToken(process.env.NAVER_SITE_VERIFICATION || cfg.naver);
+  const navTok = extractMetaToken(process.env.NAVER_SITE_VERIFICATION || cfg.naver || DEFAULT_NAVER_VERIFICATION);
   if (gscTok) out.push(`<meta name="google-site-verification" content="${esc(gscTok)}">`);
   if (navTok) out.push(`<meta name="naver-site-verification" content="${esc(navTok)}">`);
   if (process.env.GA_MEASUREMENT_ID) {
@@ -216,6 +217,7 @@ function render(opts, categories) {
 <meta name="description" content="${esc(desc)}">
 ${opts.keywords ? `<meta name="keywords" content="${esc(opts.keywords.join(', '))}">` : ''}
 <link rel="canonical" href="${esc(canonical)}">
+<link rel="alternate" type="application/rss+xml" title="BoozaThink (부자생각) RSS" href="${SITE.url}/rss.xml">
 <meta name="robots" content="${robotContent}">
 ${opts.simToken ? `<meta name="bt-sim-token" content="${esc(opts.simToken)}">` : ''}
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
@@ -261,4 +263,4 @@ ${scripts}
 </html>`;
 }
 
-module.exports = { SITE, CALCULATORS, esc, jsonLd, abs, breadcrumbLd, faqLd, breadcrumbHtml, faqHtml, render, ASSET_V, DEFAULT_ADSENSE_CLIENT, yearEndFreeInfo, freeOpenBanner, normalizeAdSenseClient, extractMetaToken };
+module.exports = { SITE, CALCULATORS, esc, jsonLd, abs, breadcrumbLd, faqLd, breadcrumbHtml, faqHtml, render, ASSET_V, DEFAULT_ADSENSE_CLIENT, DEFAULT_NAVER_VERIFICATION, yearEndFreeInfo, freeOpenBanner, normalizeAdSenseClient, extractMetaToken };
