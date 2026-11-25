@@ -586,6 +586,113 @@ def upload_ep04(
     )
 
 
+def upload_long02(
+    privacy: str = "public",
+    force_api_upload: bool = False,
+    target_date: str | None = None,
+    shared_label: str = "유튜브본편_쇼츠_부가세절벽팩",
+) -> str:
+    long_dir = STUDIO_DIR / "output" / "long02_vat_cliff"
+    mp4_path = long_dir / "BOOZATHINK_Long02_VAT_Cliff_Masterclass_16x9_1080p.mp4"
+    thumb_path = long_dir / "BOOZATHINK_Long02_VAT_Cliff_Thumbnail_1280x720.jpg"
+    if not mp4_path.exists():
+        raise FileNotFoundError(f"Long02 본편 영상이 아직 생성되지 않았습니다: {mp4_path}")
+
+    return upload_shorts_package(
+        mp4_path=mp4_path,
+        thumb_path=thumb_path,
+        title="매출 200만 원 더 올렸다가 통장에서 255만 원 증발?! — 연 매출 1억 400만 원 부가세 절벽과 초기 환급 500만 원의 비밀 | 부자생각",
+        alt_titles=[
+            "“무조건 간이과세가 유리하다?” 큰 오산입니다! 간이 vs 일반과세 전환 시점·의제매입공제·종소세 완벽 정리 | 부자생각",
+            "연 매출 1억 300만 vs 1억 500만 실제 세금 비교 — 부가세 32배 급증 막는 세무 디테일 4가지 | 부자생각",
+        ],
+        description=(
+            "연 매출 1억 300만 원(간이과세) 매장이 연말에 200만 원을 더 팔아 1억 500만 원(일반과세 전환 구간)이 되었을 때,\n"
+            "왜 세후 통장 실수령액은 오히려 255만 원이나 줄어드는지 국세청 산식 그대로 정밀 해부했습니다.\n\n"
+            "• 1억 300만 원(음식·소매 간이과세): 부가가치율 15%×10%(154.5만) − 매입공제 0.5%(19.6만) − 신용카드 발행공제 1.3%(120.5만) = 연 부가세 약 14.4만 원\n"
+            "• 1억 500만 원(일반과세 1/11 전환 시): 매출세액 954.5만 − 과세매입 공제(38%분 362.7만) − 카드발행 공제 1.3%(122.8만) = 연 부가세 약 469만 원 (원천징수 인건비·면세 원재료 불공제 때문!)\n"
+            "• 꼭 알아야 할 실무 디테일 4가지:\n"
+            "  1) 초기 인테리어·설비 5,500만 원(부가세 500만 포함) 투자 시 간이과세는 ‘환급 0원’ → 초기 시설투자가 클 땐 일반과세 조기환급이 유리 (기존 일반과세 사업장 보유 시 간이과세 배제 주의)\n"
+            "  2) 1억 400만 원 초과 시 당해 연도 소급이 아니라 ‘다음 해 7월 1일’부터 일반과세로 전환 (6개월 준비 기간)\n"
+            "  3) 일반과세 전환 전 상가 월세·공과금 세금계산서, 면세 농축수산물 계산서·사업용카드 수취(의제매입세액공제 8/108~9/109), 카드발행 공제 1.3%(연 1,000만 원 한도) 필수 세팅\n"
+            "  4) 5월 종합소득세에는 지방소득세 10%가 가산(16.5% / 26.4%)되므로 연말 전 사업소득 구간별 노란우산 한도(최대 600만 원) 점검\n\n"
+            "내 매장 매출·매입 구조에서 간이와 일반 중 어디가 유리한지, 세후 월 실수령액은 얼마인지 3초 만에 비교해 보세요.\n"
+            "• 개인사업자 부가세(간이·일반) & 종소세 실수령 시뮬레이터: https://boozathink.com/calculators/vat-income-tax\n\n"
+            "#부자생각 #BoozaThink #간이과세자 #일반과세자 #1억400만원 #부가가치세 #의제매입세액공제 #종합소득세 #노란우산공제 #개인사업자세금"
+        ),
+        pinned_comment=(
+            "올해 우리 매장 매출에서 간이과세와 일반과세 세금이 정확히 얼마 차이 나는지, 초기 인테리어 부가세 환급과 노란우산 절세액은 얼마인지 궁금하시다면\n"
+            "검색창에 ‘부자생각(boozathink.com)’을 쳐서 숫자 4개만 넣어 세후 월 실수령액을 바로 검산해 보세요!"
+        ),
+        tags=[
+            "부자생각",
+            "BoozaThink",
+            "간이과세자기준",
+            "1억400만원",
+            "일반과세전환",
+            "부가세환급",
+            "의제매입세액공제",
+            "신용카드발행세액공제",
+            "개인사업자종합소득세",
+            "노란우산공제",
+        ],
+        privacy=privacy,
+        force_api_upload=force_api_upload,
+        subfolder=resolve_date_subfolder(target_date, shared_label),
+    )
+
+
+def upload_ep05(
+    privacy: str = "public",
+    force_api_upload: bool = False,
+    target_date: str | None = None,
+    shared_label: str = "유튜브본편_쇼츠_부가세절벽팩",
+) -> str:
+    ep_dir = STUDIO_DIR / "output" / "ep05_vat_cliff_shorts"
+    mp4_path = ep_dir / "BOOZATHINK_EP05_VAT_Cliff_Master_9x16_Shorts.mp4"
+    thumb_path = ep_dir / "BOOZATHINK_EP05_Cover_1080x1920.png"
+    if not mp4_path.exists():
+        raise FileNotFoundError(f"EP05 쇼츠 영상이 아직 생성되지 않았습니다: {mp4_path}")
+
+    return upload_shorts_package(
+        mp4_path=mp4_path,
+        thumb_path=thumb_path,
+        title="매출 200만 원 더 올렸다가 통장 순익 255만 원 증발하는 이유 (연 1억 400만 부가세 절벽) | 부자생각 #Shorts",
+        alt_titles=[
+            "부가세 14만 원 ➔ 469만 원(32배 급증)! 간이·일반 전환 시점과 초기 환급 500만 원 공식 | 부자생각 #Shorts",
+            "무작정 간이과세 고르면 500만 원 날립니다 — 세무사도 강조하는 간이 vs 일반 핵심 디테일 | 부자생각 #Shorts",
+        ],
+        description=(
+            "연 매출 1억 300만 원(간이과세)에서 1억 500만 원(일반과세 전환)이 되었을 뿐인데 왜 통장 실수령액은 오히려 255만 원 줄어들까요?\n\n"
+            "• 간이과세(음식·소매 1.5% − 카드발행 공제 1.3%): 연 부가세 약 14.4만 원\n"
+            "• 일반과세(다음 해 7월 1일 전환, 1/11): 원천징수 인건비·면세 식자재 불공제로 연 부가세 약 469만 원!\n"
+            "• 반대로 첫해 인테리어·설비 5,500만 원 투자 시엔 간이과세 환급이 ‘0원’이므로 일반과세로 500만 원 환급부터 챙기는 것이 핵심입니다.\n\n"
+            "내 매장 조건에서 간이 vs 일반 유불리와 종소세·지방소득세 뺀 진짜 세후 월급을 3초 만에 비교해 보세요.\n"
+            "• 간이·일반 부가세 & 종소세 실수령 계산기: https://boozathink.com/calculators/vat-income-tax\n\n"
+            "#부자생각 #BoozaThink #간이과세자 #일반과세자 #부가가치세 #의제매입세액공제 #종합소득세 #개인사업자세금 #자영업 #Shorts"
+        ),
+        pinned_comment=(
+            "자세한 전환 타임라인(익년 7월 1일)과 의제매입세액공제·노란우산 절세법은 채널 본편 영상에 담아두었고,\n"
+            "내 매장 숫자 계산은 검색창에 ‘부자생각(boozathink.com)’을 쳐서 3초 만에 바로 비교해 보실 수 있습니다!"
+        ),
+        tags=[
+            "부자생각",
+            "BoozaThink",
+            "간이과세자",
+            "일반과세자",
+            "1억400만원",
+            "부가세계산기",
+            "부가세환급",
+            "의제매입세액공제",
+            "개인사업자세금",
+            "Shorts",
+        ],
+        privacy=privacy,
+        force_api_upload=force_api_upload,
+        subfolder=resolve_date_subfolder(target_date, shared_label),
+    )
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--auth", action="store_true", help="최초 1회 부자생각(@BoozaThink) 브랜드 채널 전용 OAuth 연동")
@@ -595,9 +702,12 @@ if __name__ == "__main__":
     parser.add_argument("--upload-ep02", action="store_true", help="2호 업종 A·B·C안 비교 쇼츠 스테이징 또는 업로드")
     parser.add_argument("--upload-ep03", action="store_true", help="3호 배달 마진 구멍 해부 쇼츠 스테이징 또는 업로드")
     parser.add_argument("--upload-ep04", action="store_true", help="4호 알바 30분 주휴수당 절벽 쇼츠 스테이징 또는 업로드")
+    parser.add_argument("--upload-ep05", action="store_true", help="5호 부가세 1억 400만 절벽 쇼츠 스테이징 또는 업로드")
     parser.add_argument("--upload-long01", action="store_true", help="1호 본편(16:9) 상가 월세·권리금 13년 함정 스테이징 또는 업로드")
+    parser.add_argument("--upload-long02", action="store_true", help="2호 본편(16:9) 부가세·종소세 절벽 심층 해부 스테이징 또는 업로드")
     parser.add_argument("--upload-today-pack", action="store_true", help="본편(Long01) + 쇼츠(EP04) 일자별 통합 대기함 패키징")
-    parser.add_argument("--date", default=None, help="일자별 대기함 폴더 날짜 지정 (예: 2026-11-24)")
+    parser.add_argument("--upload-vat-pack", action="store_true", help="본편(Long02) + 쇼츠(EP05) 동일주제 부가세절벽 통합 패키징")
+    parser.add_argument("--date", default=None, help="일자별 대기함 폴더 날짜 지정 (예: 2026-11-25)")
     parser.add_argument("--clean-date", default=None, help="업로드 완료된 일자 폴더 전체 삭제 (예: 2026-11-23)")
     parser.add_argument("--privacy", default="public", choices=["public", "unlisted", "private"])
     parser.add_argument("--force-api-upload", action="store_true", help="대기함 저장과 동시에 YouTube API 직접 업로드 실행")
@@ -623,10 +733,17 @@ if __name__ == "__main__":
         upload_ep03(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
     elif args.upload_ep04:
         upload_ep04(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
+    elif args.upload_ep05:
+        upload_ep05(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
     elif args.upload_long01:
         upload_long01(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
+    elif args.upload_long02:
+        upload_long02(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
     elif args.upload_today_pack:
         upload_long01(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
         upload_ep04(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
+    elif args.upload_vat_pack:
+        upload_long02(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
+        upload_ep05(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
     else:
-        print("Ready. Options: --auth | --verify-channel | --upload-today-pack [--date YYYY-MM-DD] | --clean-date YYYY-MM-DD")
+        print("Ready. Options: --auth | --verify-channel | --upload-vat-pack [--date YYYY-MM-DD] | --clean-date YYYY-MM-DD")

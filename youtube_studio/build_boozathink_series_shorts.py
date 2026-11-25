@@ -253,6 +253,73 @@ EPISODES: dict[str, dict] = {
             },
         ],
     },
+    "ep05": {
+        "out_dir": STUDIO_DIR / "output" / "ep05_vat_cliff_shorts",
+        "work_dir": STUDIO_DIR / "_work_ep05_shorts",
+        "mp4_name": "BOOZATHINK_EP05_VAT_Cliff_Master_9x16_Shorts.mp4",
+        "cover_name": "BOOZATHINK_EP05_Cover_1080x1920.png",
+        "preview_name": "BOOZATHINK_EP05_Preview_Mid.png",
+        "cover_scene_idx": 0,
+        "scenes": [
+            {
+                "id": "ep05_s1_200m_paradox",
+                "asset": ASSETS_DIR / "ep05_s1_200m_paradox.jpg",
+                "voice": (
+                    "매출을 이백만 원 더 올렸을 뿐인데, 세금이 폭증해서 내 통장 실수령액은 오히려 이백오십오만 원이나 깎인다면 믿어지시나요? "
+                    "운명을 가르는 기준선은 바로 연 공급대가 일억 사백만 원입니다!"
+                ),
+                "step_tag": "부자생각 세무 정밀해부 · EP.05",
+                "headline": "매출 <span class='hl'>200만 원</span> 더 올렸다가<br>통장 순익 <span class='hl'>255만 원</span> 증발?!",
+                "bubble": "“연 매출 1억 300만 원에서 1억 500만 원 됐을 뿐인데 세금이 왜 이렇게 뛰죠?!”",
+                "note_badge": "연 공급대가 1억 400만 절벽",
+                "note_badge_bg": "#ffe4e6",
+                "note_badge_fg": "#9f1239",
+                "note_title": "1억 300만(실수령 3,153만) vs 1억 500만(실수령 2,898만)",
+                "note_body": "간이과세(부가세 14.4만 원)에서 일반과세(부가세 469만 원)로 바뀌며 세후 순익이 역전됩니다.",
+                "sub_first": ("매출을 200만 원 더 올렸을 뿐인데,", "내 통장 순익은 오히려 255만 원 깎인 이유!"),
+                "sub_second": ("간이·일반 운명을 가르는 기준선,", "연 공급대가 ‘1억 400만 원’ 절벽입니다!"),
+                "draw_ratio": 0.64,
+            },
+            {
+                "id": "ep05_s2_32x_vat_anatomy",
+                "asset": ASSETS_DIR / "ep05_s2_32x_vat_anatomy.jpg",
+                "voice": (
+                    "간이과세일 땐 일점삼 퍼센트 카드발행 공제 덕분에 부가세가 연 십사만 원뿐이지만, "
+                    "기준을 넘겨 다음 해 칠월 일일 일반과세로 바뀌면 인건비와 면세 원재료는 매입공제가 안 돼 부가세가 서른두 배나 치솟습니다!"
+                ),
+                "step_tag": "세무사급 디테일 · 32배 급증 원리",
+                "headline": "인건비·면세원재료 <span class='hl'>공제 구멍</span>과<br>‘다음 해 7월 1일’ 전환 법칙!",
+                "bubble": "“원천징수 인건비엔 부가세가 없고, 면세 식자재도 계산서를 끊어야 의제매입공제가 되네요!”",
+                "note_badge": "익년 7.1 전환 · 의제매입공제",
+                "note_badge_bg": "#dbeafe",
+                "note_badge_fg": "#1e40af",
+                "note_title": "당해 소급 X · 다음 해 7월 1일 전환 전 증빙 세팅 필수!",
+                "note_body": "쌀·정육·채소 계산서(의제매입 8/108~9/109) + 월세 세금계산서 + 카드발행 1.3% 공제를 챙기세요.",
+                "sub_first": ("간이일 땐 카드공제 1.3%로 연 14만 원뿐이지만", "다음 해 7월 1일 일반과세로 전환되는 순간"),
+                "sub_second": ("인건비·면세원재료 공제 구멍 때문에", "연 부가세가 469만 원으로 32배 치솟습니다!"),
+                "draw_ratio": 0.65,
+            },
+            {
+                "id": "ep05_s3_refund_vs_shield",
+                "asset": ASSETS_DIR / "ep05_s3_refund_vs_shield.jpg",
+                "voice": (
+                    "반대로 첫해 인테리어에 오천오백만 원을 쓸 땐 일반과세여야 오백만 원 환급을 챙길 수 있죠! "
+                    "지방소득세 십 퍼센트를 합친 종소세와 연말 노란우산 절세액까지, 지금 부자생각에서 내 매장 세후 실수령액을 삼 초 만에 검산해 보세요!"
+                ),
+                "step_tag": "초기 500만 환급 vs 연말 종소세 방어",
+                "headline": "첫해 시설투자 클 땐 <span class='hl'>일반과세 환급!</span><br>내 매장 유불리 3초 정밀 검산",
+                "bubble": "“간이과세는 인테리어 부가세 환급이 0원이라니! 사업자 내기 전에 비교하길 정말 잘했네요!”",
+                "note_badge": "간이 vs 일반 · 실수령 판독",
+                "note_badge_bg": "#dcfce7",
+                "note_badge_fg": "#166534",
+                "note_title": "boozathink.com · 부가세(간이·일반) & 종소세 실수령 계산기",
+                "note_body": "검색창에 ‘부자생각’ — 카드 1.3% 공제·지방소득세·노란우산 한도까지 한 번에 비교해 보세요!",
+                "sub_first": ("첫해 인테리어 5,500만 원 쓸 땐", "일반과세여야 500만 원 환급을 다 챙깁니다!"),
+                "sub_second": ("검색창에 ‘부자생각’ · boozathink.com", "간이 vs 일반 유불리와 세후 월급을 확인하세요"),
+                "draw_ratio": 0.58,
+            },
+        ],
+    },
 }
 
 
@@ -312,9 +379,11 @@ def make_scene_voice_wav(scene_id: str, text: str, work_dir: Path) -> tuple[Path
                 try:
                     with httpx.Client(trust_env=False, timeout=75.0) as client:
                         r = client.post(url, json=payload)
-                        if r.status_code == 429:
-                            print(f"  [TTS Notice] {scene_id} Gemini 429 -> instant Studio Neural fallback")
-                            break
+                        if r.status_code == 429 and attempt < 3:
+                            wait_s = 22 * attempt
+                            print(f"  [Charon RPM Wait] {scene_id} waiting {wait_s}s for next minute window...")
+                            time.sleep(wait_s)
+                            continue
                         if r.status_code in (500, 503) and attempt < 3:
                             time.sleep(6 * attempt)
                             continue
@@ -326,7 +395,7 @@ def make_scene_voice_wav(scene_id: str, text: str, work_dir: Path) -> tuple[Path
                         wf.setframerate(24000)
                         wf.writeframes(base64.b64decode(b64_pcm))
                     used_charon = True
-                    time.sleep(1.5)
+                    time.sleep(3.0)
                     break
                 except Exception as exc:
                     print(f"  [TTS Notice] {scene_id} attempt {attempt}: {exc}")
@@ -1006,8 +1075,8 @@ def build_episode(ep_key: str) -> Path:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--ep", default="all", choices=["ep02", "ep03", "ep04", "all"])
+    parser.add_argument("--ep", default="all", choices=["ep02", "ep03", "ep04", "ep05", "all"])
     args = parser.parse_args()
-    targets = ["ep02", "ep03", "ep04"] if args.ep == "all" else [args.ep]
+    targets = ["ep02", "ep03", "ep04", "ep05"] if args.ep == "all" else [args.ep]
     for k in targets:
         build_episode(k)
