@@ -693,6 +693,113 @@ def upload_ep05(
     )
 
 
+def upload_long03(
+    privacy: str = "public",
+    force_api_upload: bool = False,
+    target_date: str | None = None,
+    shared_label: str = "유튜브본편_쇼츠_정책자금대환팩",
+) -> str:
+    long_dir = STUDIO_DIR / "output" / "long03_policy_loan_ladder"
+    mp4_path = long_dir / "BOOZATHINK_Long03_Policy_Loan_Ladder_16x9_1080p.mp4"
+    thumb_path = long_dir / "BOOZATHINK_Long03_Policy_Loan_Thumbnail_1280x720.jpg"
+    if not mp4_path.exists():
+        raise FileNotFoundError(f"Long03 본편 영상이 아직 생성되지 않았습니다: {mp4_path}")
+
+    return upload_shorts_package(
+        mp4_path=mp4_path,
+        thumb_path=thumb_path,
+        title="“급하다고 카드론·은행부터 먼저 누르셨나요?” 순서 한 번 틀렸다가 저금리 정책자금 5,050만 원 날리는 이유 & 연 4.5% 대환 공식 | 부자생각",
+        alt_titles=[
+            "왜 옆집 사장님은 연 2%대로 8,700만 원 받았는데 나는 거절일까? 사업자 대출 ‘3단 황금 조달 순서’ 총정리 | 부자생각",
+            "연 9.8% 대출 5천만 원 ➔ 연 4.5% 대환으로 10년 이자 1,644만 원 아끼는 법 & 스마트상점 국비 500만 원 주의점 | 부자생각",
+        ],
+        description=(
+            "똑같이 연 매출 1억 8,000만 원에 신용점수 800점대인 매장이라도, 어디서부터 자금을 실행했느냐에 따라 조달 가능한 한도와 금리가 완전히 갈립니다.\n\n"
+            "• 순서 실수(모바일 카드론·2금융 먼저 실행): 신용 하락 + 다중채무 분류로 추가 한도가 3,718만 원으로 깎이고 평균 금리 상승\n"
+            "• 정석 조달 사다리(위에서 아래로 실행):\n"
+            "  1) 1순위: 지자체 이자지원(이차보전 1.0~2.5%p) + 지역신용보증재단 보증서 (실질 연 2.1~3.4%대 확보)\n"
+            "  2) 2순위: 소상공인시장진흥공단 일반경영안정·혁신성장 직접대출 결합 (보증서 대리대출과 한도 별도 산정 검토)\n"
+            "  3) 3순위: 배달앱·카드 매출 입금계좌를 주거래 시중은행 한 곳으로 통합해 가맹점 우대 한도 실행\n"
+            "• 이미 연 7% 이상 고금리 사업자대출 보유 시: 소진공 저금리 대환대출(연 4.5% 고정·10년 분할) 전환 시 5,000만 원(연 9.8%) 기준 10년 누적 이자 약 1,644만 원 절감\n"
+            "• 필수 주의사항: 신청일 현재 국세·지방세 체납이 소액이라도 있으면 1단계 자동 거절되며, 스마트상점(최대 500만)·점포철거비(최대 600만) 국비 보조금은 결제·공사 전 사전협약이 필수입니다.\n\n"
+            "은행 창구에 가기 전 내 조건에서 실제로 추가 조달 가능한 한도와 가장 이자 싼 순서를 3초 만에 확인해 보세요.\n"
+            "• 사업자 대출 한도 & 최저금리 조달 순서 라운지: https://boozathink.com/funding\n"
+            "• 17개 시도 정책자금 & 4.5% 대환 매칭기: https://boozathink.com/calculators/policy-funds\n\n"
+            "#부자생각 #BoozaThink #소상공인정책자금 #지역신용보증재단 #저금리대환대출 #사업자대출순서 #이차보전 #스마트상점 #소상공인자금 #자영업"
+        ),
+        pinned_comment=(
+            "은행이나 재단에 가시기 전에 내 매출과 기존 보증·대출 잔액 기준 추가 한도가 얼마 남았는지, 연 4.5% 대환으로 이자를 얼마나 아낄 수 있는지 궁금하시다면\n"
+            "검색창에 ‘부자생각(boozathink.com)’을 쳐서 3초 만에 내 매장 최저금리 조달 순서부터 확인해 보세요!"
+        ),
+        tags=[
+            "부자생각",
+            "BoozaThink",
+            "소상공인정책자금",
+            "사업자대출순서",
+            "지역신용보증재단",
+            "소진공직접대출",
+            "저금리대환대출",
+            "이차보전",
+            "스마트상점보조금",
+            "개인사업자대출",
+        ],
+        privacy=privacy,
+        force_api_upload=force_api_upload,
+        subfolder=resolve_date_subfolder(target_date, shared_label),
+    )
+
+
+def upload_ep06(
+    privacy: str = "public",
+    force_api_upload: bool = False,
+    target_date: str | None = None,
+    shared_label: str = "유튜브본편_쇼츠_정책자금대환팩",
+) -> str:
+    ep_dir = STUDIO_DIR / "output" / "ep06_loan_order_shorts"
+    mp4_path = ep_dir / "BOOZATHINK_EP06_Loan_Order_Refi_9x16_Shorts.mp4"
+    thumb_path = ep_dir / "BOOZATHINK_EP06_Cover_1080x1920.png"
+    if not mp4_path.exists():
+        raise FileNotFoundError(f"EP06 쇼츠 영상이 아직 생성되지 않았습니다: {mp4_path}")
+
+    return upload_shorts_package(
+        mp4_path=mp4_path,
+        thumb_path=thumb_path,
+        title="급하다고 카드론 먼저 눌렀다가 연 2%대 정책자금 5,050만 원 날리는 이유! (사업자 대출 순서) | 부자생각 #Shorts",
+        alt_titles=[
+            "똑같은 매출인데 왜 옆집만 연 2%대 8천만 원 나왔을까? 사업자 대출 3단 황금 순서 | 부자생각 #Shorts",
+            "연 9.8% 대출 ➔ 연 4.5% 대환으로 이자 1,644만 원 아끼는 법 & 키오스크 국비 500만 원 주의점 | 부자생각 #Shorts",
+        ],
+        description=(
+            "운영자금이 급하다고 스마트폰 카드론·2금융부터 먼저 실행하면 다중채무로 분류되어 연 2~3%대 정책·보증서 한도가 크게 깎입니다.\n\n"
+            "• 1순위: 지자체 이차보전 + 지역신용보증재단 보증서 (실질 연 2.1~3.4%)\n"
+            "• 2순위: 소진공 직접대출 & 연 7%↑ 대출 보유 시 연 4.5% 고정 저금리 대환대출 (5천만 원 기준 10년 이자 약 1,644만 원 절감)\n"
+            "• 필수 체크: 국세·지방세 체납 0원 확인 & 키오스크 국비 500만 원은 반드시 결제 전 사전협약 신청!\n\n"
+            "은행 가기 전 내 매장 실제 추가 한도와 최저금리 조달 순서를 3초 만에 확인해 보세요.\n"
+            "• 사업자 대출 한도 & 정책자금 진단: https://boozathink.com/funding\n\n"
+            "#부자생각 #BoozaThink #소상공인정책자금 #사업자대출 #지역신보 #대환대출 #스마트상점 #소상공인 #자영업 #Shorts"
+        ),
+        pinned_comment=(
+            "자세한 3단 조달 사다리와 국비 보조금 사전승인 주의사항은 채널 본편 영상에 담아두었고,\n"
+            "내 매장 추가 한도와 4.5% 대환 절감액은 검색창에 ‘부자생각(boozathink.com)’에서 3초 만에 확인하실 수 있습니다!"
+        ),
+        tags=[
+            "부자생각",
+            "BoozaThink",
+            "소상공인정책자금",
+            "사업자대출",
+            "지역신용보증재단",
+            "저금리대환대출",
+            "스마트상점",
+            "이차보전",
+            "자영업대출",
+            "Shorts",
+        ],
+        privacy=privacy,
+        force_api_upload=force_api_upload,
+        subfolder=resolve_date_subfolder(target_date, shared_label),
+    )
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--auth", action="store_true", help="최초 1회 부자생각(@BoozaThink) 브랜드 채널 전용 OAuth 연동")
@@ -703,12 +810,15 @@ if __name__ == "__main__":
     parser.add_argument("--upload-ep03", action="store_true", help="3호 배달 마진 구멍 해부 쇼츠 스테이징 또는 업로드")
     parser.add_argument("--upload-ep04", action="store_true", help="4호 알바 30분 주휴수당 절벽 쇼츠 스테이징 또는 업로드")
     parser.add_argument("--upload-ep05", action="store_true", help="5호 부가세 1억 400만 절벽 쇼츠 스테이징 또는 업로드")
+    parser.add_argument("--upload-ep06", action="store_true", help="6호 정책자금 조달순서·4.5%% 대환 쇼츠 스테이징 또는 업로드")
     parser.add_argument("--upload-long01", action="store_true", help="1호 본편(16:9) 상가 월세·권리금 13년 함정 스테이징 또는 업로드")
     parser.add_argument("--upload-long02", action="store_true", help="2호 본편(16:9) 부가세·종소세 절벽 심층 해부 스테이징 또는 업로드")
+    parser.add_argument("--upload-long03", action="store_true", help="3호 본편(16:9) 정책자금 조달순서·4.5%% 대환 스테이징 또는 업로드")
     parser.add_argument("--upload-today-pack", action="store_true", help="본편(Long01) + 쇼츠(EP04) 일자별 통합 대기함 패키징")
     parser.add_argument("--upload-vat-pack", action="store_true", help="본편(Long02) + 쇼츠(EP05) 동일주제 부가세절벽 통합 패키징")
-    parser.add_argument("--date", default=None, help="일자별 대기함 폴더 날짜 지정 (예: 2026-11-25)")
-    parser.add_argument("--clean-date", default=None, help="업로드 완료된 일자 폴더 전체 삭제 (예: 2026-11-23)")
+    parser.add_argument("--upload-loan-pack", action="store_true", help="본편(Long03) + 쇼츠(EP06) 동일주제 정책자금·대환 통합 패키징")
+    parser.add_argument("--date", default=None, help="일자별 대기함 폴더 날짜 지정 (예: 2026-11-26)")
+    parser.add_argument("--clean-date", default=None, help="업로드 완료된 일자 폴더 전체 삭제 (예: 2026-11-25)")
     parser.add_argument("--privacy", default="public", choices=["public", "unlisted", "private"])
     parser.add_argument("--force-api-upload", action="store_true", help="대기함 저장과 동시에 YouTube API 직접 업로드 실행")
     args = parser.parse_args()
@@ -735,15 +845,22 @@ if __name__ == "__main__":
         upload_ep04(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
     elif args.upload_ep05:
         upload_ep05(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
+    elif args.upload_ep06:
+        upload_ep06(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
     elif args.upload_long01:
         upload_long01(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
     elif args.upload_long02:
         upload_long02(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
+    elif args.upload_long03:
+        upload_long03(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
     elif args.upload_today_pack:
         upload_long01(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
         upload_ep04(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
     elif args.upload_vat_pack:
         upload_long02(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
         upload_ep05(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
+    elif args.upload_loan_pack:
+        upload_long03(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
+        upload_ep06(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
     else:
-        print("Ready. Options: --auth | --verify-channel | --upload-vat-pack [--date YYYY-MM-DD] | --clean-date YYYY-MM-DD")
+        print("Ready. Options: --auth | --verify-channel | --upload-loan-pack [--date YYYY-MM-DD] | --clean-date YYYY-MM-DD")

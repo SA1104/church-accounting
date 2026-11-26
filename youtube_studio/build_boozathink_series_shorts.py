@@ -320,6 +320,75 @@ EPISODES: dict[str, dict] = {
             },
         ],
     },
+    "ep06": {
+        "out_dir": STUDIO_DIR / "output" / "ep06_loan_order_shorts",
+        "work_dir": STUDIO_DIR / "_work_ep06_shorts",
+        "mp4_name": "BOOZATHINK_EP06_Loan_Order_Refi_9x16_Shorts.mp4",
+        "cover_name": "BOOZATHINK_EP06_Cover_1080x1920.png",
+        "preview_name": "BOOZATHINK_EP06_Preview_Mid.png",
+        "cover_scene_idx": 0,
+        "mid_stingers": True,
+        "scenes": [
+            {
+                "id": "ep06_s1_cardloan_mistake",
+                "asset": ASSETS_DIR / "ep06_s1_cardloan_mistake.jpg",
+                "voice": (
+                    "사장님, 운영 자금이 급하다고 스마트폰으로 카드론이나 이금융권부터 먼저 누르셨나요? "
+                    "대출 순서 한 번 거꾸로 갔을 뿐인데, 연 이 퍼센트대 정책자금 한도 오천오십만 원이 그 자리에서 증발합니다!"
+                ),
+                "step_tag": "부자생각 자금 주의보 · EP.06",
+                "headline": "급하다고 <span class='hl'>카드론 먼저</span> 눌렀다가<br>저금리 한도 <span class='hl'>5,050만 원</span> 증발!",
+                "bubble": "“똑같은 연 매출 1억 8천만 원 매장인데, 왜 옆집은 연 2%대 8천만 원이 나오고 나는 거절이죠?!”",
+                "note_badge": "동일 조건 한도 역전",
+                "note_badge_bg": "#ffe4e6",
+                "note_badge_fg": "#9f1239",
+                "note_title": "순서 실수 3,718만(연 11.8%) vs 정석 순서 8,768만(연 2~3%대)",
+                "note_body": "고금리 카드론·캐피탈을 먼저 실행하면 다중채무로 분류되어 보증서 한도가 깎입니다.",
+                "sub_first": ("운영 자금 급하다고 카드론부터 누르면", "신용 하락과 다중채무로 즉시 분류되어"),
+                "sub_second": ("연 2%대 정책·보증서 한도 5,050만 원이", "앉은 자리에서 그대로 날아갑니다!"),
+                "draw_ratio": 0.64,
+            },
+            {
+                "id": "ep06_s2_three_step_ladder",
+                "asset": ASSETS_DIR / "ep06_s2_three_step_ladder.jpg",
+                "voice": (
+                    "사업자 자금은 무조건 일순위로 지자체 이차보전과 지역신보 보증서를 먼저 받고, "
+                    "이순위로 소진공 직접대출이나 연 사점오 퍼센트 고정 대환대출을 결합해야 합니다. "
+                    "단, 세금 체납이 만 원이라도 있으면 자동 거절되고 키오스크 보조금도 결제 전 사전협약이 필수입니다!"
+                ),
+                "step_tag": "부자생각 황금 공식 · 3단 사다리",
+                "headline": "1순위 <span class='hl'>지역신보 이차보전</span>부터!<br>키오스크 국비 500만은 결제 전 신청",
+                "bubble": "“연 9.8% 대출 5천만 원을 연 4.5% 대환으로 바꾸니 10년 이자만 1,644만 원 아끼네요!”",
+                "note_badge": "3단 조달 & 사전협약 철칙",
+                "note_badge_bg": "#dbeafe",
+                "note_badge_fg": "#1e40af",
+                "note_title": "지역신보(연 2~3%대) ➔ 소진공·4.5% 대환 ➔ 주거래은행 순서!",
+                "note_body": "국세·지방세 완납 확인 필수! 스마트상점 국비 500만 원도 먼저 결제하면 지원 불가입니다.",
+                "sub_first": ("1순위 지역신보 이차보전, 2순위 소진공·4.5% 대환!", "순서만 지켜도 한도와 금리가 완전히 달라집니다"),
+                "sub_second": ("세금 체납 0원 확인 & 키오스크 결제 전 사전협약으로", "국비 최대 500만 원까지 빠짐없이 챙기세요!"),
+                "draw_ratio": 0.65,
+            },
+            {
+                "id": "ep06_s3_refi_and_check",
+                "asset": ASSETS_DIR / "ep06_s3_refi_and_check.jpg",
+                "voice": (
+                    "은행 창구에 가기 전에 내 매출과 기존 대출 잔액으로 추가 한도가 얼마 남았는지, "
+                    "사점오 퍼센트 대환으로 이자를 얼마나 아낄 수 있는지 지금 부자생각에서 삼 초 만에 먼저 진단해 보세요!"
+                ),
+                "step_tag": "은행 가기 전 3초 한도·대환 진단",
+                "headline": "내 매장 <span class='hl'>최저금리 순서</span>와 한도,<br>은행 가기 전 3초 만에 확인하세요!",
+                "bubble": "“기보증 잔액 차감 후 실제 한도랑 17개 시도별 정책자금 순서가 한눈에 딱 나오네요!”",
+                "note_badge": "한도 · 4.5% 대환 · 보조금",
+                "note_badge_bg": "#dcfce7",
+                "note_badge_fg": "#166534",
+                "note_title": "boozathink.com · 사업자 대출 한도 & 정책자금 매칭기",
+                "note_body": "검색창에 ‘부자생각’ — 내 조건 최저금리 순서와 연 4.5% 대환 절감액을 바로 확인하세요!",
+                "sub_first": ("연 9.8% 대출 5천만 원 대환 시 10년 1,644만 원 절감!", "은행 가기 전 내 실제 한도부터 먼저 확인하세요"),
+                "sub_second": ("검색창에 ‘부자생각’ · boozathink.com", "내 매장 맞춤 최저금리 조달 순서를 알려드립니다"),
+                "draw_ratio": 0.58,
+            },
+        ],
+    },
 }
 
 
@@ -778,6 +847,87 @@ def sfx_fountain_pen_sketch(dur_sec: float, seed: int = 17) -> np.ndarray:
     return st
 
 
+def sfx_shorts_brand_flash(dur_sec: float = 0.92) -> np.ndarray:
+    """Snappy 0.92s Mid-Video Brand Flash ('휙-쿵-띠리링!') for inter-scene BOOZA THINK stingers."""
+    n_tot = int(round(dur_sec * SR))
+    st = np.zeros((n_tot, 2), dtype=np.float32)
+    rng = np.random.default_rng(77)
+
+    wn = min(int(0.14 * SR), n_tot)
+    uw = np.linspace(0.0, 1.0, wn, dtype=np.float32)
+    whoosh = fft_bandpass(rng.normal(0.0, 1.0, size=wn).astype(np.float32), 750.0, 5400.0)
+    whoosh = (whoosh / (float(np.max(np.abs(whoosh))) + 1e-6)) * (uw ** 1.5) * 0.16
+    st[:wn, 0] += whoosh * 0.95
+    st[:wn, 1] += whoosh * 1.05
+
+    tn = min(int(0.36 * SR), max(0, n_tot - int(0.11 * SR)))
+    if tn > 32:
+        s_th = int(0.11 * SR)
+        tt = np.arange(tn, dtype=np.float32) / SR
+        thump = np.sin(2.0 * np.pi * (62.0 + 78.0 * np.exp(-tt * 36.0)) * tt) * np.exp(-tt * 13.0) * 0.24
+        st[s_th : s_th + tn, 0] += thump
+        st[s_th : s_th + tn, 1] += thump
+
+    for st_t, hz, l_g, r_g in [(0.13, 783.99, 1.08, 0.92), (0.22, 987.77, 1.0, 1.0), (0.31, 1174.66, 0.92, 1.08)]:
+        s0 = int(round(st_t * SR))
+        bn = min(int(0.55 * SR), n_tot - s0)
+        if bn > 64:
+            tb = np.arange(bn, dtype=np.float32) / SR
+            bell = (np.sin(2.0 * np.pi * hz * tb) * 0.80 + np.sin(2.0 * np.pi * hz * 2.0 * tb) * 0.20) * np.exp(-tb * 6.8)
+            bell *= np.minimum(1.0, tb / 0.004) * 0.17
+            st[s0 : s0 + bn, 0] += bell * l_g
+            st[s0 : s0 + bn, 1] += bell * r_g
+    return st
+
+
+def sfx_brand_ping(dur_sec: float = 0.55) -> np.ndarray:
+    """Subtle 2-note crystal chime ping when the mid-scene BOOZA THINK badge & insight card pop."""
+    n_tot = int(round(dur_sec * SR))
+    st = np.zeros((n_tot, 2), dtype=np.float32)
+    for st_t, hz in [(0.0, 1046.50), (0.09, 1318.51)]:
+        s0 = int(round(st_t * SR))
+        bn = min(int(0.42 * SR), n_tot - s0)
+        if bn > 32:
+            tb = np.arange(bn, dtype=np.float32) / SR
+            bell = np.sin(2.0 * np.pi * hz * tb) * np.minimum(1.0, tb / 0.004) * np.exp(-tb * 8.5) * 0.11
+            st[s0 : s0 + bn, 0] += bell * 0.95
+            st[s0 : s0 + bn, 1] += bell * 1.05
+    return st
+
+
+def render_shorts_mid_stinger_frame(w: int, h: int, progress: float, brush_white_mint: Image.Image, tag_txt: str) -> Image.Image:
+    """0.92s Native 9:16 Royal-Cobalt Blueprint BOOZA THINK Mid-Video Logo Stinger."""
+    p = max(0.0, min(1.0, progress))
+    ease = 1.0 - (1.0 - min(1.0, p / 0.34)) ** 3
+    canvas = Image.new("RGBA", (w, h), (23, 47, 115, 255))
+    dr = ImageDraw.Draw(canvas, "RGBA")
+    for gx in range(0, w, 48):
+        dr.line([(gx, 0), (gx, h)], fill=(59, 130, 246, 52), width=1)
+    for gy in range(0, h, 48):
+        dr.line([(0, gy), (w, gy)], fill=(59, 130, 246, 52), width=1)
+
+    cx, cy = w // 2, h // 2
+    rx = int(455 * (0.90 + 0.10 * ease))
+    ry = int(390 * (0.90 + 0.10 * ease))
+    dr.rounded_rectangle([cx - rx, cy - ry, cx + rx, cy + ry], radius=52, fill=(30, 64, 175, 255), outline=(110, 231, 183, 255), width=6)
+
+    target_lw = int(600 * (0.85 + 0.15 * ease))
+    target_lh = max(32, int(round(target_lw * brush_white_mint.height / float(brush_white_mint.width))))
+    logo_sc = brush_white_mint.resize((target_lw, target_lh), Image.Resampling.LANCZOS)
+    canvas.alpha_composite(logo_sc, (cx - target_lw // 2, cy - target_lh // 2 - 64))
+
+    if p > 0.18:
+        hp = min(1.0, (p - 0.18) / 0.28)
+        full_bw = 760
+        cur_bw = max(32, int(full_bw * hp))
+        by0 = cy + target_lh // 2 - 12
+        dr.rounded_rectangle([cx - full_bw // 2, by0, cx - full_bw // 2 + cur_bw, by0 + 76], radius=38, fill=(16, 185, 129, 255), outline=(255, 255, 255, 255), width=4)
+        if hp > 0.52:
+            f_b = _font(32, True)
+            dr.text((cx - dr.textlength(tag_txt, font=f_b) / 2, by0 + 18), tag_txt, font=f_b, fill=(255, 255, 255, 255))
+    return canvas.convert("RGB")
+
+
 def sfx_finale_chime(dur_sec: float = 2.3) -> np.ndarray:
     n = int(round(dur_sec * SR))
     st = np.zeros((n, 2), dtype=np.float32)
@@ -871,6 +1021,10 @@ def build_episode(ep_key: str) -> Path:
     paper_arr = np.asarray(paper_base, dtype=np.float32)
     pen_sprite = create_fountain_pen_cursor()
     brush_indigo_cobalt = load_boozathink_brush_rgba((23, 37, 84), (37, 99, 235), target_w=640)
+    brush_white_mint = load_boozathink_brush_rgba((255, 255, 255), (110, 231, 183), target_w=640)
+    use_mid_stingers = bool(cfg.get("mid_stingers", False))
+    mid_dur = 0.92 if use_mid_stingers else 0.0
+    mid_frames = int(round(mid_dur * FPS)) if use_mid_stingers else 0
 
     box_x, box_y, box_w, box_h = 104, 504, 872, 852
     u_grid = np.linspace(0.0, 1.0, box_w, dtype=np.float32)[None, :]
@@ -924,7 +1078,8 @@ def build_episode(ep_key: str) -> Path:
 
     fin_dur = 2.25
     fin_frames = int(round(fin_dur * FPS))
-    total_frames = sum(s["frames"] for s in prepared_scenes) + fin_frames
+    num_mid_breaks = max(0, len(prepared_scenes) - 1) if use_mid_stingers else 0
+    total_frames = sum(s["frames"] for s in prepared_scenes) + num_mid_breaks * mid_frames + fin_frames
     total_dur = total_frames / float(FPS)
 
     silent_mp4 = work_dir / f"{ep_key}_silent.mp4"
@@ -942,9 +1097,14 @@ def build_episode(ep_key: str) -> Path:
     proc = subprocess.Popen(cmd_vid, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     foley_intervals: list[tuple[float, float, int]] = []
+    mid_stinger_times: list[float] = []
+    ping_times: list[float] = []
+    vo_start_times: list[float] = []
     t_offset = 0.0
+    mid_labels = ["부자생각  ·  핵심 조달 공식", "부자생각  ·  3초 한도 진단"]
 
     for s_idx, sc in enumerate(prepared_scenes):
+        vo_start_times.append(t_offset)
         n_frames = sc["frames"]
         dur = sc["dur"]
         t_draw_start = 0.10
@@ -952,6 +1112,8 @@ def build_episode(ep_key: str) -> Path:
         t_col_start = t_draw_end * 0.70
         t_col_dur = max(1.0, dur * 0.24)
         foley_intervals.append((t_offset + t_draw_start, max(0.8, t_draw_end - t_draw_start), 41 + s_idx * 19))
+        if use_mid_stingers:
+            ping_times.append(t_offset + dur * 0.46)
 
         ord_map = sc["ord_map"]
         ink_arr = sc["ink_arr"]
@@ -994,6 +1156,12 @@ def build_episode(ep_key: str) -> Path:
             ov = sc["ov1"] if t < (dur * 0.46) else sc["ov2"]
             frame_rgba.alpha_composite(ov)
 
+            # Mid-scene BOOZA THINK top-right badge glow when core formula pops
+            if use_mid_stingers and abs(t - dur * 0.46) < 0.34:
+                ga = int(230 * (1.0 - abs(t - dur * 0.46) / 0.34))
+                dr_g = ImageDraw.Draw(frame_rgba, "RGBA")
+                dr_g.rounded_rectangle([676, 82, 998, 140], radius=29, outline=(16, 185, 129, ga), width=5)
+
             if 0.002 < p_draw < 0.992:
                 pi = min(m_pts - 1, int(p_draw * (m_pts - 1)))
                 pi_prev = max(0, pi - 3)
@@ -1016,7 +1184,16 @@ def build_episode(ep_key: str) -> Path:
 
         t_offset += dur
 
+        if use_mid_stingers and s_idx < len(prepared_scenes) - 1:
+            mid_stinger_times.append(t_offset)
+            lbl_m = mid_labels[min(s_idx, len(mid_labels) - 1)]
+            for mfi in range(mid_frames):
+                fr_m = render_shorts_mid_stinger_frame(W, H, mfi / float(max(1, mid_frames - 1)), brush_white_mint, lbl_m)
+                proc.stdin.write(fr_m.tobytes())
+            t_offset += mid_frames / float(FPS)
+
     # Finale Brand Stinger Frames
+    fin_start_t = t_offset
     for fi in range(fin_frames):
         fr_fin = render_finale_stinger_frame(W, H, fi / float(max(1, fin_frames - 1)), brush_indigo_cobalt)
         proc.stdin.write(fr_fin.tobytes())
@@ -1026,14 +1203,12 @@ def build_episode(ep_key: str) -> Path:
 
     # Audio Master Mix
     master_st = synth_warm_sketch_bgm(total_dur)
-    cur_t = 0.0
-    for sc in prepared_scenes:
+    for s_idx, sc in enumerate(prepared_scenes):
         vo_st = read_stereo_wav_float(sc["vo_wav"]) * 1.02
-        s0 = int(round(cur_t * SR))
+        s0 = int(round(vo_start_times[s_idx] * SR))
         seg_n = min(len(vo_st), len(master_st) - s0)
         if seg_n > 0:
             master_st[s0 : s0 + seg_n] += vo_st[:seg_n]
-        cur_t += sc["dur"]
 
     for f_start, f_dur, f_seed in foley_intervals:
         pen_st = sfx_fountain_pen_sketch(f_dur, seed=f_seed)
@@ -1042,8 +1217,22 @@ def build_episode(ep_key: str) -> Path:
         if seg_n > 0:
             master_st[s0 : s0 + seg_n] += pen_st[:seg_n]
 
+    for pt in ping_times:
+        ping_st = sfx_brand_ping(0.55)
+        s0 = int(round(pt * SR))
+        seg_n = min(len(ping_st), len(master_st) - s0)
+        if seg_n > 0:
+            master_st[s0 : s0 + seg_n] += ping_st[:seg_n]
+
+    for mt in mid_stinger_times:
+        flash_st = sfx_shorts_brand_flash(mid_dur) * 0.95
+        s0 = int(round(mt * SR))
+        seg_n = min(len(flash_st), len(master_st) - s0)
+        if seg_n > 0:
+            master_st[s0 : s0 + seg_n] += flash_st[:seg_n]
+
     fin_chime = sfx_finale_chime(fin_dur)
-    s_fin = int(round(max(0.0, cur_t - 0.04) * SR))
+    s_fin = int(round(max(0.0, fin_start_t - 0.04) * SR))
     seg_fin = min(len(fin_chime), len(master_st) - s_fin)
     if seg_fin > 0:
         master_st[s_fin : s_fin + seg_fin] += fin_chime[:seg_fin]
@@ -1075,8 +1264,8 @@ def build_episode(ep_key: str) -> Path:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--ep", default="all", choices=["ep02", "ep03", "ep04", "ep05", "all"])
+    parser.add_argument("--ep", default="all", choices=["ep02", "ep03", "ep04", "ep05", "ep06", "all"])
     args = parser.parse_args()
-    targets = ["ep02", "ep03", "ep04", "ep05"] if args.ep == "all" else [args.ep]
+    targets = ["ep02", "ep03", "ep04", "ep05", "ep06"] if args.ep == "all" else [args.ep]
     for k in targets:
         build_episode(k)
