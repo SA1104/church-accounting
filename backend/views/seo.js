@@ -48,6 +48,10 @@ User-agent: Mediapartners-Google
 Allow: /
 Disallow: /admin
 
+User-agent: AdsBot-Google
+Allow: /
+Disallow: /admin
+
 User-agent: Google-Display-Ads-Bot
 Allow: /
 Disallow: /admin

@@ -584,7 +584,7 @@ app.use('/api', (req, res) => res.status(404).json({ ok: false, error: 'not foun
 // 404
 app.use((req, res) => {
   const v = pages.notFound();
-  send(res, { title: '페이지를 찾을 수 없습니다', path: req.path, body: v.body, noindex: true, noCache: true }, 404);
+  send(res, { title: '페이지를 찾을 수 없습니다', path: req.path, body: v.body, noindex: true, noCache: true, skipAnalytics: true }, 404);
 });
 
 // 에러 핸들러

@@ -175,8 +175,9 @@ function extractMetaToken(raw) {
   return (m ? m[1] : s).replace(/[<>"'\s]/g, '').slice(0, 120);
 }
 
-function externalTrackingHead(runtimeCfg) {
+function externalTrackingHead(runtimeCfg, opts) {
   const cfg = runtimeCfg && typeof runtimeCfg === 'object' ? runtimeCfg : { adsense: runtimeCfg };
+  const noindex = Boolean(opts && opts.noindex);
   const out = [];
   const gscTok = extractMetaToken(process.env.GOOGLE_SITE_VERIFICATION || cfg.gsc);
   const navTok = extractMetaToken(process.env.NAVER_SITE_VERIFICATION || cfg.naver || DEFAULT_NAVER_VERIFICATION);
@@ -192,7 +193,7 @@ function externalTrackingHead(runtimeCfg) {
     out.push(`<script>(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","${cid}");</script>`);
   }
   const ads = normalizeAdSenseClient(process.env.ADSENSE_CLIENT || cfg.adsense || DEFAULT_ADSENSE_CLIENT);
-  if (ads) {
+  if (ads && !noindex) {
     out.push(`<meta name="google-adsense-account" content="${esc(ads.caPub)}">`);
     out.push(`<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${esc(ads.caPub)}" crossorigin="anonymous"></script>`);
   }
@@ -246,7 +247,7 @@ ${opts.modified ? `<meta property="article:modified_time" content="${opts.modifi
 <link rel="stylesheet" href="/css/app.css?v=${ASSET_V}">
 <script>(function(){try{var t=localStorage.getItem('bt-theme');if(!t){t=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){}})();</script>
 ${ld}
-${opts.skipAnalytics ? '' : externalTrackingHead(opts.runtimeCfg)}
+${opts.skipAnalytics ? '' : externalTrackingHead(opts.runtimeCfg, opts)}
 </head>
 <body class="${opts.bodyClass || ''}">
 <a class="skip" href="#main">본문 바로가기</a>
