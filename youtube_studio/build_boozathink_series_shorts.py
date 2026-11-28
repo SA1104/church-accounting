@@ -389,6 +389,78 @@ EPISODES: dict[str, dict] = {
             },
         ],
     },
+    "ep07": {
+        "out_dir": STUDIO_DIR / "output" / "ep07_seller_roas_shorts",
+        "work_dir": STUDIO_DIR / "_work_ep07_shorts",
+        "mp4_name": "BOOZATHINK_EP07_Seller_ROAS_Story_9x16_Shorts.mp4",
+        "cover_name": "BOOZATHINK_EP07_Cover_1080x1920.png",
+        "preview_name": "BOOZATHINK_EP07_Preview_Mid.png",
+        "cover_scene_idx": 0,
+        "mid_stingers": True,
+        "mid_labels": [
+            "부자생각  ·  29,900원 영수증 해부",
+            "부자생각  ·  +386만 원 반전 공식",
+        ],
+        "scenes": [
+            {
+                "id": "ep07_s1_roas300_trap",
+                "asset": ASSETS_DIR / "ep07_s1_roas300_trap.jpg",
+                "voice": (
+                    "얼마 전 퇴근 후 밤잠 줄여 온라인 쇼핑몰을 시작한 아는 동생이 형! 광고 로아스 삼백 퍼센트에 한 달 구백 개나 팔렸어! 라며 신나하더니, "
+                    "정산 날 얼굴이 하얗게 질려서 왔습니다. 구백 개를 팔고도 카드값 메우느라 본업 월급에서 백만 원이 마이너스가 난 겁니다!"
+                ),
+                "step_tag": "부자생각 셀러 실화 · EP.07",
+                "headline": "“ROAS <span class='hl'>300%</span> 찍었어!” 좋아하다<br>정산 날 월급 <span class='hl'>100만 원</span> 날린 이유",
+                "bubble": "“29,900원 수납함을 한 달 900개나 팔았는데, 왜 내 통장은 오히려 -100만 원 적자일까요?!”",
+                "note_badge": "주변 셀러 실제 정산 참사",
+                "note_badge_bg": "#ffe4e6",
+                "note_badge_fg": "#9f1239",
+                "note_title": "겉보기 매출 2,691만 원 vs 실제 정산 -100만 4천 원!",
+                "note_body": "밤새 택배 900개 싸서 보내고, 팔릴 때마다 내 돈 1,055원씩을 얹어 보내주고 있었습니다.",
+                "sub_first": ("“형! 광고 ROAS 300% 찍고 900개 팔렸어!”", "퇴사까지 고민하며 기뻐하던 아는 동생이"),
+                "sub_second": ("정산 날 본업 월급에서 100만 원을 메웠습니다!", "대체 어디서 돈이 새고 있었을까요?"),
+                "draw_ratio": 0.64,
+            },
+            {
+                "id": "ep07_s2_hidden_fees_anatomy",
+                "asset": ASSETS_DIR / "ep07_s2_hidden_fees_anatomy.jpg",
+                "voice": (
+                    "노트북을 펴고 뜯어보니 쿠팡 수수료 십점팔 퍼센트에 부가세가 붙어 실효 십일점팔팔 퍼센트가 빠지고, 물류비와 부가세, 반품 손실을 빼면 광고 전 순마진은 팔천구백십이 원, 즉 본전 로아스가 삼백삼십오 퍼센트였습니다! "
+                    "그래서 스마트스토어 마케팅 유입 링크로 수수료를 사점육삼 퍼센트로 낮추고 입찰 상한을 이백이십 원으로 잠갔더니 한 달 만에 삼백팔십육만 원 흑자로 뒤집혔습니다!"
+                ),
+                "step_tag": "부자생각 마진 해부 · 반전 처방",
+                "headline": "본전 ROAS는 <span class='hl'>335%</span>였는데<br>300%에 속아 팔수록 손해!",
+                "bubble": "“외부 광고 손님을 ‘판매자 마케팅 유입 링크’로 연결하니 수수료가 4.63%로 뚝 떨어지네요!”",
+                "note_badge": "한 달 만에 +486만 원 역전",
+                "note_badge_bg": "#dbeafe",
+                "note_badge_fg": "#1e40af",
+                "note_title": "마케팅 링크(4.63%) + 반품 방어(2%) + 입찰 상한(220원)",
+                "note_body": "본전 ROAS를 335% → 246%로 낮추자 똑같이 900개 팔고 월 +386만 원 순수익 달성!",
+                "sub_first": ("광고 전 순마진 8,912원 vs 광고비 9,967원!", "본전 ROAS 335%를 모르면 팔수록 적자입니다"),
+                "sub_second": ("마케팅 유입 링크 + 클릭당 220원 상한 잠금으로", "똑같이 팔고 월 +386만 원 흑자로 반전!"),
+                "draw_ratio": 0.65,
+            },
+            {
+                "id": "ep07_s3_roas_turnaround",
+                "asset": ASSETS_DIR / "ep07_s3_roas_turnaround.jpg",
+                "voice": (
+                    "오늘 밤 광고비를 단 만 원이라도 더 충전하기 전에 내 상품의 진짜 손익분기 로아스와 클릭당 입찰 상한선부터 꼭 확인해 보세요. "
+                    "검색창에 부자생각을 치시면 쿠팡과 스토어 실효 수수료, 위안화 환율 원가까지 삼 초 만에 바로 판독해 드립니다!"
+                ),
+                "step_tag": "광고비 충전 전 3초 본전 판독",
+                "headline": "내 상품 <span class='hl'>진짜 손익분기 ROAS</span>,<br>광고 돌리기 전 3초 만에 확인!",
+                "bubble": "“클릭당 몇 원 이상 입찰하면 적자인지, 위안화 환율 반영 원가까지 한눈에 딱 나오네요!”",
+                "note_badge": "셀러 마진 · 안전 CPC 판독",
+                "note_badge_bg": "#dcfce7",
+                "note_badge_fg": "#166534",
+                "note_title": "boozathink.com · 스마트스토어 & 쿠팡 마진 계산기",
+                "note_body": "검색창에 ‘부자생각’ — 대행사 리포트에 속지 말고 내 상품 본전 ROAS부터 확인하세요!",
+                "sub_first": ("리포트 ROAS 숫자만 믿고 광고비 태우지 마세요!", "내 상품 본전 기준선과 안전 CPC부터 체크"),
+                "sub_second": ("검색창에 ‘부자생각’ · boozathink.com", "3초 만에 셀러 마진 구멍을 막아드립니다"),
+                "draw_ratio": 0.58,
+            },
+        ],
+    },
 }
 
 
@@ -1101,7 +1173,7 @@ def build_episode(ep_key: str) -> Path:
     ping_times: list[float] = []
     vo_start_times: list[float] = []
     t_offset = 0.0
-    mid_labels = ["부자생각  ·  핵심 조달 공식", "부자생각  ·  3초 한도 진단"]
+    mid_labels = cfg.get("mid_labels") or ["부자생각  ·  핵심 조달 공식", "부자생각  ·  3초 한도 진단"]
 
     for s_idx, sc in enumerate(prepared_scenes):
         vo_start_times.append(t_offset)
@@ -1264,8 +1336,8 @@ def build_episode(ep_key: str) -> Path:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--ep", default="all", choices=["ep02", "ep03", "ep04", "ep05", "ep06", "all"])
+    parser.add_argument("--ep", default="all", choices=["ep02", "ep03", "ep04", "ep05", "ep06", "ep07", "all"])
     args = parser.parse_args()
-    targets = ["ep02", "ep03", "ep04", "ep05", "ep06"] if args.ep == "all" else [args.ep]
+    targets = ["ep02", "ep03", "ep04", "ep05", "ep06", "ep07"] if args.ep == "all" else [args.ep]
     for k in targets:
         build_episode(k)

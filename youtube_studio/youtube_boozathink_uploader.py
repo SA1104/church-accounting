@@ -800,6 +800,116 @@ def upload_ep06(
     )
 
 
+def upload_long04(
+    privacy: str = "public",
+    force_api_upload: bool = False,
+    target_date: str | None = None,
+    shared_label: str = "유튜브본편_쇼츠_셀러ROAS실화팩",
+) -> str:
+    long_dir = STUDIO_DIR / "output" / "long04_seller_roas_story"
+    mp4_path = long_dir / "BOOZATHINK_Long04_Seller_ROAS_Story_16x9_1080p.mp4"
+    thumb_path = long_dir / "BOOZATHINK_Long04_Seller_ROAS_Thumbnail_1280x720.jpg"
+    if not mp4_path.exists():
+        raise FileNotFoundError(f"Long04 본편 영상이 아직 생성되지 않았습니다: {mp4_path}")
+
+    return upload_shorts_package(
+        mp4_path=mp4_path,
+        thumb_path=thumb_path,
+        title="“형! 광고 ROAS 300% 찍고 월 매출 2,700만 원 나왔어!” — 좋아하던 동생이 정산 날 월급에서 100만 원 메운 이유 & 월 +386만 원 반전 공식 | 부자생각",
+        alt_titles=[
+            "900개 불티나게 팔고 왜 통장은 -100만 원 적자일까? 쿠팡·스마트스토어 셀러 10명 중 8명이 속는 ‘손익분기 ROAS’의 진실 | 부자생각",
+            "쿠팡 실효수수료 11.88% 함정부터 스마트스토어 마케팅 유입 링크(4.63%)·안전 CPC 잠금까지 원 단위 해부 | 부자생각",
+        ],
+        description=(
+            "직장을 다니며 밤잠 줄여 온라인 쇼핑몰을 시작한 아는 동생이 실제로 겪었던 ‘ROAS 300% 정산 쇼크’와,\n"
+            "광고를 끄지 않고 3가지만 교정해 한 달 만에 월 +386만 원 순수익으로 뒤집은 실전 공식을 원 단위로 공개합니다.\n\n"
+            "• 실제 사례 해부 (29,900원 캠핑 수납함 × 한 달 900개 판매 = 겉보기 월 매출 2,691만 원):\n"
+            "  1) 사입원가(10,200원) + 입고물류비(1,500원) = 11,700원\n"
+            "  2) 쿠팡 로켓그로스 실효수수료 11.88% (명목 10.8% + 수수료 부가세 10% 별도!) = 3,552원\n"
+            "  3) 입출고·배송비(3,200원) + 납부 부가세(1,041원) + 5% 반품·불량 손실(1,495원)\n"
+            "  → 광고 전 진짜 순마진은 개당 8,912원(29.8%), 즉 ‘진짜 손익분기 ROAS’는 335%였습니다!\n"
+            "  → ROAS 300%(개당 광고비 9,967원)에 속아 물량을 늘리니 1개 팔릴 때마다 -1,055원씩 손실 + 월 서버이용료 5.5만 원 = 월 -100만 4천 원 적자!\n\n"
+            "• 한 달 만에 월 +386만 원(+486만 원 역전) 만든 3가지 처방:\n"
+            "  ① 외부 광고 유입 고객을 스마트스토어 ‘판매자 마케팅 유입 전용 링크’로 연결 → 총 수수료 4.63%로 절감\n"
+            "  ② 상세페이지 상단 실측 비교표 배치로 반품률 5% → 2% 축소 → 손익분기 ROAS 335% → 246% 하락\n"
+            "  ③ 전환율(2.8%) 기준 손익분기 CPC(340원)의 70% 안전 상한선(220원) 잠금으로 과열 입찰 원천 차단\n\n"
+            "오늘 광고비를 더 충전하기 전, 내 상품의 진짜 손익분기 ROAS와 클릭당 최대 입찰가를 3초 만에 검산해 보세요.\n"
+            "• 스마트스토어·쿠팡 마진 & 손익분기 ROAS 계산기 (위안화·달러 환율 연동): https://boozathink.com/calculators/seller-roas\n\n"
+            "#부자생각 #BoozaThink #스마트스토어마진계산기 #쿠팡로켓그로스 #손익분기ROAS #셀러마진계산 #온라인쇼핑몰창업 #부업실화 #네이버쇼핑광고 #쿠팡수수료"
+        ),
+        pinned_comment=(
+            "광고 대행사 리포트에 찍힌 ROAS 숫자만 믿고 광고비를 충전하고 계신다면, 지금 내 상품의 ‘진짜 손익분기 ROAS’와 ‘클릭당 입찰 상한선(안전 CPC)’부터 꼭 확인해 보세요!\n"
+            "검색창에 ‘부자생각(boozathink.com)’을 치시면 쿠팡·스마트스토어 실효 수수료와 위안화·달러 환율 원가까지 반영해 3초 만에 판독하실 수 있습니다."
+        ),
+        tags=[
+            "부자생각",
+            "BoozaThink",
+            "스마트스토어마진계산기",
+            "쿠팡수수료계산",
+            "로켓그로스마진",
+            "손익분기ROAS",
+            "ROAS계산법",
+            "온라인셀러",
+            "쇼핑몰부업",
+            "판매자마케팅유입",
+        ],
+        privacy=privacy,
+        force_api_upload=force_api_upload,
+        subfolder=resolve_date_subfolder(target_date, shared_label),
+    )
+
+
+def upload_ep07(
+    privacy: str = "public",
+    force_api_upload: bool = False,
+    target_date: str | None = None,
+    shared_label: str = "유튜브본편_쇼츠_셀러ROAS실화팩",
+) -> str:
+    ep_dir = STUDIO_DIR / "output" / "ep07_seller_roas_shorts"
+    mp4_path = ep_dir / "BOOZATHINK_EP07_Seller_ROAS_Story_9x16_Shorts.mp4"
+    thumb_path = ep_dir / "BOOZATHINK_EP07_Cover_1080x1920.png"
+    if not mp4_path.exists():
+        raise FileNotFoundError(f"EP07 쇼츠 영상이 아직 생성되지 않았습니다: {mp4_path}")
+
+    return upload_shorts_package(
+        mp4_path=mp4_path,
+        thumb_path=thumb_path,
+        title="“형! 광고 ROAS 300% 찍었어!” 좋아하다 정산 날 월급 100만 원 날린 동생 실화 | 부자생각 #Shorts",
+        alt_titles=[
+            "900개 팔고 왜 -100만 원 적자?! 본전 ROAS 335%의 비밀과 월 +386만 원 반전 공식 | 부자생각 #Shorts",
+            "쿠팡 실효수수료 11.88% 함정 피하고 마케팅 유입 링크로 마진 뒤집은 실전 처방 | 부자생각 #Shorts",
+        ],
+        description=(
+            "퇴근 후 밤잠 줄여 쇼핑몰을 시작한 아는 동생이 ‘ROAS 300%에 한 달 900개 팔렸다’며 기뻐하다가, 정산 날 오히려 본업 월급에서 100만 원을 메운 실제 사연입니다.\n\n"
+            "• 쿠팡 수수료 10.8%+VAT(실효 11.88%) + 입출고·배송비 + 부가세 + 반품 손실을 빼면 29,900원 상품의 광고 전 순마진은 8,912원(본전 ROAS 335%)뿐!\n"
+            "• ROAS 300%(개당 광고비 9,967원)로 팔면 1개 나갈 때마다 -1,055원씩 자동 적자!\n"
+            "• 스마트스토어 ‘판매자 마케팅 유입 링크(총 수수료 4.63%)’ + 반품률 개선 + 입찰 상한 220원 잠금으로 다음 달 똑같이 900개 팔고 월 +386만 원 흑자로 대역전했습니다.\n\n"
+            "광고비 충전 전 내 상품의 진짜 손익분기 ROAS와 안전 CPC를 3초 만에 확인해 보세요.\n"
+            "• 셀러 마진 & 손익분기 ROAS 판독기: https://boozathink.com/calculators/seller-roas\n\n"
+            "#부자생각 #BoozaThink #스마트스토어 #쿠팡셀러 #손익분기ROAS #마진계산기 #온라인셀러 #쇼핑몰창업 #자영업 #Shorts"
+        ),
+        pinned_comment=(
+            "29,900원 상품에서 돈이 새나간 5가지 원 단위 내역과 +386만 원 반전 세팅법 전체 이야기는 채널 본편 영상에 담아두었고,\n"
+            "내 상품 본전 ROAS와 클릭당 안전 입찰가는 검색창에 ‘부자생각(boozathink.com)’에서 3초 만에 확인하실 수 있습니다!"
+        ),
+        tags=[
+            "부자생각",
+            "BoozaThink",
+            "스마트스토어",
+            "쿠팡로켓그로스",
+            "손익분기ROAS",
+            "셀러마진계산기",
+            "온라인쇼핑몰",
+            "직장인부업",
+            "광고ROAS",
+            "Shorts",
+        ],
+        privacy=privacy,
+        force_api_upload=force_api_upload,
+        subfolder=resolve_date_subfolder(target_date, shared_label),
+    )
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--auth", action="store_true", help="최초 1회 부자생각(@BoozaThink) 브랜드 채널 전용 OAuth 연동")
@@ -811,14 +921,17 @@ if __name__ == "__main__":
     parser.add_argument("--upload-ep04", action="store_true", help="4호 알바 30분 주휴수당 절벽 쇼츠 스테이징 또는 업로드")
     parser.add_argument("--upload-ep05", action="store_true", help="5호 부가세 1억 400만 절벽 쇼츠 스테이징 또는 업로드")
     parser.add_argument("--upload-ep06", action="store_true", help="6호 정책자금 조달순서·4.5%% 대환 쇼츠 스테이징 또는 업로드")
+    parser.add_argument("--upload-ep07", action="store_true", help="7호 셀러 ROAS 300%% 적자 실화 쇼츠 스테이징 또는 업로드")
     parser.add_argument("--upload-long01", action="store_true", help="1호 본편(16:9) 상가 월세·권리금 13년 함정 스테이징 또는 업로드")
     parser.add_argument("--upload-long02", action="store_true", help="2호 본편(16:9) 부가세·종소세 절벽 심층 해부 스테이징 또는 업로드")
     parser.add_argument("--upload-long03", action="store_true", help="3호 본편(16:9) 정책자금 조달순서·4.5%% 대환 스테이징 또는 업로드")
+    parser.add_argument("--upload-long04", action="store_true", help="4호 본편(16:9) 셀러 ROAS 300%% 적자 실화 스테이징 또는 업로드")
     parser.add_argument("--upload-today-pack", action="store_true", help="본편(Long01) + 쇼츠(EP04) 일자별 통합 대기함 패키징")
     parser.add_argument("--upload-vat-pack", action="store_true", help="본편(Long02) + 쇼츠(EP05) 동일주제 부가세절벽 통합 패키징")
     parser.add_argument("--upload-loan-pack", action="store_true", help="본편(Long03) + 쇼츠(EP06) 동일주제 정책자금·대환 통합 패키징")
-    parser.add_argument("--date", default=None, help="일자별 대기함 폴더 날짜 지정 (예: 2026-11-26)")
-    parser.add_argument("--clean-date", default=None, help="업로드 완료된 일자 폴더 전체 삭제 (예: 2026-11-25)")
+    parser.add_argument("--upload-roas-pack", action="store_true", help="본편(Long04) + 쇼츠(EP07) 동일주제 셀러 ROAS 실화 통합 패키징")
+    parser.add_argument("--date", default=None, help="일자별 대기함 폴더 날짜 지정 (예: 2026-11-28)")
+    parser.add_argument("--clean-date", default=None, help="업로드 완료된 일자 폴더 전체 삭제 (예: 2026-11-26)")
     parser.add_argument("--privacy", default="public", choices=["public", "unlisted", "private"])
     parser.add_argument("--force-api-upload", action="store_true", help="대기함 저장과 동시에 YouTube API 직접 업로드 실행")
     args = parser.parse_args()
@@ -847,12 +960,16 @@ if __name__ == "__main__":
         upload_ep05(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
     elif args.upload_ep06:
         upload_ep06(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
+    elif args.upload_ep07:
+        upload_ep07(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
     elif args.upload_long01:
         upload_long01(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
     elif args.upload_long02:
         upload_long02(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
     elif args.upload_long03:
         upload_long03(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
+    elif args.upload_long04:
+        upload_long04(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
     elif args.upload_today_pack:
         upload_long01(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
         upload_ep04(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
@@ -862,5 +979,8 @@ if __name__ == "__main__":
     elif args.upload_loan_pack:
         upload_long03(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
         upload_ep06(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
+    elif args.upload_roas_pack:
+        upload_long04(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
+        upload_ep07(privacy=args.privacy, force_api_upload=args.force_api_upload, target_date=args.date)
     else:
-        print("Ready. Options: --auth | --verify-channel | --upload-loan-pack [--date YYYY-MM-DD] | --clean-date YYYY-MM-DD")
+        print("Ready. Options: --auth | --verify-channel | --upload-roas-pack [--date YYYY-MM-DD] | --clean-date YYYY-MM-DD")
